@@ -9,6 +9,7 @@ import TableRow from '@tiptap/extension-table-row'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 import TextStyle from '@tiptap/extension-text-style'
+import { Color } from '@tiptap/extension-color'
 import { 
   Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, 
   AlignLeft, AlignCenter, AlignRight, Link as LinkIcon,
@@ -46,6 +47,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
       TableCell,
       TableHeader,
       TextStyle,
+      Color,
     ],
     content: value,
     onUpdate: ({ editor }) => {
@@ -58,7 +60,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
   }
 
   const setFontSize = (size: string) => {
-    editor.chain().focus().setStyle({ fontSize: size }).run()
+    editor.chain().focus().setFontSize(size).run()
   }
 
   const addImage = () => {
