@@ -91,7 +91,11 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
-    input.onchange = (e) => handleImageUpload(e as React.ChangeEvent<HTMLInputElement>)
+    input.onchange = (e) => {
+      if (e.target instanceof HTMLInputElement) {
+        handleImageUpload(e as React.ChangeEvent<HTMLInputElement>)
+      }
+    }
     input.click()
   }
 
@@ -105,6 +109,8 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
   const addTable = () => {
     editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
   }
+
+  // ... keep existing code (JSX for the editor toolbar buttons)
 
   return (
     <div className="border rounded-md">
@@ -143,16 +149,16 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => editor.chain().focus().setFontSize('12px').run()}>
+            <DropdownMenuItem onClick={() => editor.chain().focus().setStyle({ fontSize: '12px' }).run()}>
               Petit
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().setFontSize('16px').run()}>
+            <DropdownMenuItem onClick={() => editor.chain().focus().setStyle({ fontSize: '16px' }).run()}>
               Normal
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().setFontSize('20px').run()}>
+            <DropdownMenuItem onClick={() => editor.chain().focus().setStyle({ fontSize: '20px' }).run()}>
               Grand
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().setFontSize('24px').run()}>
+            <DropdownMenuItem onClick={() => editor.chain().focus().setStyle({ fontSize: '24px' }).run()}>
               Très grand
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -309,7 +315,6 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-
       </div>
       <EditorContent 
         editor={editor} 
