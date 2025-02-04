@@ -8,11 +8,12 @@ import Table from '@tiptap/extension-table'
 import TableRow from '@tiptap/extension-table-row'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
+import TextStyle from '@tiptap/extension-text-style'
 import { 
   Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, 
   AlignLeft, AlignCenter, AlignRight, Link as LinkIcon,
   Image as ImageIcon, Table as TableIcon, Quote, Code,
-  Indent, MoreVertical, Heading1, Heading2, Heading3
+  MoreVertical, Heading1, Heading2, Heading3
 } from "lucide-react"
 import { 
   DropdownMenu,
@@ -44,6 +45,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
       TableRow,
       TableCell,
       TableHeader,
+      TextStyle,
     ],
     content: value,
     onUpdate: ({ editor }) => {
@@ -53,6 +55,10 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
 
   if (!editor) {
     return null
+  }
+
+  const setFontSize = (size: string) => {
+    editor.chain().focus().setStyle({ fontSize: size }).run()
   }
 
   const addImage = () => {
@@ -110,16 +116,16 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => editor.chain().focus().setFontSize('12px').run()}>
+            <DropdownMenuItem onClick={() => setFontSize('12px')}>
               Petit
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().setFontSize('16px').run()}>
+            <DropdownMenuItem onClick={() => setFontSize('16px')}>
               Normal
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().setFontSize('20px').run()}>
+            <DropdownMenuItem onClick={() => setFontSize('20px')}>
               Grand
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().setFontSize('24px').run()}>
+            <DropdownMenuItem onClick={() => setFontSize('24px')}>
               Très grand
             </DropdownMenuItem>
           </DropdownMenuContent>
