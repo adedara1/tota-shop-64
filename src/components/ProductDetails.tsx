@@ -31,13 +31,6 @@ const ProductDetails = ({
       
       <div className="space-y-4 pt-6">
         <div className="flex items-center gap-2">
-          <span>❄️</span>
-          <p className="font-medium">
-            Climatiseur mural portable : Votre fraîcheur alliée pour affronter la chaleur !
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-2">
           <span>🌡️</span>
           <p className="font-medium">
             Dites adieu aux journées étouffantes ! 🔥
