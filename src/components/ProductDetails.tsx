@@ -14,8 +14,8 @@ const ProductDetails = ({
   cartUrl,
 }: ProductDetailsProps) => {
   return (
-    <div className="space-y-6">
-      <h1 className="text-5xl font-medium">{name}</h1>
+    <div className="space-y-6 max-w-full">
+      <h1 className="text-5xl font-medium break-words">{name}</h1>
       
       <div className="flex items-center gap-4">
         <span className="text-gray-400 line-through text-2xl">CFA{originalPrice}</span>
@@ -30,7 +30,7 @@ const ProductDetails = ({
       </a>
       
       <div className="space-y-4 pt-6">
-        <div className="mt-6 text-gray-600 prose max-w-none">
+        <div className="mt-6 text-gray-600 prose max-w-full overflow-hidden break-words">
           <div dangerouslySetInnerHTML={{ __html: description }} />
         </div>
       </div>
