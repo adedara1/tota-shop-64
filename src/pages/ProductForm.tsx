@@ -5,6 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import type { Database } from "@/integrations/supabase/types";
+
+type Product = Database['public']['Tables']['products']['Insert'];
 
 const ProductForm = () => {
   const navigate = useNavigate();
@@ -49,15 +52,19 @@ const ProductForm = () => {
         imageUrls.push(publicUrl);
       }
 
-      // Create product
-      const { error: insertError } = await supabase.from("products").insert({
-        name: formData.get("name"),
+      // Create product with proper typing
+      const productData: Product = {
+        name: formData.get("name") as string,
         original_price: parseInt(formData.get("original_price") as string),
         discounted_price: parseInt(formData.get("discounted_price") as string),
-        description: formData.get("description"),
-        cart_url: formData.get("cart_url"),
+        description: formData.get("description") as string,
+        cart_url: formData.get("cart_url") as string,
         images: imageUrls,
-      });
+      };
+
+      const { error: insertError } = await supabase
+        .from("products")
+        .insert(productData);
 
       if (insertError) throw insertError;
 
@@ -68,6 +75,7 @@ const ProductForm = () => {
 
       navigate("/");
     } catch (error) {
+      console.error("Error creating product:", error);
       toast({
         title: "Error",
         description: "Failed to create product",
