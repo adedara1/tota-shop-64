@@ -1,4 +1,4 @@
-
+```typescript
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -72,7 +72,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
           const parser = new DOMParser()
           const doc = parser.parseFromString(html, 'text/html')
           view.dispatch(
-            view.state.tr.insertContent(view.state.schema.text(doc.body.textContent || ''))
+            view.state.tr.insertText(doc.body.textContent || '')
           )
           return true
         }
@@ -408,3 +408,4 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
 }
 
 export default RichTextEditor
+```
