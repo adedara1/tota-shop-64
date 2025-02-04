@@ -7,12 +7,24 @@ import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import RichTextEditor from "@/components/RichTextEditor";
 
+const THEME_COLORS = [
+  "#F5F3EF", // Default
+  "#E8F6F3", // Mint
+  "#F9EBEA", // Rose
+  "#FDF5E6", // Peach
+  "#F0F8FF", // Sky
+  "#F5F5DC", // Beige
+  "#E6E6FA", // Lavender
+  "#FFFACD", // Lemon
+];
+
 const ProductForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [description, setDescription] = useState("");
+  const [themeColor, setThemeColor] = useState(THEME_COLORS[0]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -58,9 +70,10 @@ const ProductForm = () => {
           name: formData.get("name") as string,
           original_price: parseInt(formData.get("original_price") as string),
           discounted_price: parseInt(formData.get("discounted_price") as string),
-          description: description, // Le HTML formaté sera stocké directement
+          description: description,
           cart_url: formData.get("cart_url") as string,
           images: imageUrls,
+          theme_color: themeColor,
         })
         .select()
         .single();
@@ -139,6 +152,27 @@ const ProductForm = () => {
                   onChange={setDescription}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Couleur du thème</Label>
+              <div className="flex gap-2 flex-wrap">
+                {THEME_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${
+                      themeColor === color ? 'border-black scale-110' : 'border-transparent hover:scale-105'
+                    }`}
+                    style={{ backgroundColor: color }}
+                    onClick={() => setThemeColor(color)}
+                    title={`Sélectionner ${color}`}
+                  />
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Cette couleur sera utilisée comme fond de la page produit
+              </p>
             </div>
 
             <div>
