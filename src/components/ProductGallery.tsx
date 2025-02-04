@@ -1,15 +1,12 @@
 import { useState } from "react";
 
-const ProductGallery = () => {
+interface ProductGalleryProps {
+  images: string[];
+}
+
+const ProductGallery = ({ images }: ProductGalleryProps) => {
   const [selectedImage, setSelectedImage] = useState(0);
   
-  const images = [
-    "/lovable-uploads/8586c121-4614-4481-aa62-0488d1a65bac.png",
-    "/lovable-uploads/8586c121-4614-4481-aa62-0488d1a65bac.png",
-    "/lovable-uploads/8586c121-4614-4481-aa62-0488d1a65bac.png",
-    "/lovable-uploads/8586c121-4614-4481-aa62-0488d1a65bac.png",
-  ];
-
   return (
     <div className="flex gap-4">
       <div className="flex flex-col gap-2">

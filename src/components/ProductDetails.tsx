@@ -1,16 +1,33 @@
-const ProductDetails = () => {
+interface ProductDetailsProps {
+  name: string;
+  originalPrice: number;
+  discountedPrice: number;
+  description: string;
+  cartUrl: string;
+}
+
+const ProductDetails = ({
+  name,
+  originalPrice,
+  discountedPrice,
+  description,
+  cartUrl,
+}: ProductDetailsProps) => {
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-medium">Mini Climatiseur Mural Portable</h1>
+      <h1 className="text-3xl font-medium">{name}</h1>
       
       <div className="flex items-center gap-4">
-        <span className="text-gray-400 line-through">CFA45,900</span>
-        <span className="text-2xl font-bold">CFA28,900</span>
+        <span className="text-gray-400 line-through">CFA{originalPrice}</span>
+        <span className="text-2xl font-bold">CFA{discountedPrice}</span>
       </div>
       
-      <button className="w-full bg-black text-white py-3 px-6 rounded hover:bg-gray-800 transition-colors">
+      <a 
+        href={cartUrl}
+        className="block w-full bg-black text-white py-3 px-6 rounded hover:bg-gray-800 transition-colors text-center"
+      >
         Ajouter au panier
-      </button>
+      </a>
       
       <div className="space-y-4 pt-6">
         <div className="flex items-center gap-2">
@@ -28,9 +45,7 @@ const ProductDetails = () => {
         </div>
         
         <div className="mt-6 text-gray-600">
-          <p>
-            Au Bénin, la chaleur peut devenir éprouvante. Vous cherchez une solution simple et efficace pour rester au frais ? Découvrez le climatiseur mural portable, conçu spécialement pour vous offrir une fraîcheur instantanée et durable, même pendant les journées les plus chaudes.
-          </p>
+          <p>{description}</p>
         </div>
       </div>
     </div>
