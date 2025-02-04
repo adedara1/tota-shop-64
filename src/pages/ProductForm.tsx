@@ -9,13 +9,12 @@ import RichTextEditor from "@/components/RichTextEditor";
 import ColorSelector from "@/components/ColorSelector";
 import { Copy, Edit, Plus, Trash } from "lucide-react";
 import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -55,7 +54,7 @@ const ProductForm = () => {
   const [colorIndex, setColorIndex] = useState(0);
   const [products, setProducts] = useState<Product[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const fetchProducts = async () => {
     try {
@@ -164,7 +163,7 @@ const ProductForm = () => {
       }
 
       resetForm();
-      setIsDrawerOpen(false);
+      setIsSheetOpen(false);
       fetchProducts();
     } catch (error) {
       console.error("Error creating/updating product:", error);
@@ -182,7 +181,7 @@ const ProductForm = () => {
     setEditingProduct(product);
     setDescription(product.description);
     setColorIndex(ALL_COLORS.indexOf(product.theme_color));
-    setIsDrawerOpen(true);
+    setIsSheetOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -222,24 +221,24 @@ const ProductForm = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="py-12 px-4">
+      <div className="py-12 px-4 overflow-auto">
         <div className="container mx-auto max-w-6xl">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-medium">Gestion des produits</h1>
-            <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-              <DrawerTrigger asChild>
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+              <SheetTrigger asChild>
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
                   Créer un produit
                 </Button>
-              </DrawerTrigger>
-              <DrawerContent>
-                <DrawerHeader>
-                  <DrawerTitle>
+              </SheetTrigger>
+              <SheetContent className="overflow-y-auto w-full sm:max-w-xl">
+                <SheetHeader>
+                  <SheetTitle>
                     {editingProduct ? "Modifier le produit" : "Créer un nouveau produit"}
-                  </DrawerTitle>
-                </DrawerHeader>
-                <div className="p-4">
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="py-4">
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                       <Label htmlFor="images">Images du produit (Max 4)</Label>
@@ -318,16 +317,16 @@ const ProductForm = () => {
                       <Button type="submit" disabled={loading} className="flex-1">
                         {loading ? "En cours..." : (editingProduct ? "Modifier" : "Créer")}
                       </Button>
-                      <DrawerClose asChild>
+                      <Sheet.Close asChild>
                         <Button variant="outline" onClick={resetForm} className="flex-1">
                           Annuler
                         </Button>
-                      </DrawerClose>
+                      </Sheet.Close>
                     </div>
                   </form>
                 </div>
-              </DrawerContent>
-            </Drawer>
+              </SheetContent>
+            </Sheet>
           </div>
 
           <div className="bg-white rounded-lg shadow">
