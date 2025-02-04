@@ -3,10 +3,12 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ProductForm from "./pages/ProductForm";
 import ProductDetail from "./pages/ProductDetail";
+import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -17,10 +19,32 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/product-form" element={<ProductForm />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Index />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/product-form"
+            element={
+              <ProtectedRoute>
+                <ProductForm />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="*" element={<NotFound />} />
+          <Route
+            path="*"
+            element={
+              <ProtectedRoute>
+                <NotFound />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
