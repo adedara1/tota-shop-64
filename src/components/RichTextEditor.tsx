@@ -65,13 +65,28 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
       handlePaste: (view, event) => {
         const clipboardData = event.clipboardData
         if (!clipboardData) return false
-        
+
+        // Try to get HTML content first
         const html = clipboardData.getData('text/html')
         if (html) {
-          const slice = view.state.selection.content()
-          view.dispatch(view.state.tr.replaceSelection(slice))
+          // Parse the HTML content
+          const parser = new DOMParser()
+          const doc = parser.parseFromString(html, 'text/html')
+          const fragment = doc.body.innerHTML
+
+          // Insert the parsed HTML at cursor position
+          const tr = view.state.tr.insertHTML(fragment)
+          view.dispatch(tr)
           return true
         }
+
+        // If no HTML content, try plain text
+        const text = clipboardData.getData('text/plain')
+        if (text) {
+          view.dispatch(view.state.tr.insertText(text))
+          return true
+        }
+
         return false
       }
     }
