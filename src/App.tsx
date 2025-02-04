@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound";
 import ProductForm from "./pages/ProductForm";
 import ProductDetail from "./pages/ProductDetail";
 import Auth from "./pages/Auth";
+import Home from "./pages/Home";
 
 const queryClient = new QueryClient();
 
@@ -22,7 +23,15 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route
             path="/"
-            element={<Navigate to="/products" replace />}
+            element={<Navigate to="/home" replace />}
+          />
+          <Route 
+            path="/home" 
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
           />
           <Route path="/products" element={<Products />} />
           <Route
