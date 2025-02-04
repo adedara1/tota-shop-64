@@ -80,7 +80,6 @@ const ProductForm = () => {
           description: description,
           cart_url: formData.get("cart_url") as string,
           images: imageUrls,
-          theme_color: ALL_COLORS[colorIndex],
         })
         .select()
         .single();
@@ -158,26 +157,6 @@ const ProductForm = () => {
                   value={description} 
                   onChange={setDescription}
                 />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Couleur du thème</Label>
-              <div className="flex flex-col gap-4">
-                <Slider
-                  value={[colorIndex]}
-                  max={ALL_COLORS.length - 1}
-                  step={1}
-                  onValueChange={(value) => setColorIndex(value[0])}
-                  className="w-full"
-                />
-                <div className="flex items-center gap-4">
-                  <div 
-                    className="w-12 h-12 rounded-full border-2 border-gray-300"
-                    style={{ backgroundColor: ALL_COLORS[colorIndex] }}
-                  />
-                  <span className="text-sm font-medium">{ALL_COLORS[colorIndex]}</span>
-                </div>
               </div>
             </div>
 
