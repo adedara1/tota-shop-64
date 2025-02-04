@@ -1,4 +1,4 @@
-import { ShoppingCart, User, Plus } from "lucide-react";
+import { ShoppingCart, User } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Navbar = () => {
@@ -11,10 +11,6 @@ const Navbar = () => {
       <div className="flex space-x-8">
         <Link to="/" className="hover:text-gray-600">Accueil</Link>
         <Link to="/products" className="hover:text-gray-600">Nos Produits</Link>
-        <Link to="/product-form" className="hover:text-gray-600 flex items-center gap-2">
-          <Plus size={16} />
-          Ajouter un produit
-        </Link>
         <Link to="/contact" className="hover:text-gray-600">Contact</Link>
       </div>
       
