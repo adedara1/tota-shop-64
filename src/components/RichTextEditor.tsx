@@ -242,6 +242,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
         >
           <Code className="w-4 h-4" />
         </button>
+
         <button
           onClick={addImage}
           className="p-2 rounded hover:bg-gray-100"
@@ -257,14 +258,6 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
           title="Ajouter un tableau"
         >
           <TableIcon className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => editor.chain().focus().indent().run()}
-          className="p-2 rounded hover:bg-gray-100"
-          type="button"
-          title="Retrait"
-        >
-          <Indent className="w-4 h-4" />
         </button>
 
         <DropdownMenu>
