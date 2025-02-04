@@ -19,6 +19,7 @@ export type Database = {
           images: string[]
           name: string
           original_price: number
+          theme_color: string
           updated_at: string
         }
         Insert: {
@@ -30,6 +31,7 @@ export type Database = {
           images: string[]
           name: string
           original_price: number
+          theme_color?: string
           updated_at?: string
         }
         Update: {
@@ -41,6 +43,7 @@ export type Database = {
           images?: string[]
           name?: string
           original_price?: number
+          theme_color?: string
           updated_at?: string
         }
         Relationships: []

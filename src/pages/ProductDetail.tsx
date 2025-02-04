@@ -15,6 +15,7 @@ interface Product {
   description: string;
   cart_url: string;
   images: string[];
+  theme_color: string;
 }
 
 const ProductDetail = () => {
@@ -90,7 +91,7 @@ const ProductDetail = () => {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
+    <div className="min-h-screen" style={{ backgroundColor: product.theme_color }}>
       <PromoBar />
       <Navbar />
       
