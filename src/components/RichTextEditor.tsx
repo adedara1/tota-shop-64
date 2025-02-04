@@ -325,10 +325,10 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
       </div>
       <EditorContent 
         editor={editor} 
-        className="p-4 min-h-[200px] prose max-w-none"
+        className="p-4 min-h-[200px] prose max-w-none w-full"
       />
     </div>
-  )
+  );
 }
 
 export default RichTextEditor
