@@ -1,4 +1,4 @@
-```typescript
+
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,6 +60,12 @@ const ProductForm = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
+  const generateUniqueFileName = (originalName: string) => {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 10);
+    return `${timestamp}-${random}-${originalName}`;
+  };
+
   const fetchProducts = async () => {
     try {
       const { data, error } = await supabase
@@ -114,10 +120,9 @@ const ProductForm = () => {
       const formData = new FormData(e.currentTarget);
       const imageUrls: string[] = [];
 
-      // Upload images if new ones are selected
       if (images.length > 0) {
         for (const image of images) {
-          const fileName = `${crypto.randomUUID()}-${image.name}`;
+          const fileName = generateUniqueFileName(image.name);
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from("products")
             .upload(fileName, image);
@@ -412,4 +417,3 @@ const ProductForm = () => {
 };
 
 export default ProductForm;
-```
