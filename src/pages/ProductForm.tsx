@@ -6,17 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import RichTextEditor from "@/components/RichTextEditor";
-
-const THEME_COLORS = [
-  "#F5F3EF", // Default
-  "#E8F6F3", // Mint
-  "#F9EBEA", // Rose
-  "#FDF5E6", // Peach
-  "#F0F8FF", // Sky
-  "#F5F5DC", // Beige
-  "#E6E6FA", // Lavender
-  "#FFFACD", // Lemon
-];
+import { Slider } from "@/components/ui/slider";
 
 const ProductForm = () => {
   const navigate = useNavigate();
@@ -24,7 +14,7 @@ const ProductForm = () => {
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [description, setDescription] = useState("");
-  const [themeColor, setThemeColor] = useState(THEME_COLORS[0]);
+  const [colorHue, setColorHue] = useState([0]); // Valeur initiale du slider
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -37,6 +27,11 @@ const ProductForm = () => {
       return;
     }
     setImages(files);
+  };
+
+  // Convertit la valeur du slider (0-255) en couleur HSL
+  const getThemeColor = (hue: number) => {
+    return `hsl(${hue}, 70%, 90%)`; // Saturation et luminosité fixes pour des couleurs pastel
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -73,7 +68,7 @@ const ProductForm = () => {
           description: description,
           cart_url: formData.get("cart_url") as string,
           images: imageUrls,
-          theme_color: themeColor,
+          theme_color: getThemeColor(colorHue[0]),
         })
         .select()
         .single();
@@ -154,25 +149,23 @@ const ProductForm = () => {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-4">
               <Label>Couleur du thème</Label>
-              <div className="flex gap-2 flex-wrap">
-                {THEME_COLORS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${
-                      themeColor === color ? 'border-black scale-110' : 'border-transparent hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setThemeColor(color)}
-                    title={`Sélectionner ${color}`}
-                  />
-                ))}
+              <div className="space-y-4">
+                <Slider
+                  value={colorHue}
+                  onValueChange={setColorHue}
+                  max={255}
+                  step={1}
+                  className="w-full"
+                />
+                <div className="h-12 w-full rounded-md transition-colors duration-200"
+                     style={{ backgroundColor: getThemeColor(colorHue[0]) }}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Cette couleur sera utilisée comme fond de la page produit
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Cette couleur sera utilisée comme fond de la page produit
-              </p>
             </div>
 
             <div>
