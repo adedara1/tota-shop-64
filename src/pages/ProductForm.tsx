@@ -6,7 +6,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import RichTextEditor from "@/components/RichTextEditor";
-import { Slider } from "@/components/ui/slider";
+
+const THEME_COLORS = [
+  "#F5F3EF", // Default
+  "#E8F6F3", // Mint
+  "#F9EBEA", // Rose
+  "#FDF5E6", // Peach
+  "#F0F8FF", // Sky
+  "#F5F5DC", // Beige
+  "#E6E6FA", // Lavender
+  "#FFFACD", // Lemon
+];
 
 const ProductForm = () => {
   const navigate = useNavigate();
@@ -14,9 +24,7 @@ const ProductForm = () => {
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [description, setDescription] = useState("");
-  const [hue, setHue] = useState([180]);
-  const [saturation, setSaturation] = useState([50]);
-  const [lightness, setLightness] = useState([50]);
+  const [themeColor, setThemeColor] = useState(THEME_COLORS[0]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -29,10 +37,6 @@ const ProductForm = () => {
       return;
     }
     setImages(files);
-  };
-
-  const getThemeColor = () => {
-    return `hsl(${hue[0]}, ${saturation[0]}%, ${lightness[0]}%)`;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -69,7 +73,7 @@ const ProductForm = () => {
           description: description,
           cart_url: formData.get("cart_url") as string,
           images: imageUrls,
-          theme_color: getThemeColor(),
+          theme_color: themeColor,
         })
         .select()
         .single();
@@ -81,6 +85,7 @@ const ProductForm = () => {
         description: "Produit créé avec succès",
       });
 
+      // Redirect to the new product page
       navigate(`/product/${data.id}`);
     } catch (error) {
       console.error("Error creating product:", error);
@@ -149,51 +154,25 @@ const ProductForm = () => {
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-2">
               <Label>Couleur du thème</Label>
-              <div className="space-y-6 p-4 border rounded-lg">
-                <div className="space-y-2">
-                  <Label className="text-sm">Teinte</Label>
-                  <Slider
-                    value={hue}
-                    onValueChange={setHue}
-                    max={360}
-                    step={1}
-                    className="w-full"
+              <div className="flex gap-2 flex-wrap">
+                {THEME_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${
+                      themeColor === color ? 'border-black scale-110' : 'border-transparent hover:scale-105'
+                    }`}
+                    style={{ backgroundColor: color }}
+                    onClick={() => setThemeColor(color)}
+                    title={`Sélectionner ${color}`}
                   />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-sm">Saturation</Label>
-                  <Slider
-                    value={saturation}
-                    onValueChange={setSaturation}
-                    max={100}
-                    step={1}
-                    className="w-full"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-sm">Luminosité</Label>
-                  <Slider
-                    value={lightness}
-                    onValueChange={setLightness}
-                    max={100}
-                    step={1}
-                    className="w-full"
-                  />
-                </div>
-
-                <div className="h-24 w-full rounded-md transition-colors duration-200 shadow-inner"
-                     style={{ backgroundColor: getThemeColor() }}
-                />
-                
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <p>Valeur HSL : {getThemeColor()}</p>
-                  <p>Cette couleur sera utilisée comme fond de la page produit</p>
-                </div>
+                ))}
               </div>
+              <p className="text-sm text-muted-foreground">
+                Cette couleur sera utilisée comme fond de la page produit
+              </p>
             </div>
 
             <div>
