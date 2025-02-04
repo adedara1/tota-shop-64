@@ -30,13 +30,6 @@ const ProductDetails = ({
       </a>
       
       <div className="space-y-4 pt-6">
-        <div className="flex items-center gap-2">
-          <span>🌡️</span>
-          <p className="font-medium">
-            Dites adieu aux journées étouffantes ! 🔥
-          </p>
-        </div>
-        
         <div className="mt-6 text-gray-600 prose max-w-none">
           <div dangerouslySetInnerHTML={{ __html: description }} />
         </div>
