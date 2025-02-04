@@ -92,8 +92,9 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
     input.type = 'file'
     input.accept = 'image/*'
     input.onchange = (e) => {
-      if (e.target instanceof HTMLInputElement) {
-        handleImageUpload(e as React.ChangeEvent<HTMLInputElement>)
+      const target = e.target as HTMLInputElement
+      if (target && target.files) {
+        handleImageUpload({ target } as React.ChangeEvent<HTMLInputElement>)
       }
     }
     input.click()
@@ -110,7 +111,13 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
     editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
   }
 
-  // ... keep existing code (JSX for the editor toolbar buttons)
+  const setFontSize = (size: string) => {
+    editor.chain().focus().run()
+    const element = editor.view.dom.querySelector('p, h1, h2, h3')
+    if (element) {
+      element.style.fontSize = size
+    }
+  }
 
   return (
     <div className="border rounded-md">
@@ -149,16 +156,16 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => editor.chain().focus().setStyle({ fontSize: '12px' }).run()}>
+            <DropdownMenuItem onClick={() => setFontSize('12px')}>
               Petit
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().setStyle({ fontSize: '16px' }).run()}>
+            <DropdownMenuItem onClick={() => setFontSize('16px')}>
               Normal
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().setStyle({ fontSize: '20px' }).run()}>
+            <DropdownMenuItem onClick={() => setFontSize('20px')}>
               Grand
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().setStyle({ fontSize: '24px' }).run()}>
+            <DropdownMenuItem onClick={() => setFontSize('24px')}>
               Très grand
             </DropdownMenuItem>
           </DropdownMenuContent>
