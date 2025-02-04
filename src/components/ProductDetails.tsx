@@ -18,8 +18,14 @@ const ProductDetails = ({
       <h1 className="text-5xl font-medium break-words">{name}</h1>
       
       <div className="flex items-center gap-4">
-        <span className="text-gray-400 line-through text-2xl">CFA{originalPrice}</span>
-        <span className="text-3xl font-bold">CFA{discountedPrice}</span>
+        <div className="flex items-center">
+          <span className="text-gray-400 line-through text-2xl">{originalPrice}</span>
+          <span className="text-gray-400 line-through text-2xl ml-1">CFA</span>
+        </div>
+        <div className="flex items-center">
+          <span className="text-3xl">{discountedPrice}</span>
+          <span className="text-3xl ml-1">CFA</span>
+        </div>
       </div>
       
       <a 
