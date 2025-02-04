@@ -92,12 +92,18 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
     return null
   }
 
+  const generateUniqueFileName = (originalName: string) => {
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(2, 10)
+    return `${timestamp}-${random}-${originalName}`
+  }
+
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
     try {
-      const fileName = `${crypto.randomUUID()}-${file.name}`
+      const fileName = generateUniqueFileName(file.name)
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("products")
         .upload(fileName, file)
