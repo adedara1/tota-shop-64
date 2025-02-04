@@ -70,11 +70,8 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
         if (html) {
           const parser = new DOMParser()
           const doc = parser.parseFromString(html, 'text/html')
-          const fragment = doc.body.innerHTML
-          
-          // Utiliser setContent pour insérer le HTML formaté
           view.dispatch(
-            view.state.tr.insertText(fragment)
+            view.state.tr.insertHtml(doc.body.innerHTML)
           )
           return true
         }
