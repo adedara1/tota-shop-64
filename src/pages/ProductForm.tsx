@@ -58,7 +58,7 @@ const ProductForm = () => {
           name: formData.get("name") as string,
           original_price: parseInt(formData.get("original_price") as string),
           discounted_price: parseInt(formData.get("discounted_price") as string),
-          description: description,
+          description: description, // Le HTML formaté sera stocké directement
           cart_url: formData.get("cart_url") as string,
           images: imageUrls,
         })
@@ -133,10 +133,12 @@ const ProductForm = () => {
 
             <div>
               <Label htmlFor="description">Description</Label>
-              <RichTextEditor 
-                value={description} 
-                onChange={setDescription}
-              />
+              <div className="prose max-w-none">
+                <RichTextEditor 
+                  value={description} 
+                  onChange={setDescription}
+                />
+              </div>
             </div>
 
             <div>
