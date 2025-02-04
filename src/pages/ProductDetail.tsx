@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -75,10 +76,10 @@ const ProductDetail = () => {
 
   if (!product) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
+      <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: "#f1eee9" }}>
         <PromoBar />
         <Navbar />
-        <div className="container mx-auto py-12 px-4">
+        <div className="container mx-auto py-12 px-4 max-w-[100vw]">
           <div className="text-center">
             <h2 className="text-2xl font-medium mb-4">Produit non trouvé</h2>
             <p className="text-gray-600">
@@ -91,12 +92,12 @@ const ProductDetail = () => {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: product.theme_color }}>
+    <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color }}>
       <PromoBar />
       <Navbar />
       
-      <main className="container mx-auto py-12 px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+      <main className="container mx-auto py-12 px-4 max-w-[100vw]">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
           <ProductGallery images={product.images} />
           <ProductDetails
             name={product.name}
