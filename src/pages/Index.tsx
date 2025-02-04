@@ -29,7 +29,7 @@ const Index = () => {
           .select("*")
           .order("created_at", { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
         setProduct(data);
@@ -44,11 +44,32 @@ const Index = () => {
   }, [id]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen bg-background">
+        <PromoBar />
+        <Navbar />
+        <div className="container mx-auto py-12 px-4">
+          <div className="text-center">Chargement...</div>
+        </div>
+      </div>
+    );
   }
 
   if (!product) {
-    return <div>No product found</div>;
+    return (
+      <div className="min-h-screen bg-background">
+        <PromoBar />
+        <Navbar />
+        <div className="container mx-auto py-12 px-4">
+          <div className="text-center">
+            <h2 className="text-2xl font-medium mb-4">Aucun produit trouvé</h2>
+            <p className="text-gray-600">
+              Veuillez ajouter un produit en utilisant le formulaire de création.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
