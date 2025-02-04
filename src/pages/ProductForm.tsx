@@ -14,7 +14,9 @@ const ProductForm = () => {
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [description, setDescription] = useState("");
-  const [colorHue, setColorHue] = useState([0]); // Valeur initiale du slider
+  const [hue, setHue] = useState([180]);
+  const [saturation, setSaturation] = useState([50]);
+  const [lightness, setLightness] = useState([50]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -29,9 +31,8 @@ const ProductForm = () => {
     setImages(files);
   };
 
-  // Convertit la valeur du slider (0-255) en couleur HSL
-  const getThemeColor = (hue: number) => {
-    return `hsl(${hue}, 70%, 90%)`; // Saturation et luminosité fixes pour des couleurs pastel
+  const getThemeColor = () => {
+    return `hsl(${hue[0]}, ${saturation[0]}%, ${lightness[0]}%)`;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -68,7 +69,7 @@ const ProductForm = () => {
           description: description,
           cart_url: formData.get("cart_url") as string,
           images: imageUrls,
-          theme_color: getThemeColor(colorHue[0]),
+          theme_color: getThemeColor(),
         })
         .select()
         .single();
@@ -80,7 +81,6 @@ const ProductForm = () => {
         description: "Produit créé avec succès",
       });
 
-      // Redirect to the new product page
       navigate(`/product/${data.id}`);
     } catch (error) {
       console.error("Error creating product:", error);
@@ -151,20 +151,48 @@ const ProductForm = () => {
 
             <div className="space-y-4">
               <Label>Couleur du thème</Label>
-              <div className="space-y-4">
-                <Slider
-                  value={colorHue}
-                  onValueChange={setColorHue}
-                  max={255}
-                  step={1}
-                  className="w-full"
+              <div className="space-y-6 p-4 border rounded-lg">
+                <div className="space-y-2">
+                  <Label className="text-sm">Teinte</Label>
+                  <Slider
+                    value={hue}
+                    onValueChange={setHue}
+                    max={360}
+                    step={1}
+                    className="w-full"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm">Saturation</Label>
+                  <Slider
+                    value={saturation}
+                    onValueChange={setSaturation}
+                    max={100}
+                    step={1}
+                    className="w-full"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm">Luminosité</Label>
+                  <Slider
+                    value={lightness}
+                    onValueChange={setLightness}
+                    max={100}
+                    step={1}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="h-24 w-full rounded-md transition-colors duration-200 shadow-inner"
+                     style={{ backgroundColor: getThemeColor() }}
                 />
-                <div className="h-12 w-full rounded-md transition-colors duration-200"
-                     style={{ backgroundColor: getThemeColor(colorHue[0]) }}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Cette couleur sera utilisée comme fond de la page produit
-                </p>
+                
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>Valeur HSL : {getThemeColor()}</p>
+                  <p>Cette couleur sera utilisée comme fond de la page produit</p>
+                </div>
               </div>
             </div>
 
