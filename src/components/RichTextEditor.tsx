@@ -12,7 +12,7 @@ import {
   Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, 
   AlignLeft, AlignCenter, AlignRight, Link as LinkIcon,
   Image as ImageIcon, Table as TableIcon, Quote, Code,
-  Indent, MoreVertical
+  Indent, MoreVertical, Heading1, Heading2, Heading3
 } from "lucide-react"
 import { 
   DropdownMenu,
@@ -56,7 +56,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
   }
 
   const addImage = () => {
-    const url = window.prompt('URL de l\'image')
+    const url = window.prompt("URL de l'image")
     if (url) {
       editor.chain().focus().setImage({ src: url }).run()
     }
@@ -76,6 +76,55 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
   return (
     <div className="border rounded-md">
       <div className="border-b p-2 flex flex-wrap gap-2 bg-white">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="p-2 rounded hover:bg-gray-100"
+              type="button"
+              title="Styles de titre"
+            >
+              <Heading1 className="w-4 h-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>
+              <Heading1 className="w-4 h-4 mr-2" /> Titre 1
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
+              <Heading2 className="w-4 h-4 mr-2" /> Titre 2
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
+              <Heading3 className="w-4 h-4 mr-2" /> Titre 3
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="p-2 rounded hover:bg-gray-100"
+              type="button"
+              title="Taille de police"
+            >
+              <span className="font-bold">T</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => editor.chain().focus().setFontSize('12px').run()}>
+              Petit
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().setFontSize('16px').run()}>
+              Normal
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().setFontSize('20px').run()}>
+              Grand
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().setFontSize('24px').run()}>
+              Très grand
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={`p-2 rounded hover:bg-gray-100 ${
@@ -86,6 +135,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
         >
           <Bold className="w-4 h-4" />
         </button>
+
         <button
           onClick={() => editor.chain().focus().toggleItalic().run()}
           className={`p-2 rounded hover:bg-gray-100 ${
@@ -210,6 +260,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
         >
           <Indent className="w-4 h-4" />
         </button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
