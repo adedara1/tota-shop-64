@@ -187,7 +187,19 @@ const ProductForm = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      console.log("Attempting to delete product with ID:", id);
+      // Vérifier si l'utilisateur est authentifié
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "Erreur",
+          description: "Vous devez être connecté pour supprimer un produit",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log("Attempting to delete product with ID:", id, "by user:", session.user.id);
       
       const { error } = await supabase
         .from("products")
@@ -204,7 +216,6 @@ const ProductForm = () => {
         description: "Produit supprimé avec succès",
       });
       
-      // Refresh the products list after successful deletion
       await fetchProducts();
     } catch (error) {
       console.error("Error deleting product:", error);
