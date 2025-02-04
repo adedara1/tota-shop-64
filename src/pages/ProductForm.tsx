@@ -2,16 +2,17 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
+import RichTextEditor from "@/components/RichTextEditor";
 
 const ProductForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
+  const [description, setDescription] = useState("");
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -57,7 +58,7 @@ const ProductForm = () => {
           name: formData.get("name") as string,
           original_price: parseInt(formData.get("original_price") as string),
           discounted_price: parseInt(formData.get("discounted_price") as string),
-          description: formData.get("description") as string,
+          description: description,
           cart_url: formData.get("cart_url") as string,
           images: imageUrls,
         })
@@ -132,7 +133,10 @@ const ProductForm = () => {
 
             <div>
               <Label htmlFor="description">Description</Label>
-              <Textarea id="description" name="description" required />
+              <RichTextEditor 
+                value={description} 
+                onChange={setDescription}
+              />
             </div>
 
             <div>
