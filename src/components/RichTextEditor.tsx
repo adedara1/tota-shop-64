@@ -114,7 +114,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
   const setFontSize = (size: string) => {
     editor.chain().focus().run()
     const element = editor.view.dom.querySelector('p, h1, h2, h3')
-    if (element) {
+    if (element instanceof HTMLElement) {
       element.style.fontSize = size
     }
   }
