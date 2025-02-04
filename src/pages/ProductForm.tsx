@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,18 +52,11 @@ const ProductForm = () => {
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [description, setDescription] = useState("");
-  const [name, setName] = useState("");
   const defaultColor = "#f1eee9";
   const [selectedColor, setSelectedColor] = useState(defaultColor);
   const [products, setProducts] = useState<Product[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-
-  const generateUniqueFileName = (originalName: string) => {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 10);
-    return `${timestamp}-${random}-${originalName}`;
-  };
 
   const fetchProducts = async () => {
     try {
@@ -105,7 +97,6 @@ const ProductForm = () => {
   const resetForm = () => {
     setImages([]);
     setDescription("");
-    setName("");
     setSelectedColor(defaultColor);
     setEditingProduct(null);
     const form = document.querySelector("form") as HTMLFormElement;
@@ -120,9 +111,10 @@ const ProductForm = () => {
       const formData = new FormData(e.currentTarget);
       const imageUrls: string[] = [];
 
+      // Upload images if new ones are selected
       if (images.length > 0) {
         for (const image of images) {
-          const fileName = generateUniqueFileName(image.name);
+          const fileName = `${crypto.randomUUID()}-${image.name}`;
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from("products")
             .upload(fileName, image);
@@ -138,7 +130,7 @@ const ProductForm = () => {
       }
 
       const productData = {
-        name: name,
+        name: formData.get("name") as string,
         original_price: parseInt(formData.get("original_price") as string),
         discounted_price: parseInt(formData.get("discounted_price") as string),
         description: description,
@@ -190,7 +182,6 @@ const ProductForm = () => {
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setDescription(product.description);
-    setName(product.name);
     setSelectedColor(product.theme_color || defaultColor);
     setIsSheetOpen(true);
   };
@@ -282,10 +273,12 @@ const ProductForm = () => {
                     </div>
 
                     <div>
-                      <Label>Nom du produit</Label>
-                      <RichTextEditor 
-                        value={name}
-                        onChange={setName}
+                      <Label htmlFor="name">Nom du produit</Label>
+                      <Input 
+                        id="name" 
+                        name="name" 
+                        required 
+                        defaultValue={editingProduct?.name}
                       />
                     </div>
 
@@ -297,7 +290,6 @@ const ProductForm = () => {
                         type="number"
                         required
                         defaultValue={editingProduct?.original_price}
-                        className="font-normal"
                       />
                     </div>
 
@@ -313,11 +305,13 @@ const ProductForm = () => {
                     </div>
 
                     <div>
-                      <Label>Description</Label>
-                      <RichTextEditor 
-                        value={description}
-                        onChange={setDescription}
-                      />
+                      <Label htmlFor="description">Description</Label>
+                      <div className="prose max-w-none">
+                        <RichTextEditor 
+                          value={description} 
+                          onChange={setDescription}
+                        />
+                      </div>
                     </div>
 
                     <div className="space-y-2">
