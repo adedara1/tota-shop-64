@@ -9,11 +9,12 @@ import TableRow from '@tiptap/extension-table-row'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 import TextStyle from '@tiptap/extension-text-style'
+import Color from '@tiptap/extension-color'
 import { 
   Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, 
   AlignLeft, AlignCenter, AlignRight, Link as LinkIcon,
   Image as ImageIcon, Table as TableIcon, Quote, Code,
-  MoreVertical, Heading1, Heading2, Heading3
+  MoreVertical, Heading1, Heading2, Heading3, Palette
 } from "lucide-react"
 import { 
   DropdownMenu,
@@ -54,11 +55,26 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
       TableCell,
       TableHeader,
       TextStyle,
+      Color,
     ],
     content: value,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML())
     },
+    editorProps: {
+      handlePaste: (view, event) => {
+        const clipboardData = event.clipboardData
+        if (!clipboardData) return false
+        
+        const html = clipboardData.getData('text/html')
+        if (html) {
+          const slice = view.state.selection.content()
+          view.dispatch(view.state.tr.replaceSelection(slice))
+          return true
+        }
+        return false
+      }
+    }
   })
 
   if (!editor) {
@@ -119,9 +135,45 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
     }
   }
 
+  const colors = [
+    '#000000', // Black
+    '#FF0000', // Red
+    '#00FF00', // Green
+    '#0000FF', // Blue
+    '#FFA500', // Orange
+    '#800080', // Purple
+    '#FFC0CB', // Pink
+    '#A52A2A', // Brown
+  ]
+
   return (
     <div className="border rounded-md">
       <div className="border-b p-2 flex flex-wrap gap-2 bg-white">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="p-2 rounded hover:bg-gray-100"
+              type="button"
+              title="Couleur du texte"
+            >
+              <Palette className="w-4 h-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <div className="grid grid-cols-4 gap-1 p-2">
+              {colors.map((color) => (
+                <button
+                  key={color}
+                  className="w-6 h-6 rounded-full border border-gray-200"
+                  style={{ backgroundColor: color }}
+                  onClick={() => editor.chain().focus().setColor(color).run()}
+                  title={color}
+                />
+              ))}
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
