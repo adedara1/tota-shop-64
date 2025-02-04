@@ -10,6 +10,7 @@ import ColorSelector from "@/components/ColorSelector";
 import { Copy, Edit, Plus, Trash } from "lucide-react";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -317,11 +318,11 @@ const ProductForm = () => {
                       <Button type="submit" disabled={loading} className="flex-1">
                         {loading ? "En cours..." : (editingProduct ? "Modifier" : "Créer")}
                       </Button>
-                      <Sheet.Close asChild>
+                      <SheetClose asChild>
                         <Button variant="outline" onClick={resetForm} className="flex-1">
                           Annuler
                         </Button>
-                      </Sheet.Close>
+                      </SheetClose>
                     </div>
                   </form>
                 </div>
