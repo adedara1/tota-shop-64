@@ -1,3 +1,4 @@
+```typescript
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,6 +53,7 @@ const ProductForm = () => {
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [description, setDescription] = useState("");
+  const [name, setName] = useState("");
   const defaultColor = "#f1eee9";
   const [selectedColor, setSelectedColor] = useState(defaultColor);
   const [products, setProducts] = useState<Product[]>([]);
@@ -97,6 +99,7 @@ const ProductForm = () => {
   const resetForm = () => {
     setImages([]);
     setDescription("");
+    setName("");
     setSelectedColor(defaultColor);
     setEditingProduct(null);
     const form = document.querySelector("form") as HTMLFormElement;
@@ -130,7 +133,7 @@ const ProductForm = () => {
       }
 
       const productData = {
-        name: formData.get("name") as string,
+        name: name,
         original_price: parseInt(formData.get("original_price") as string),
         discounted_price: parseInt(formData.get("discounted_price") as string),
         description: description,
@@ -182,6 +185,7 @@ const ProductForm = () => {
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setDescription(product.description);
+    setName(product.name);
     setSelectedColor(product.theme_color || defaultColor);
     setIsSheetOpen(true);
   };
@@ -273,12 +277,10 @@ const ProductForm = () => {
                     </div>
 
                     <div>
-                      <Label htmlFor="name">Nom du produit</Label>
-                      <Input 
-                        id="name" 
-                        name="name" 
-                        required 
-                        defaultValue={editingProduct?.name}
+                      <Label>Nom du produit</Label>
+                      <RichTextEditor 
+                        value={name}
+                        onChange={setName}
                       />
                     </div>
 
@@ -290,6 +292,7 @@ const ProductForm = () => {
                         type="number"
                         required
                         defaultValue={editingProduct?.original_price}
+                        className="font-normal"
                       />
                     </div>
 
@@ -305,13 +308,11 @@ const ProductForm = () => {
                     </div>
 
                     <div>
-                      <Label htmlFor="description">Description</Label>
-                      <div className="prose max-w-none">
-                        <RichTextEditor 
-                          value={description} 
-                          onChange={setDescription}
-                        />
-                      </div>
+                      <Label>Description</Label>
+                      <RichTextEditor 
+                        value={description}
+                        onChange={setDescription}
+                      />
                     </div>
 
                     <div className="space-y-2">
@@ -411,3 +412,4 @@ const ProductForm = () => {
 };
 
 export default ProductForm;
+```
