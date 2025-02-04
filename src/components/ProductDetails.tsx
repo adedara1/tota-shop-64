@@ -15,11 +15,11 @@ const ProductDetails = ({
 }: ProductDetailsProps) => {
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-medium">{name}</h1>
+      <h1 className="text-5xl font-medium">{name}</h1>
       
       <div className="flex items-center gap-4">
-        <span className="text-gray-400 line-through">CFA{originalPrice}</span>
-        <span className="text-2xl font-bold">CFA{discountedPrice}</span>
+        <span className="text-gray-400 line-through text-2xl">CFA{originalPrice}</span>
+        <span className="text-3xl font-bold">CFA{discountedPrice}</span>
       </div>
       
       <a 

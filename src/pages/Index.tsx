@@ -45,7 +45,7 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
         <PromoBar />
         <Navbar />
         <div className="container mx-auto py-12 px-4">
@@ -57,7 +57,7 @@ const Index = () => {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
         <PromoBar />
         <Navbar />
         <div className="container mx-auto py-12 px-4">
@@ -73,7 +73,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
       <PromoBar />
       <Navbar />
       
