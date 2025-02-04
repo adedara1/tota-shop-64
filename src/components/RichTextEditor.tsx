@@ -1,4 +1,3 @@
-```typescript
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -72,7 +71,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
           const parser = new DOMParser()
           const doc = parser.parseFromString(html, 'text/html')
           view.dispatch(
-            view.state.tr.insertContent(view.state.schema.text(doc.body.textContent || ''))
+            view.state.tr.insertHtml(doc.body.innerHTML)
           )
           return true
         }
@@ -92,18 +91,12 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
     return null
   }
 
-  const generateUniqueFileName = (originalName: string) => {
-    const timestamp = Date.now()
-    const random = Math.random().toString(36).substring(2, 10)
-    return `${timestamp}-${random}-${originalName}`
-  }
-
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
     try {
-      const fileName = generateUniqueFileName(file.name)
+      const fileName = `${crypto.randomUUID()}-${file.name}`
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("products")
         .upload(fileName, file)
@@ -401,4 +394,3 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
 }
 
 export default RichTextEditor
-```
