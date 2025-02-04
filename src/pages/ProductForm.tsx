@@ -51,14 +51,18 @@ const ProductForm = () => {
       }
 
       // Create product
-      const { error: insertError } = await supabase.from("products").insert({
-        name: formData.get("name") as string,
-        original_price: parseInt(formData.get("original_price") as string),
-        discounted_price: parseInt(formData.get("discounted_price") as string),
-        description: formData.get("description") as string,
-        cart_url: formData.get("cart_url") as string,
-        images: imageUrls,
-      });
+      const { data, error: insertError } = await supabase
+        .from("products")
+        .insert({
+          name: formData.get("name") as string,
+          original_price: parseInt(formData.get("original_price") as string),
+          discounted_price: parseInt(formData.get("discounted_price") as string),
+          description: formData.get("description") as string,
+          cart_url: formData.get("cart_url") as string,
+          images: imageUrls,
+        })
+        .select()
+        .single();
 
       if (insertError) throw insertError;
 
@@ -67,7 +71,8 @@ const ProductForm = () => {
         description: "Produit créé avec succès",
       });
 
-      navigate("/");
+      // Redirect to the new product page
+      navigate(`/product/${data.id}`);
     } catch (error) {
       console.error("Error creating product:", error);
       toast({
