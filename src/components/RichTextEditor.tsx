@@ -1,4 +1,4 @@
-```typescript
+
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -97,7 +97,10 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
     if (!file) return
 
     try {
-      const fileName = `${crypto.randomUUID()}-${file.name}`
+      const timestamp = Date.now()
+      const random = Math.random().toString(36).substring(2, 10)
+      const fileName = `${timestamp}-${random}-${file.name}`
+      
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("products")
         .upload(fileName, file)
@@ -255,6 +258,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
         >
           <Italic className="w-4 h-4" />
         </button>
+        
         <button
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           className={`p-2 rounded hover:bg-gray-100 ${
@@ -265,6 +269,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
         >
           <UnderlineIcon className="w-4 h-4" />
         </button>
+
         <button
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           className={`p-2 rounded hover:bg-gray-100 ${
@@ -275,6 +280,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
         >
           <List className="w-4 h-4" />
         </button>
+
         <button
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           className={`p-2 rounded hover:bg-gray-100 ${
@@ -285,6 +291,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
         >
           <ListOrdered className="w-4 h-4" />
         </button>
+
         <button
           onClick={() => editor.chain().focus().setTextAlign('left').run()}
           className={`p-2 rounded hover:bg-gray-100 ${
@@ -295,6 +302,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
         >
           <AlignLeft className="w-4 h-4" />
         </button>
+
         <button
           onClick={() => editor.chain().focus().setTextAlign('center').run()}
           className={`p-2 rounded hover:bg-gray-100 ${
@@ -305,6 +313,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
         >
           <AlignCenter className="w-4 h-4" />
         </button>
+
         <button
           onClick={() => editor.chain().focus().setTextAlign('right').run()}
           className={`p-2 rounded hover:bg-gray-100 ${
@@ -315,6 +324,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
         >
           <AlignRight className="w-4 h-4" />
         </button>
+
         <button
           onClick={addLink}
           className={`p-2 rounded hover:bg-gray-100 ${
@@ -325,6 +335,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
         >
           <LinkIcon className="w-4 h-4" />
         </button>
+
         <button
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           className={`p-2 rounded hover:bg-gray-100 ${
@@ -335,6 +346,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
         >
           <Quote className="w-4 h-4" />
         </button>
+
         <button
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
           className={`p-2 rounded hover:bg-gray-100 ${
@@ -354,6 +366,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
         >
           <ImageIcon className="w-4 h-4" />
         </button>
+
         <button
           onClick={addTable}
           className="p-2 rounded hover:bg-gray-100"
@@ -391,8 +404,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
         className="p-4 h-full min-h-[200px] prose max-w-none w-full"
       />
     </div>
-  );
+  )
 }
 
 export default RichTextEditor
-```
