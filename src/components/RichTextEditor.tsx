@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
+import { supabase } from "@/integrations/supabase/client"
 
 interface RichTextEditorProps {
   value: string
@@ -30,7 +31,11 @@ interface RichTextEditorProps {
 const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3]
+        }
+      }),
       Underline,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
@@ -38,7 +43,10 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
       Link.configure({
         openOnClick: false,
       }),
-      Image,
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+      }),
       Table.configure({
         resizable: true,
       }),
@@ -57,15 +65,34 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
     return null
   }
 
-  const setFontSize = (size: string) => {
-    editor.chain().focus().run()
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      const fileName = `${crypto.randomUUID()}-${file.name}`
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("products")
+        .upload(fileName, file)
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("products")
+        .getPublicUrl(fileName)
+
+      editor.chain().focus().setImage({ src: publicUrl }).run()
+    } catch (error) {
+      console.error("Error uploading image:", error)
+    }
   }
 
   const addImage = () => {
-    const url = window.prompt("URL de l'image")
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run()
-    }
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = (e) => handleImageUpload(e as React.ChangeEvent<HTMLInputElement>)
+    input.click()
   }
 
   const addLink = () => {
@@ -116,16 +143,16 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => setFontSize('12px')}>
+            <DropdownMenuItem onClick={() => editor.chain().focus().setFontSize('12px').run()}>
               Petit
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFontSize('16px')}>
+            <DropdownMenuItem onClick={() => editor.chain().focus().setFontSize('16px').run()}>
               Normal
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFontSize('20px')}>
+            <DropdownMenuItem onClick={() => editor.chain().focus().setFontSize('20px').run()}>
               Grand
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFontSize('24px')}>
+            <DropdownMenuItem onClick={() => editor.chain().focus().setFontSize('24px').run()}>
               Très grand
             </DropdownMenuItem>
           </DropdownMenuContent>
