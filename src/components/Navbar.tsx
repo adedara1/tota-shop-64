@@ -5,11 +5,11 @@ const Navbar = () => {
   return (
     <nav className="bg-white py-4 px-6 flex items-center justify-between">
       <div className="text-xl font-bold">
-        <Link to="/">CommerceAfrique</Link>
+        <Link to="/products">CommerceAfrique</Link>
       </div>
       
       <div className="flex space-x-8">
-        <Link to="/" className="hover:text-gray-600">Accueil</Link>
+        <Link to="/products" className="hover:text-gray-600">Accueil</Link>
         <Link to="/products" className="hover:text-gray-600">Nos Produits</Link>
         <Link to="/contact" className="hover:text-gray-600">Contact</Link>
       </div>
