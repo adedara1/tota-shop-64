@@ -187,19 +187,25 @@ const ProductForm = () => {
 
   const handleDelete = async (id: string) => {
     try {
+      console.log("Attempting to delete product with ID:", id);
+      
       const { error } = await supabase
         .from("products")
         .delete()
         .eq("id", id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error deleting product:", error);
+        throw error;
+      }
 
       toast({
         title: "Succès",
         description: "Produit supprimé avec succès",
       });
       
-      fetchProducts();
+      // Refresh the products list after successful deletion
+      await fetchProducts();
     } catch (error) {
       console.error("Error deleting product:", error);
       toast({
