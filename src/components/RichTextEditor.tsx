@@ -1,4 +1,4 @@
-```typescript
+
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -408,4 +408,4 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
 }
 
 export default RichTextEditor
-```
+
