@@ -53,7 +53,7 @@ const ProductForm = () => {
   const [images, setImages] = useState<File[]>([]);
   const [description, setDescription] = useState("");
   const defaultColor = "#f1eee9";
-const [selectedColor, setSelectedColor] = useState(defaultColor);
+  const [selectedColor, setSelectedColor] = useState(defaultColor);
   const [products, setProducts] = useState<Product[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -97,7 +97,7 @@ const [selectedColor, setSelectedColor] = useState(defaultColor);
   const resetForm = () => {
     setImages([]);
     setDescription("");
-    setColorIndex(0);
+    setSelectedColor(defaultColor);
     setEditingProduct(null);
     const form = document.querySelector("form") as HTMLFormElement;
     if (form) form.reset();
