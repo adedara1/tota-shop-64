@@ -52,7 +52,8 @@ const ProductForm = () => {
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [description, setDescription] = useState("");
-  const [colorIndex, setColorIndex] = useState(0);
+  const defaultColor = "#f1eee9";
+const [selectedColor, setSelectedColor] = useState(defaultColor);
   const [products, setProducts] = useState<Product[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -134,7 +135,7 @@ const ProductForm = () => {
         discounted_price: parseInt(formData.get("discounted_price") as string),
         description: description,
         cart_url: formData.get("cart_url") as string,
-        theme_color: ALL_COLORS[colorIndex],
+        theme_color: selectedColor,
         images: imageUrls.length > 0 ? imageUrls : (editingProduct?.images || []),
       };
 
@@ -181,7 +182,7 @@ const ProductForm = () => {
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setDescription(product.description);
-    setColorIndex(ALL_COLORS.indexOf(product.theme_color));
+    setSelectedColor(product.theme_color || defaultColor);
     setIsSheetOpen(true);
   };
 
@@ -316,9 +317,8 @@ const ProductForm = () => {
                     <div className="space-y-2">
                       <Label>Couleur du thème</Label>
                       <ColorSelector
-                        colors={ALL_COLORS}
-                        selectedColor={ALL_COLORS[colorIndex]}
-                        onColorSelect={(color) => setColorIndex(ALL_COLORS.indexOf(color))}
+                        selectedColor={selectedColor}
+                        onColorSelect={setSelectedColor}
                       />
                     </div>
 
