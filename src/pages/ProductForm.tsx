@@ -3,12 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import type { Database } from "@/integrations/supabase/types";
-
-type Product = Database['public']['Tables']['products']['Insert'];
 
 const ProductForm = () => {
   const navigate = useNavigate();
@@ -21,7 +17,7 @@ const ProductForm = () => {
     if (files.length > 4) {
       toast({
         title: "Error",
-        description: "Vous ne pouvez télécharger que 4 images maximum",
+        description: "You can only upload up to 4 images",
         variant: "destructive",
       });
       return;
@@ -53,33 +49,28 @@ const ProductForm = () => {
         imageUrls.push(publicUrl);
       }
 
-      // Create product with proper typing
-      const productData: Product = {
-        name: formData.get("name") as string,
+      // Create product
+      const { error: insertError } = await supabase.from("products").insert({
+        name: formData.get("name"),
         original_price: parseInt(formData.get("original_price") as string),
         discounted_price: parseInt(formData.get("discounted_price") as string),
-        description: formData.get("description") as string,
-        cart_url: formData.get("cart_url") as string,
+        description: formData.get("description"),
+        cart_url: formData.get("cart_url"),
         images: imageUrls,
-      };
-
-      const { error: insertError } = await supabase
-        .from("products")
-        .insert(productData);
+      });
 
       if (insertError) throw insertError;
 
       toast({
-        title: "Succès",
-        description: "Produit créé avec succès",
+        title: "Success",
+        description: "Product created successfully",
       });
 
       navigate("/");
     } catch (error) {
-      console.error("Error creating product:", error);
       toast({
-        title: "Erreur",
-        description: "Échec de la création du produit",
+        title: "Error",
+        description: "Failed to create product",
         variant: "destructive",
       });
     } finally {
@@ -90,11 +81,11 @@ const ProductForm = () => {
   return (
     <div className="min-h-screen bg-background py-12 px-4">
       <div className="container mx-auto max-w-2xl">
-        <h1 className="text-3xl font-medium mb-8">Créer un nouveau produit</h1>
+        <h1 className="text-3xl font-medium mb-8">Create New Product</h1>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <Label htmlFor="images">Images du produit (Max 4)</Label>
+            <Label htmlFor="images">Product Images (Max 4)</Label>
             <Input
               id="images"
               type="file"
@@ -106,12 +97,12 @@ const ProductForm = () => {
           </div>
 
           <div>
-            <Label htmlFor="name">Nom du produit</Label>
+            <Label htmlFor="name">Product Name</Label>
             <Input id="name" name="name" required />
           </div>
 
           <div>
-            <Label htmlFor="original_price">Prix original (CFA)</Label>
+            <Label htmlFor="original_price">Original Price (CFA)</Label>
             <Input
               id="original_price"
               name="original_price"
@@ -121,7 +112,7 @@ const ProductForm = () => {
           </div>
 
           <div>
-            <Label htmlFor="discounted_price">Prix réduit (CFA)</Label>
+            <Label htmlFor="discounted_price">Discounted Price (CFA)</Label>
             <Input
               id="discounted_price"
               name="discounted_price"
@@ -136,17 +127,17 @@ const ProductForm = () => {
           </div>
 
           <div>
-            <Label htmlFor="cart_url">URL du panier</Label>
+            <Label htmlFor="cart_url">Cart URL</Label>
             <Input id="cart_url" name="cart_url" type="url" required />
           </div>
 
-          <Button
+          <button
             type="submit"
             disabled={loading}
-            className="w-full"
+            className="w-full bg-black text-white py-3 px-6 rounded hover:bg-gray-800 transition-colors disabled:opacity-50"
           >
-            {loading ? "Création en cours..." : "Créer le produit"}
-          </Button>
+            {loading ? "Creating..." : "Create Product"}
+          </button>
         </form>
       </div>
     </div>
