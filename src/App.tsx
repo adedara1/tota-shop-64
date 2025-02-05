@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound";
 import ProductForm from "./pages/ProductForm";
 import ProductDetail from "./pages/ProductDetail";
 import Payment from "./pages/Payment";
+import Contact from "./pages/Contact";
 import Auth from "./pages/Auth";
 import Home from "./pages/Home";
 
@@ -35,6 +36,7 @@ const App = () => (
             }
           />
           <Route path="/products" element={<Products />} />
+          <Route path="/contact" element={<Contact />} />
           <Route
             path="/product-form"
             element={
