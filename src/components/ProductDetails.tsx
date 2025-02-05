@@ -17,6 +17,8 @@ const ProductDetails = ({
   buttonText,
   currency,
 }: ProductDetailsProps) => {
+  const displayCurrency = currency === 'XOF' || currency === 'XAF' ? 'CFA' : currency;
+
   return (
     <div className="space-y-6 max-w-full">
       <h1 className="text-5xl font-medium break-words">{name}</h1>
@@ -24,11 +26,11 @@ const ProductDetails = ({
       <div className="flex items-center gap-4">
         <div className="flex items-center">
           <span className="text-gray-400 line-through text-2xl">{originalPrice}</span>
-          <span className="text-gray-400 line-through text-2xl ml-1">{currency}</span>
+          <span className="text-gray-400 line-through text-2xl ml-1">{displayCurrency}</span>
         </div>
         <div className="flex items-center">
           <span className="text-3xl">{discountedPrice}</span>
-          <span className="text-3xl ml-1">{currency}</span>
+          <span className="text-3xl ml-1">{displayCurrency}</span>
         </div>
       </div>
       
