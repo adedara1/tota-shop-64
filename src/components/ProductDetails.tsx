@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
 
 interface ProductDetailsProps {
   name: string;
@@ -20,8 +19,12 @@ const ProductDetails = ({
   buttonText,
   currency,
 }: ProductDetailsProps) => {
-  const [isIframeOpen, setIsIframeOpen] = useState(false);
+  const navigate = useNavigate();
   const displayCurrency = currency === 'XOF' || currency === 'XAF' ? 'CFA' : currency;
+
+  const handlePaymentClick = () => {
+    navigate(`/paiement?cartUrl=${encodeURIComponent(cartUrl)}`);
+  };
 
   return (
     <div className="space-y-6 max-w-full">
@@ -39,21 +42,11 @@ const ProductDetails = ({
       </div>
       
       <button 
-        onClick={() => setIsIframeOpen(true)}
+        onClick={handlePaymentClick}
         className="block w-full bg-black text-white py-3 px-6 rounded hover:bg-gray-800 transition-colors text-center"
       >
         {buttonText}
       </button>
-
-      <Dialog open={isIframeOpen} onOpenChange={setIsIframeOpen}>
-        <DialogContent className="max-w-[90vw] w-[1200px] h-[80vh]">
-          <iframe
-            src={cartUrl}
-            className="w-full h-full border-none"
-            title="Cart"
-          />
-        </DialogContent>
-      </Dialog>
       
       <div className="space-y-4 pt-6">
         <div className="mt-6 text-gray-600 prose max-w-full overflow-hidden break-words">

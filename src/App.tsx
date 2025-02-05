@@ -8,6 +8,7 @@ import Products from "./pages/Products";
 import NotFound from "./pages/NotFound";
 import ProductForm from "./pages/ProductForm";
 import ProductDetail from "./pages/ProductDetail";
+import Payment from "./pages/Payment";
 import Auth from "./pages/Auth";
 import Home from "./pages/Home";
 
@@ -43,6 +44,7 @@ const App = () => (
             }
           />
           <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="/paiement" element={<Payment />} />
           <Route
             path="*"
             element={
