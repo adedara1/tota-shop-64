@@ -35,6 +35,21 @@ const COLOR_PALETTES = {
 
 const ALL_COLORS = Object.values(COLOR_PALETTES).flat();
 
+const CURRENCIES = [
+  { code: 'XOF', label: 'Franc CFA (XOF) - UEMOA' },
+  { code: 'XAF', label: 'Franc CFA (XAF) - CEMAC' },
+  { code: 'ZAR', label: 'Rand sud-africain (ZAR)' },
+  { code: 'MAD', label: 'Dirham marocain (MAD)' },
+  { code: 'EGP', label: 'Livre égyptienne (EGP)' },
+  { code: 'NGN', label: 'Naira nigérian (NGN)' },
+  { code: 'KES', label: 'Shilling kényan (KES)' },
+  { code: 'TND', label: 'Dinar tunisien (TND)' },
+  { code: 'UGX', label: 'Shilling ougandais (UGX)' },
+  { code: 'GHS', label: 'Cedi ghanéen (GHS)' },
+  { code: 'USD', label: 'Dollar américain (USD)' },
+  { code: 'EUR', label: 'Euro (EUR)' }
+];
+
 interface Product {
   id: string;
   name: string;
@@ -137,6 +152,8 @@ const ProductForm = () => {
         theme_color: selectedColor,
         images: imageUrls.length > 0 ? imageUrls : (editingProduct?.images || []),
         is_visible: editingProduct ? editingProduct.is_visible : true,
+        button_text: formData.get("button_text") as string || "Ajouter au panier",
+        currency: formData.get("currency") as string || "XOF",
       };
 
       if (editingProduct) {
@@ -308,7 +325,24 @@ const ProductForm = () => {
                     </div>
 
                     <div>
-                      <Label htmlFor="original_price">Prix original (CFA)</Label>
+                      <Label htmlFor="currency">Devise</Label>
+                      <select
+                        id="currency"
+                        name="currency"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                        defaultValue={editingProduct?.currency || "XOF"}
+                        required
+                      >
+                        {CURRENCIES.map(currency => (
+                          <option key={currency.code} value={currency.code}>
+                            {currency.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="original_price">Prix original</Label>
                       <Input
                         id="original_price"
                         name="original_price"
@@ -319,13 +353,24 @@ const ProductForm = () => {
                     </div>
 
                     <div>
-                      <Label htmlFor="discounted_price">Prix réduit (CFA)</Label>
+                      <Label htmlFor="discounted_price">Prix réduit</Label>
                       <Input
                         id="discounted_price"
                         name="discounted_price"
                         type="number"
                         required
                         defaultValue={editingProduct?.discounted_price}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="button_text">Texte du bouton</Label>
+                      <Input
+                        id="button_text"
+                        name="button_text"
+                        required
+                        defaultValue={editingProduct?.button_text || "Ajouter au panier"}
+                        placeholder="Ajouter au panier"
                       />
                     </div>
 
@@ -357,6 +402,7 @@ const ProductForm = () => {
                         defaultValue={editingProduct?.cart_url}
                       />
                     </div>
+
                     <div className="flex gap-4">
                       <Button type="submit" disabled={loading} className="flex-1">
                         {loading ? "En cours..." : (editingProduct ? "Modifier" : "Créer")}
@@ -389,8 +435,8 @@ const ProductForm = () => {
                   {products.map((product) => (
                     <tr key={product.id} className="border-b hover:bg-gray-50">
                       <td className="px-6 py-4">{product.name}</td>
-                      <td className="px-6 py-4">{product.original_price} CFA</td>
-                      <td className="px-6 py-4">{product.discounted_price} CFA</td>
+                      <td className="px-6 py-4">{product.original_price} {product.currency}</td>
+                      <td className="px-6 py-4">{product.discounted_price} {product.currency}</td>
                       <td className="px-6 py-4">
                         {format(new Date(product.created_at), "d MMMM yyyy", { locale: fr })}
                       </td>

@@ -11,8 +11,10 @@ export type Database = {
     Tables: {
       products: {
         Row: {
+          button_text: string
           cart_url: string
           created_at: string
+          currency: string
           description: string
           discounted_price: number
           id: string
@@ -24,8 +26,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          button_text?: string
           cart_url: string
           created_at?: string
+          currency?: string
           description: string
           discounted_price: number
           id?: string
@@ -37,8 +41,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          button_text?: string
           cart_url?: string
           created_at?: string
+          currency?: string
           description?: string
           discounted_price?: number
           id?: string

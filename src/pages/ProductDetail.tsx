@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -17,6 +16,8 @@ interface Product {
   cart_url: string;
   images: string[];
   theme_color: string;
+  button_text: string;
+  currency: string;
 }
 
 const ProductDetail = () => {
@@ -105,6 +106,8 @@ const ProductDetail = () => {
             discountedPrice={product.discounted_price}
             description={product.description}
             cartUrl={product.cart_url}
+            buttonText={product.button_text}
+            currency={product.currency}
           />
         </div>
       </main>
