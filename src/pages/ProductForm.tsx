@@ -18,6 +18,9 @@ import {
 } from "@/components/ui/sheet";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Database } from "@/integrations/supabase/types";
+
+type CurrencyCode = Database['public']['Enums']['currency_code'];
 
 // Organized color palettes
 const COLOR_PALETTES = {
@@ -36,18 +39,18 @@ const COLOR_PALETTES = {
 const ALL_COLORS = Object.values(COLOR_PALETTES).flat();
 
 const CURRENCIES = [
-  { code: 'XOF', label: 'Franc CFA (XOF) - UEMOA' },
-  { code: 'XAF', label: 'Franc CFA (XAF) - CEMAC' },
-  { code: 'ZAR', label: 'Rand sud-africain (ZAR)' },
-  { code: 'MAD', label: 'Dirham marocain (MAD)' },
-  { code: 'EGP', label: 'Livre égyptienne (EGP)' },
-  { code: 'NGN', label: 'Naira nigérian (NGN)' },
-  { code: 'KES', label: 'Shilling kényan (KES)' },
-  { code: 'TND', label: 'Dinar tunisien (TND)' },
-  { code: 'UGX', label: 'Shilling ougandais (UGX)' },
-  { code: 'GHS', label: 'Cedi ghanéen (GHS)' },
-  { code: 'USD', label: 'Dollar américain (USD)' },
-  { code: 'EUR', label: 'Euro (EUR)' }
+  { code: 'XOF' as CurrencyCode, label: 'Franc CFA (XOF) - UEMOA' },
+  { code: 'XAF' as CurrencyCode, label: 'Franc CFA (XAF) - CEMAC' },
+  { code: 'ZAR' as CurrencyCode, label: 'Rand sud-africain (ZAR)' },
+  { code: 'MAD' as CurrencyCode, label: 'Dirham marocain (MAD)' },
+  { code: 'EGP' as CurrencyCode, label: 'Livre égyptienne (EGP)' },
+  { code: 'NGN' as CurrencyCode, label: 'Naira nigérian (NGN)' },
+  { code: 'KES' as CurrencyCode, label: 'Shilling kényan (KES)' },
+  { code: 'TND' as CurrencyCode, label: 'Dinar tunisien (TND)' },
+  { code: 'UGX' as CurrencyCode, label: 'Shilling ougandais (UGX)' },
+  { code: 'GHS' as CurrencyCode, label: 'Cedi ghanéen (GHS)' },
+  { code: 'USD' as CurrencyCode, label: 'Dollar américain (USD)' },
+  { code: 'EUR' as CurrencyCode, label: 'Euro (EUR)' }
 ];
 
 interface Product {
@@ -62,7 +65,7 @@ interface Product {
   created_at: string;
   is_visible: boolean;
   button_text: string;
-  currency: string;
+  currency: CurrencyCode;
 }
 
 const ProductForm = () => {
@@ -156,7 +159,7 @@ const ProductForm = () => {
         images: imageUrls.length > 0 ? imageUrls : (editingProduct?.images || []),
         is_visible: editingProduct ? editingProduct.is_visible : true,
         button_text: formData.get("button_text") as string || "Ajouter au panier",
-        currency: formData.get("currency") as string || "XOF",
+        currency: formData.get("currency") as CurrencyCode || "XOF",
       };
 
       if (editingProduct) {
