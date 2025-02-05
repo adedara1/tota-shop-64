@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import PromoBar from "@/components/PromoBar";
 import ProductGallery from "@/components/ProductGallery";
 import ProductDetails from "@/components/ProductDetails";
+import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -71,6 +72,7 @@ const ProductDetail = () => {
         <div className="container mx-auto py-12 px-4">
           <div className="text-center">Chargement...</div>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -88,6 +90,7 @@ const ProductDetail = () => {
             </p>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -96,7 +99,6 @@ const ProductDetail = () => {
     <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color }}>
       <PromoBar />
       <Navbar />
-      
       <main className="container mx-auto py-12 px-4 max-w-[100vw]">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
           <ProductGallery images={product.images} />
@@ -111,6 +113,7 @@ const ProductDetail = () => {
           />
         </div>
       </main>
+      <Footer />
     </div>
   );
 };
