@@ -61,7 +61,7 @@ export function AppSidebar() {
         </SidebarContent>
       </Sidebar>
       <div className="fixed top-4 left-4 z-50">
-        <SidebarTrigger />
+        <SidebarTrigger className="text-[#0EA5E9] hover:text-[#0EA5E9]/80" />
       </div>
     </>
   );
