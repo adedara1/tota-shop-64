@@ -68,10 +68,13 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
 
         const html = clipboardData.getData('text/html')
         if (html) {
-          const parser = new DOMParser()
-          const doc = parser.parseFromString(html, 'text/html')
+          // Utiliser directHTML pour préserver la mise en forme
           view.dispatch(
-            view.state.tr.insertText(doc.body.textContent || '')
+            view.state.tr.replaceSelectionWith(
+              view.state.schema.nodeFromJSON(
+                new DOMParser().parseFromString(html, 'text/html').body
+              )
+            )
           )
           return true
         }
@@ -146,6 +149,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
   }
 
   const colors = [
+    '#FFFFFF', // White (ajouté)
     '#000000', // Black
     '#FF0000', // Red
     '#00FF00', // Green
@@ -394,4 +398,3 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
 }
 
 export default RichTextEditor
-
