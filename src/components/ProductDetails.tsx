@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+
 interface ProductDetailsProps {
   name: string;
   originalPrice: number;
@@ -17,6 +20,7 @@ const ProductDetails = ({
   buttonText,
   currency,
 }: ProductDetailsProps) => {
+  const [isIframeOpen, setIsIframeOpen] = useState(false);
   const displayCurrency = currency === 'XOF' || currency === 'XAF' ? 'CFA' : currency;
 
   return (
@@ -34,12 +38,22 @@ const ProductDetails = ({
         </div>
       </div>
       
-      <a 
-        href={cartUrl}
+      <button 
+        onClick={() => setIsIframeOpen(true)}
         className="block w-full bg-black text-white py-3 px-6 rounded hover:bg-gray-800 transition-colors text-center"
       >
         {buttonText}
-      </a>
+      </button>
+
+      <Dialog open={isIframeOpen} onOpenChange={setIsIframeOpen}>
+        <DialogContent className="max-w-[90vw] w-[1200px] h-[80vh]">
+          <iframe
+            src={cartUrl}
+            className="w-full h-full border-none"
+            title="Cart"
+          />
+        </DialogContent>
+      </Dialog>
       
       <div className="space-y-4 pt-6">
         <div className="mt-6 text-gray-600 prose max-w-full overflow-hidden break-words">
