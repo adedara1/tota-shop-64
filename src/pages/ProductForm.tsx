@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import RichTextEditor from "@/components/RichTextEditor";
 import ColorSelector from "@/components/ColorSelector";
-import { Copy, Edit, Plus, Trash } from "lucide-react";
+import { Copy, Edit, Eye, EyeOff, Plus, Trash } from "lucide-react";
 import {
   Sheet,
   SheetClose,
@@ -111,7 +111,6 @@ const ProductForm = () => {
       const formData = new FormData(e.currentTarget);
       const imageUrls: string[] = [];
 
-      // Upload images if new ones are selected
       if (images.length > 0) {
         for (const image of images) {
           const fileName = `${crypto.randomUUID()}-${image.name}`;
@@ -137,6 +136,7 @@ const ProductForm = () => {
         cart_url: formData.get("cart_url") as string,
         theme_color: selectedColor,
         images: imageUrls.length > 0 ? imageUrls : (editingProduct?.images || []),
+        is_visible: editingProduct ? editingProduct.is_visible : true,
       };
 
       if (editingProduct) {
@@ -176,6 +176,31 @@ const ProductForm = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleVisibility = async (id: string, currentVisibility: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("products")
+        .update({ is_visible: !currentVisibility })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Succès",
+        description: `Produit ${!currentVisibility ? 'visible' : 'masqué'} avec succès`,
+      });
+
+      fetchProducts();
+    } catch (error) {
+      console.error("Error toggling visibility:", error);
+      toast({
+        title: "Erreur",
+        description: "Échec de la modification",
+        variant: "destructive",
+      });
     }
   };
 
@@ -332,7 +357,6 @@ const ProductForm = () => {
                         defaultValue={editingProduct?.cart_url}
                       />
                     </div>
-
                     <div className="flex gap-4">
                       <Button type="submit" disabled={loading} className="flex-1">
                         {loading ? "En cours..." : (editingProduct ? "Modifier" : "Créer")}
@@ -372,6 +396,18 @@ const ProductForm = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => toggleVisibility(product.id, product.is_visible)}
+                            title={product.is_visible ? "Masquer" : "Afficher"}
+                          >
+                            {product.is_visible ? (
+                              <Eye className="h-4 w-4" />
+                            ) : (
+                              <EyeOff className="h-4 w-4" />
+                            )}
+                          </Button>
                           <Button
                             variant="outline"
                             size="icon"

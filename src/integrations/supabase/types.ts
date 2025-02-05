@@ -17,6 +17,7 @@ export type Database = {
           discounted_price: number
           id: string
           images: string[]
+          is_visible: boolean
           name: string
           original_price: number
           theme_color: string
@@ -29,6 +30,7 @@ export type Database = {
           discounted_price: number
           id?: string
           images: string[]
+          is_visible?: boolean
           name: string
           original_price: number
           theme_color?: string
@@ -41,6 +43,7 @@ export type Database = {
           discounted_price?: number
           id?: string
           images?: string[]
+          is_visible?: boolean
           name?: string
           original_price?: number
           theme_color?: string

@@ -11,6 +11,7 @@ const Products = () => {
       const { data, error } = await supabase
         .from("products")
         .select("*")
+        .eq('is_visible', true)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -54,10 +55,10 @@ const Products = () => {
                 <h3 className="text-lg font-medium mb-2">{product.name}</h3>
                 <div className="flex items-center gap-2">
                   <span className="text-gray-400 line-through">
-                    CFA{product.original_price}
+                    {product.original_price} CFA
                   </span>
-                  <span className="text-lg font-bold">
-                    CFA{product.discounted_price}
+                  <span className="text-lg">
+                    {product.discounted_price} CFA
                   </span>
                 </div>
               </div>
