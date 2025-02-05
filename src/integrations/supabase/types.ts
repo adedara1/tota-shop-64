@@ -14,7 +14,7 @@ export type Database = {
           button_text: string
           cart_url: string
           created_at: string
-          currency: string
+          currency: Database["public"]["Enums"]["currency_code"]
           description: string
           discounted_price: number
           id: string
@@ -29,7 +29,7 @@ export type Database = {
           button_text?: string
           cart_url: string
           created_at?: string
-          currency?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
           description: string
           discounted_price: number
           id?: string
@@ -44,7 +44,7 @@ export type Database = {
           button_text?: string
           cart_url?: string
           created_at?: string
-          currency?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
           description?: string
           discounted_price?: number
           id?: string
@@ -65,7 +65,19 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      currency_code:
+        | "XOF"
+        | "XAF"
+        | "ZAR"
+        | "MAD"
+        | "EGP"
+        | "NGN"
+        | "KES"
+        | "TND"
+        | "UGX"
+        | "GHS"
+        | "USD"
+        | "EUR"
     }
     CompositeTypes: {
       [_ in never]: never

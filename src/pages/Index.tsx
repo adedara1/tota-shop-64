@@ -1,49 +1,25 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import PromoBar from "@/components/PromoBar";
-import ProductGallery from "@/components/ProductGallery";
-import ProductDetails from "@/components/ProductDetails";
-import { supabase } from "@/integrations/supabase/client";
 
-interface Product {
-  id: string;
-  name: string;
-  original_price: number;
-  discounted_price: number;
-  description: string;
-  cart_url: string;
-  images: string[];
-}
+const Products = () => {
+  const { data: products, isLoading } = useQuery({
+    queryKey: ["products"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq('is_visible', true)
+        .order("created_at", { ascending: false });
 
-const Index = () => {
-  const { id } = useParams();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
+      if (error) throw error;
+      return data;
+    },
+  });
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("products")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (error) throw error;
-        setProduct(data);
-      } catch (error) {
-        console.error("Error fetching product:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProduct();
-  }, [id]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
         <PromoBar />
@@ -55,42 +31,43 @@ const Index = () => {
     );
   }
 
-  if (!product) {
-    return (
-      <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
-        <PromoBar />
-        <Navbar />
-        <div className="container mx-auto py-12 px-4">
-          <div className="text-center">
-            <h2 className="text-2xl font-medium mb-4">Aucun produit trouvé</h2>
-            <p className="text-gray-600">
-              Veuillez ajouter un produit en utilisant le formulaire de création.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
       <PromoBar />
       <Navbar />
       
       <main className="container mx-auto py-12 px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          <ProductGallery images={product.images} />
-          <ProductDetails
-            name={product.name}
-            originalPrice={product.original_price}
-            discountedPrice={product.discounted_price}
-            description={product.description}
-            cartUrl={product.cart_url}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {products?.map((product) => (
+            <Link 
+              key={product.id} 
+              to={`/product/${product.id}`}
+              className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div className="aspect-square">
+                <img
+                  src={product.images[0]}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="p-4">
+                <h3 className="text-lg font-medium mb-2">{product.name}</h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 line-through">
+                    {product.original_price} {product.currency}
+                  </span>
+                  <span className="text-lg">
+                    {product.discounted_price} {product.currency}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          ))}
         </div>
       </main>
     </div>
   );
 };
 
-export default Index;
+export default Products;

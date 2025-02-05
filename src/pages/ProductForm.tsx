@@ -60,6 +60,9 @@ interface Product {
   images: string[];
   theme_color: string;
   created_at: string;
+  is_visible: boolean;
+  button_text: string;
+  currency: string;
 }
 
 const ProductForm = () => {
