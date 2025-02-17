@@ -9,6 +9,44 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      product_stats: {
+        Row: {
+          clicks_count: number
+          created_at: string
+          id: string
+          product_id: string | null
+          updated_at: string
+          view_date: string
+          views_count: number
+        }
+        Insert: {
+          clicks_count?: number
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          updated_at?: string
+          view_date?: string
+          views_count?: number
+        }
+        Update: {
+          clicks_count?: number
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          updated_at?: string
+          view_date?: string
+          views_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_stats_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           button_text: string
@@ -62,7 +100,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_product_click: {
+        Args: {
+          product_id_param: string
+          click_date_param?: string
+        }
+        Returns: undefined
+      }
+      increment_product_view: {
+        Args: {
+          product_id_param: string
+          view_date_param?: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       currency_code:

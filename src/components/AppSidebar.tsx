@@ -1,4 +1,5 @@
-import { Home, PlusCircle, Mail } from "lucide-react"
+
+import { Home, PlusCircle, Mail, BarChart } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 import {
   Sidebar,
@@ -22,6 +23,11 @@ const items = [
     title: "Créer un produit",
     url: "/product-form",
     icon: PlusCircle,
+  },
+  {
+    title: "Statistiques",
+    url: "/stats",
+    icon: BarChart,
   },
   {
     title: "Contact",

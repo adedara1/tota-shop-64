@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -47,6 +48,15 @@ const ProductDetail = () => {
         }
         
         setProduct(data);
+
+        // Increment view count
+        const { error: statsError } = await supabase.rpc('increment_product_view', {
+          product_id_param: id
+        });
+
+        if (statsError) {
+          console.error("Error incrementing view count:", statsError);
+        }
       } catch (error) {
         console.error("Error fetching product:", error);
         toast({
@@ -63,6 +73,18 @@ const ProductDetail = () => {
       fetchProduct();
     }
   }, [id]);
+
+  const handleProductClick = async () => {
+    if (id) {
+      const { error } = await supabase.rpc('increment_product_click', {
+        product_id_param: id
+      });
+
+      if (error) {
+        console.error("Error incrementing click count:", error);
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -110,6 +132,7 @@ const ProductDetail = () => {
             cartUrl={product.cart_url}
             buttonText={product.button_text}
             currency={product.currency}
+            onButtonClick={handleProductClick}
           />
         </div>
       </main>
