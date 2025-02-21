@@ -2,15 +2,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { Database } from "@/integrations/supabase/types";
 
-interface PopoSettings {
-  title1: string;
-  title2: string;
-  button1_text: string;
-  button2_text: string;
-  button1_url: string;
-  button2_url: string;
-}
+type PopoSettings = Database['public']['Tables']['popo_settings']['Row'];
 
 const Popo = () => {
   const [settings, setSettings] = useState<PopoSettings | null>(null);
@@ -21,10 +15,13 @@ const Popo = () => {
       const { data, error } = await supabase
         .from("popo_settings")
         .select("*")
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       if (!error && data) {
         setSettings(data);
+      } else {
+        console.error("Error fetching settings:", error);
       }
     };
 

@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      popo_settings: {
+        Row: {
+          button1_text: string
+          button1_url: string
+          button2_text: string
+          button2_url: string
+          created_at: string
+          id: string
+          title1: string
+          title2: string
+          updated_at: string
+        }
+        Insert: {
+          button1_text?: string
+          button1_url?: string
+          button2_text?: string
+          button2_url?: string
+          created_at?: string
+          id?: string
+          title1?: string
+          title2?: string
+          updated_at?: string
+        }
+        Update: {
+          button1_text?: string
+          button1_url?: string
+          button2_text?: string
+          button2_url?: string
+          created_at?: string
+          id?: string
+          title1?: string
+          title2?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_stats: {
         Row: {
           clicks_count: number

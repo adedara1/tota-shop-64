@@ -5,12 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
+
+type PopoSettings = Omit<Database['public']['Tables']['popo_settings']['Row'], 'id' | 'created_at' | 'updated_at'>;
 
 const PopoSettings = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-
-  const [formData, setFormData] = useState({
+  const [settingId, setSettingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<PopoSettings>({
     title1: "",
     title2: "",
     button1_text: "",
@@ -24,10 +27,13 @@ const PopoSettings = () => {
       const { data, error } = await supabase
         .from("popo_settings")
         .select("*")
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       if (!error && data) {
-        setFormData(data);
+        const { id, created_at, updated_at, ...settings } = data;
+        setSettingId(id);
+        setFormData(settings);
       }
     };
 
@@ -39,9 +45,14 @@ const PopoSettings = () => {
     setLoading(true);
 
     try {
+      if (!settingId) {
+        throw new Error("No setting ID found");
+      }
+
       const { error } = await supabase
         .from("popo_settings")
-        .upsert(formData, { onConflict: "id" });
+        .update(formData)
+        .eq('id', settingId);
 
       if (error) throw error;
 
