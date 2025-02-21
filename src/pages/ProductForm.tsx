@@ -22,7 +22,6 @@ import { Database } from "@/integrations/supabase/types";
 
 type CurrencyCode = Database['public']['Enums']['currency_code'];
 
-// Organized color palettes
 const COLOR_PALETTES = {
   blue: ['#0000FF', '#79F8F8', '#007FFF', '#1E7FCB', '#74D0F1', '#A9EAFE', '#3A8EBA'],
   white: ['#FFFFFF', '#FEFEFE', '#EFEFEF', '#F0FFFF', '#F5F5DC', '#FEFEE2'],
@@ -78,6 +77,7 @@ const ProductForm = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [showCloneForm, setShowCloneForm] = useState(false);
 
   const fetchProducts = async () => {
     try {
@@ -294,135 +294,162 @@ const ProductForm = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-medium">Gestion des produits</h1>
-            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-              <SheetTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Créer un produit
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="overflow-y-auto w-full sm:max-w-xl">
-                <SheetHeader>
-                  <SheetTitle>
-                    {editingProduct ? "Modifier le produit" : "Créer un nouveau produit"}
-                  </SheetTitle>
-                </SheetHeader>
-                <div className="py-4">
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                      <Label htmlFor="images">Images du produit (Max 4)</Label>
-                      <Input
-                        id="images"
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleImageChange}
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="name">Nom du produit</Label>
-                      <Input 
-                        id="name" 
-                        name="name" 
-                        required 
-                        defaultValue={editingProduct?.name}
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="currency">Devise</Label>
-                      <select
-                        id="currency"
-                        name="currency"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                        defaultValue={editingProduct?.currency || "XOF"}
-                        required
-                      >
-                        {CURRENCIES.map(currency => (
-                          <option key={currency.code} value={currency.code}>
-                            {currency.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="original_price">Prix original</Label>
-                      <Input
-                        id="original_price"
-                        name="original_price"
-                        type="number"
-                        required
-                        defaultValue={editingProduct?.original_price}
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="discounted_price">Prix réduit</Label>
-                      <Input
-                        id="discounted_price"
-                        name="discounted_price"
-                        type="number"
-                        required
-                        defaultValue={editingProduct?.discounted_price}
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="button_text">Texte du bouton</Label>
-                      <Input
-                        id="button_text"
-                        name="button_text"
-                        required
-                        defaultValue={editingProduct?.button_text || "Ajouter au panier"}
-                        placeholder="Ajouter au panier"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="description">Description</Label>
-                      <div className="prose max-w-none">
-                        <RichTextEditor 
-                          value={description} 
-                          onChange={setDescription}
+            <div className="flex gap-4">
+              <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                <SheetTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Créer un produit
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="overflow-y-auto w-full sm:max-w-xl">
+                  <SheetHeader>
+                    <SheetTitle>
+                      {editingProduct ? "Modifier le produit" : "Créer un nouveau produit"}
+                    </SheetTitle>
+                  </SheetHeader>
+                  <div className="py-4">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                      <div>
+                        <Label htmlFor="images">Images du produit (Max 4)</Label>
+                        <Input
+                          id="images"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleImageChange}
                         />
                       </div>
-                    </div>
 
-                    <div className="space-y-2">
-                      <Label>Couleur du thème</Label>
-                      <ColorSelector
-                        selectedColor={selectedColor}
-                        onColorSelect={setSelectedColor}
-                      />
-                    </div>
+                      <div>
+                        <Label htmlFor="name">Nom du produit</Label>
+                        <Input 
+                          id="name" 
+                          name="name" 
+                          required 
+                          defaultValue={editingProduct?.name}
+                        />
+                      </div>
 
-                    <div>
-                      <Label htmlFor="cart_url">URL du panier</Label>
-                      <Input 
-                        id="cart_url" 
-                        name="cart_url" 
-                        type="url" 
-                        required 
-                        defaultValue={editingProduct?.cart_url}
-                      />
-                    </div>
+                      <div>
+                        <Label htmlFor="currency">Devise</Label>
+                        <select
+                          id="currency"
+                          name="currency"
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                          defaultValue={editingProduct?.currency || "XOF"}
+                          required
+                        >
+                          {CURRENCIES.map(currency => (
+                            <option key={currency.code} value={currency.code}>
+                              {currency.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-                    <div className="flex gap-4">
-                      <Button type="submit" disabled={loading} className="flex-1">
-                        {loading ? "En cours..." : (editingProduct ? "Modifier" : "Créer")}
-                      </Button>
-                      <SheetClose asChild>
-                        <Button variant="outline" onClick={resetForm} className="flex-1">
-                          Annuler
+                      <div>
+                        <Label htmlFor="original_price">Prix original</Label>
+                        <Input
+                          id="original_price"
+                          name="original_price"
+                          type="number"
+                          required
+                          defaultValue={editingProduct?.original_price}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="discounted_price">Prix réduit</Label>
+                        <Input
+                          id="discounted_price"
+                          name="discounted_price"
+                          type="number"
+                          required
+                          defaultValue={editingProduct?.discounted_price}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="button_text">Texte du bouton</Label>
+                        <Input
+                          id="button_text"
+                          name="button_text"
+                          required
+                          defaultValue={editingProduct?.button_text || "Ajouter au panier"}
+                          placeholder="Ajouter au panier"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="description">Description</Label>
+                        <div className="prose max-w-none">
+                          <RichTextEditor 
+                            value={description} 
+                            onChange={setDescription}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Couleur du thème</Label>
+                        <ColorSelector
+                          selectedColor={selectedColor}
+                          onColorSelect={setSelectedColor}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="cart_url">URL du panier</Label>
+                        <Input 
+                          id="cart_url" 
+                          name="cart_url" 
+                          type="url" 
+                          required 
+                          defaultValue={editingProduct?.cart_url}
+                        />
+                      </div>
+
+                      <div className="flex gap-4">
+                        <Button type="submit" disabled={loading} className="flex-1">
+                          {loading ? "En cours..." : (editingProduct ? "Modifier" : "Créer")}
                         </Button>
-                      </SheetClose>
-                    </div>
-                  </form>
-                </div>
-              </SheetContent>
-            </Sheet>
+                        <SheetClose asChild>
+                          <Button variant="outline" onClick={resetForm} className="flex-1">
+                            Annuler
+                          </Button>
+                        </SheetClose>
+                      </div>
+                    </form>
+                  </div>
+                </SheetContent>
+              </Sheet>
+
+              <Sheet open={showCloneForm} onOpenChange={setShowCloneForm}>
+                <SheetTrigger asChild>
+                  <Button variant="default" className="bg-green-500 hover:bg-green-600">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Créer un produit
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="overflow-y-auto w-full sm:max-w-xl">
+                  <SheetHeader>
+                    <SheetTitle>
+                      Créer un nouveau produit
+                    </SheetTitle>
+                  </SheetHeader>
+                  <div className="py-4">
+                    <ProductFormClone 
+                      onSuccess={() => {
+                        setShowCloneForm(false);
+                        fetchProducts();
+                      }}
+                      onCancel={() => setShowCloneForm(false)}
+                    />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
 
           <div className="bg-white rounded-lg shadow">
