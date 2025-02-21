@@ -19,6 +19,7 @@ import {
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Database } from "@/integrations/supabase/types";
+import ProductFormClone from "@/components/ProductFormClone";
 
 type CurrencyCode = Database['public']['Enums']['currency_code'];
 
