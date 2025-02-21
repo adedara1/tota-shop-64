@@ -1,3 +1,4 @@
+
 import { useNavigate } from "react-router-dom";
 
 interface ProductDetailsProps {
@@ -19,11 +20,10 @@ const ProductDetails = ({
   buttonText,
   currency,
 }: ProductDetailsProps) => {
-  const navigate = useNavigate();
   const displayCurrency = currency === 'XOF' || currency === 'XAF' ? 'CFA' : currency;
 
-  const handlePaymentClick = () => {
-    navigate(`/paiement?cartUrl=${encodeURIComponent(cartUrl)}`);
+  const handleClick = () => {
+    window.location.href = cartUrl;
   };
 
   return (
@@ -42,7 +42,7 @@ const ProductDetails = ({
       </div>
       
       <button 
-        onClick={handlePaymentClick}
+        onClick={handleClick}
         className="block w-full bg-black text-white py-3 px-6 rounded hover:bg-gray-800 transition-colors text-center"
       >
         {buttonText}

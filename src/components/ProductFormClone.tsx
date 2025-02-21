@@ -38,6 +38,8 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
   const [description, setDescription] = useState("");
   const defaultColor = "#f1eee9";
   const [selectedColor, setSelectedColor] = useState(defaultColor);
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [whatsappMessage, setWhatsappMessage] = useState("");
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -77,16 +79,19 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
         }
       }
 
+      const cleanWhatsappNumber = whatsappNumber.replace(/\D/g, '');
+      const whatsappUrl = `https://wa.me/${cleanWhatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+
       const productData = {
         name: formData.get("name") as string,
         original_price: parseInt(formData.get("original_price") as string),
         discounted_price: parseInt(formData.get("discounted_price") as string),
         description: description,
-        cart_url: formData.get("cart_url") as string,
+        cart_url: whatsappUrl,
         theme_color: selectedColor,
         images: imageUrls,
         is_visible: true,
-        button_text: formData.get("button_text") as string || "Ajouter au panier",
+        button_text: formData.get("button_text") as string || "Contactez-nous sur WhatsApp",
         currency: formData.get("currency") as CurrencyCode || "XOF",
       };
 
@@ -170,13 +175,35 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
       </div>
 
       <div>
+        <Label htmlFor="whatsapp-number-clone">Numéro WhatsApp</Label>
+        <Input
+          id="whatsapp-number-clone"
+          value={whatsappNumber}
+          onChange={(e) => setWhatsappNumber(e.target.value)}
+          placeholder="Ex: 51180895"
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="whatsapp-message-clone">Message WhatsApp par défaut</Label>
+        <Input
+          id="whatsapp-message-clone"
+          value={whatsappMessage}
+          onChange={(e) => setWhatsappMessage(e.target.value)}
+          placeholder="Ex: Bonjour"
+          required
+        />
+      </div>
+
+      <div>
         <Label htmlFor="button_text-clone">Texte du bouton</Label>
         <Input
           id="button_text-clone"
           name="button_text"
           required
-          defaultValue="Ajouter au panier"
-          placeholder="Ajouter au panier"
+          defaultValue="Contactez-nous sur WhatsApp"
+          placeholder="Contactez-nous sur WhatsApp"
         />
       </div>
 
@@ -195,16 +222,6 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
         <ColorSelector
           selectedColor={selectedColor}
           onColorSelect={setSelectedColor}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="cart_url-clone">URL du panier</Label>
-        <Input 
-          id="cart_url-clone" 
-          name="cart_url" 
-          type="url" 
-          required 
         />
       </div>
 
