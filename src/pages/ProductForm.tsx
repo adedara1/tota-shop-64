@@ -280,7 +280,7 @@ const ProductForm = () => {
   };
 
   const copyToClipboard = (id: string) => {
-    const url = `${window.location.origin}/product/${id}`;
+    const url = `https://digit-sarl.store/product/${id}`;
     navigator.clipboard.writeText(url);
     toast({
       title: "Copié !",
