@@ -76,12 +76,28 @@ const ProductDetail = () => {
 
   const handleProductClick = async () => {
     if (id) {
-      const { error } = await supabase.rpc('increment_product_click', {
+      // Increment product click count
+      const { error: productClickError } = await supabase.rpc('increment_product_click', {
         product_id_param: id
       });
 
-      if (error) {
-        console.error("Error incrementing click count:", error);
+      if (productClickError) {
+        console.error("Error incrementing product click count:", productClickError);
+      }
+
+      // Record button click in button_stats
+      const { error: buttonClickError } = await supabase.rpc('increment_button_click', {
+        button_name_param: 'add_to_cart',
+        page_name_param: `product/${id}`
+      });
+
+      if (buttonClickError) {
+        console.error("Error incrementing button click count:", buttonClickError);
+      }
+
+      // Redirect to cart URL
+      if (product?.cart_url) {
+        window.location.href = product.cart_url;
       }
     }
   };
