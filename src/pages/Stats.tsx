@@ -13,7 +13,6 @@ import {
 import { Button } from "@/components/ui/button";
 import PromoBar from "@/components/PromoBar";
 import Navbar from "@/components/Navbar";
-import ButtonStats from "./ButtonStats";
 
 interface ProductStats {
   product_name: string;
@@ -25,7 +24,7 @@ interface ProductStats {
 const Stats = () => {
   const [activeTab, setActiveTab] = useState<'products' | 'buttons'>('products');
 
-  const { data: stats, isLoading } = useQuery({
+  const { data: productStats, isLoading: isLoadingProducts } = useQuery({
     queryKey: ["product-stats"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -43,7 +42,7 @@ const Stats = () => {
       if (error) throw error;
 
       return data.map((stat) => ({
-        product_name: stat.products.name,
+        product_name: stat.products?.name,
         views_count: stat.views_count,
         clicks_count: stat.clicks_count,
         view_date: new Date(stat.view_date).toLocaleDateString(),
@@ -51,7 +50,26 @@ const Stats = () => {
     },
   });
 
-  if (isLoading) {
+  const { data: buttonStats, isLoading: isLoadingButtons } = useQuery({
+    queryKey: ["button-stats"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("button_stats")
+        .select("*")
+        .order("click_date", { ascending: false });
+
+      if (error) throw error;
+
+      return data.map((stat) => ({
+        button_name: stat.button_name,
+        page_name: stat.page_name,
+        clicks_count: stat.clicks_count,
+        click_date: new Date(stat.click_date).toLocaleDateString(),
+      }));
+    },
+  });
+
+  if (isLoadingProducts || isLoadingButtons) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
         <PromoBar />
@@ -97,7 +115,7 @@ const Stats = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {stats?.map((stat, index) => (
+                {productStats?.map((stat, index) => (
                   <TableRow key={index}>
                     <TableCell>{stat.view_date}</TableCell>
                     <TableCell>{stat.product_name}</TableCell>
@@ -109,7 +127,28 @@ const Stats = () => {
             </Table>
           </div>
         ) : (
-          <ButtonStats />
+          <div className="bg-white rounded-lg shadow">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Bouton</TableHead>
+                  <TableHead>Page</TableHead>
+                  <TableHead className="text-right">Clics</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {buttonStats?.map((stat, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{stat.click_date}</TableCell>
+                    <TableCell>{stat.button_name}</TableCell>
+                    <TableCell>{stat.page_name}</TableCell>
+                    <TableCell className="text-right">{stat.clicks_count}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </main>
     </div>
