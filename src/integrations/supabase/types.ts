@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      button_stats: {
+        Row: {
+          button_name: string
+          click_date: string | null
+          clicks_count: number | null
+          created_at: string
+          id: string
+          page_name: string
+          updated_at: string
+        }
+        Insert: {
+          button_name: string
+          click_date?: string | null
+          clicks_count?: number | null
+          created_at?: string
+          id?: string
+          page_name: string
+          updated_at?: string
+        }
+        Update: {
+          button_name?: string
+          click_date?: string | null
+          clicks_count?: number | null
+          created_at?: string
+          id?: string
+          page_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       popo_settings: {
         Row: {
           button1_text: string
@@ -136,6 +166,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      increment_button_click: {
+        Args: {
+          button_name_param: string
+          page_name_param: string
+          click_date_param?: string
+        }
+        Returns: undefined
+      }
       increment_product_click: {
         Args: {
           product_id_param: string

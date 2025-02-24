@@ -14,6 +14,7 @@ import Contact from "./pages/Contact";
 import Auth from "./pages/Auth";
 import Home from "./pages/Home";
 import Stats from "./pages/Stats";
+import ButtonStats from "./pages/ButtonStats";
 import Popo from "./pages/Popo";
 import PopoSettings from "./pages/PopoSettings";
 import Formulaire from "./pages/Formulaire";
