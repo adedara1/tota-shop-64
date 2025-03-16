@@ -65,16 +65,22 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
       if (images.length > 0) {
         for (const image of images) {
           const fileName = `${crypto.randomUUID()}-${image.name}`;
+          console.log("Uploading image:", fileName);
+          
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from("products")
             .upload(fileName, image);
 
-          if (uploadError) throw uploadError;
+          if (uploadError) {
+            console.error("Error uploading image:", uploadError);
+            throw uploadError;
+          }
 
           const { data: { publicUrl } } = supabase.storage
             .from("products")
             .getPublicUrl(fileName);
 
+          console.log("Image uploaded successfully:", publicUrl);
           imageUrls.push(publicUrl);
         }
       }
@@ -94,6 +100,8 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
         button_text: formData.get("button_text") as string || "Contactez-nous sur WhatsApp",
         currency: formData.get("currency") as CurrencyCode || "XOF",
       };
+
+      console.log("Saving product data:", productData);
 
       const { error: insertError } = await supabase
         .from("products")
