@@ -5,9 +5,14 @@ import Navbar from "@/components/Navbar";
 import PromoBar from "@/components/PromoBar";
 import ProductGallery from "@/components/ProductGallery";
 import ProductDetails from "@/components/ProductDetails";
+import ProductOptions from "@/components/ProductOptions";
 import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+
+interface ProductOption {
+  [key: string]: string[];
+}
 
 interface Product {
   id: string;
@@ -20,12 +25,14 @@ interface Product {
   theme_color: string;
   button_text: string;
   currency: string;
+  options?: ProductOption;
 }
 
 const ProductDetail = () => {
   const { id } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -47,7 +54,27 @@ const ProductDetail = () => {
           return;
         }
         
-        setProduct(data);
+        // Add dummy options for now, in production these would come from the database
+        const productWithOptions: Product = {
+          ...data,
+          options: {
+            "Couleur de peau": ["Peau Claire", "Peau Noire/Marron"],
+            "Format": ["Petit", "Grand"]
+          }
+        };
+        
+        setProduct(productWithOptions);
+
+        // Initialize selected options with first value of each option type
+        const initialOptions: Record<string, string> = {};
+        if (productWithOptions.options) {
+          Object.entries(productWithOptions.options).forEach(([key, values]) => {
+            if (values.length > 0) {
+              initialOptions[key] = values[0];
+            }
+          });
+        }
+        setSelectedOptions(initialOptions);
 
         // Increment view count
         const { error: statsError } = await supabase.rpc('increment_product_view', {
@@ -84,6 +111,15 @@ const ProductDetail = () => {
         console.error("Error incrementing click count:", error);
       }
     }
+    // In a real application, we would pass the selected options to the cart or checkout page
+    console.log("Selected options:", selectedOptions);
+  };
+
+  const handleOptionChange = (optionType: string, value: string) => {
+    setSelectedOptions(prev => ({
+      ...prev,
+      [optionType]: value
+    }));
   };
 
   if (loading) {
@@ -118,23 +154,35 @@ const ProductDetail = () => {
   }
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product?.theme_color }}>
+    <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color }}>
       <PromoBar />
       <Navbar />
       <main className="container mx-auto py-12 px-4 max-w-[100vw]">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-          <ProductGallery images={product?.images || []} />
-          <ProductDetails
-            key={product?.id}
-            name={product?.name || ''}
-            originalPrice={product?.original_price || 0}
-            discountedPrice={product?.discounted_price || 0}
-            description={product?.description || ''}
-            cartUrl={product?.cart_url || ''}
-            buttonText={product?.button_text || ''}
-            currency={product?.currency || 'XOF'}
-            onButtonClick={handleProductClick}
-          />
+          <ProductGallery images={product.images || []} />
+          <div>
+            <ProductDetails
+              key={product.id}
+              name={product.name || ''}
+              originalPrice={product.original_price || 0}
+              discountedPrice={product.discounted_price || 0}
+              description={product.description || ''}
+              cartUrl={product.cart_url || ''}
+              buttonText={product.button_text || ''}
+              currency={product.currency || 'XOF'}
+              onButtonClick={handleProductClick}
+            />
+            
+            {/* Dynamic Product Options */}
+            {product.options && Object.entries(product.options).map(([optionType, values]) => (
+              <ProductOptions 
+                key={optionType}
+                title={optionType}
+                options={values}
+                onChange={(value) => handleOptionChange(optionType, value)}
+              />
+            ))}
+          </div>
         </div>
       </main>
       <Footer />
