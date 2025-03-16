@@ -1,73 +1,28 @@
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import PromoBar from "@/components/PromoBar";
+import Footer from "@/components/Footer";
 
-const Products = () => {
-  const { data: products, isLoading } = useQuery({
-    queryKey: ["products"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .eq('is_visible', true)
-        .order("created_at", { ascending: false });
+const Index = () => {
+  const navigate = useNavigate();
 
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
-        <PromoBar />
-        <Navbar />
-        <div className="container mx-auto py-12 px-4">
-          <div className="text-center">Chargement...</div>
-        </div>
-      </div>
-    );
-  }
+  // Redirect to the products page
+  // This is a simple redirect component since Index.tsx was a duplicate of Products.tsx
+  React.useEffect(() => {
+    navigate('/products');
+  }, [navigate]);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
+    <div className="min-h-screen bg-white">
       <PromoBar />
       <Navbar />
-      
-      <main className="container mx-auto py-12 px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {products?.map((product) => (
-            <Link 
-              key={product.id} 
-              to={`/product/${product.id}`}
-              className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="aspect-square">
-                <img
-                  src={product.images[0]}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="text-lg font-medium mb-2">{product.name}</h3>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400 line-through">
-                    {product.original_price} {product.currency}
-                  </span>
-                  <span className="text-lg">
-                    {product.discounted_price} {product.currency}
-                  </span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </main>
+      <div className="container mx-auto py-12 px-4 text-center">
+        <p>Redirection vers la page des produits...</p>
+      </div>
+      <Footer />
     </div>
   );
 };
 
-export default Products;
+export default Index;
