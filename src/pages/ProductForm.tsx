@@ -66,6 +66,7 @@ interface Product {
   is_visible: boolean;
   button_text: string;
   currency: CurrencyCode;
+  options?: Record<string, string[]>;
 }
 
 const ProductForm = () => {
@@ -79,6 +80,11 @@ const ProductForm = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [showCloneForm, setShowCloneForm] = useState(false);
+  const [optionTypes, setOptionTypes] = useState<string[]>([]);
+  const [optionValues, setOptionValues] = useState<Record<string, string[]>>({});
+  const [newOptionType, setNewOptionType] = useState("");
+  const [newOptionValue, setNewOptionValue] = useState("");
+  const [editingOptionType, setEditingOptionType] = useState("");
 
   const fetchProducts = async () => {
     try {
@@ -116,13 +122,59 @@ const ProductForm = () => {
     setImages(files);
   };
 
-  const resetForm = () => {
-    setImages([]);
-    setDescription("");
-    setSelectedColor(defaultColor);
-    setEditingProduct(null);
-    const form = document.querySelector("form") as HTMLFormElement;
-    if (form) form.reset();
+  useEffect(() => {
+    if (editingProduct && editingProduct.options) {
+      const types = Object.keys(editingProduct.options);
+      setOptionTypes(types);
+      setOptionValues(editingProduct.options);
+    } else {
+      setOptionTypes([]);
+      setOptionValues({});
+    }
+  }, [editingProduct]);
+
+  const addOptionType = () => {
+    if (newOptionType.trim() && !optionTypes.includes(newOptionType)) {
+      setOptionTypes([...optionTypes, newOptionType]);
+      setOptionValues({
+        ...optionValues,
+        [newOptionType]: []
+      });
+      setNewOptionType("");
+      setEditingOptionType(newOptionType);
+    }
+  };
+
+  const addOptionValue = () => {
+    if (editingOptionType && newOptionValue.trim() && 
+        !optionValues[editingOptionType]?.includes(newOptionValue)) {
+      setOptionValues({
+        ...optionValues,
+        [editingOptionType]: [...(optionValues[editingOptionType] || []), newOptionValue]
+      });
+      setNewOptionValue("");
+    }
+  };
+
+  const removeOptionType = (type: string) => {
+    const newTypes = optionTypes.filter(t => t !== type);
+    const newValues = { ...optionValues };
+    delete newValues[type];
+    
+    setOptionTypes(newTypes);
+    setOptionValues(newValues);
+    if (editingOptionType === type) {
+      setEditingOptionType("");
+    }
+  };
+
+  const removeOptionValue = (type: string, value: string) => {
+    if (optionValues[type]) {
+      setOptionValues({
+        ...optionValues,
+        [type]: optionValues[type].filter(v => v !== value)
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -167,6 +219,7 @@ const ProductForm = () => {
         is_visible: editingProduct ? editingProduct.is_visible : true,
         button_text: formData.get("button_text") as string || "Ajouter au panier",
         currency: formData.get("currency") as CurrencyCode || "XOF",
+        options: optionTypes.length > 0 ? optionValues : null
       };
 
       console.log("Saving product data:", productData);
@@ -296,6 +349,20 @@ const ProductForm = () => {
     });
   };
 
+  const resetForm = () => {
+    setImages([]);
+    setDescription("");
+    setSelectedColor(defaultColor);
+    setEditingProduct(null);
+    setOptionTypes([]);
+    setOptionValues({});
+    setNewOptionType("");
+    setNewOptionValue("");
+    setEditingOptionType("");
+    const form = document.querySelector("form") as HTMLFormElement;
+    if (form) form.reset();
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -417,6 +484,98 @@ const ProductForm = () => {
                           required 
                           defaultValue={editingProduct?.cart_url}
                         />
+                      </div>
+
+                      <div className="space-y-4">
+                        <Label>Options du produit</Label>
+                        
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            placeholder="Nom de l'option (ex: Taille, Couleur)" 
+                            value={newOptionType}
+                            onChange={(e) => setNewOptionType(e.target.value)}
+                          />
+                          <Button 
+                            type="button" 
+                            onClick={addOptionType}
+                            variant="outline"
+                          >
+                            Ajouter
+                          </Button>
+                        </div>
+                        
+                        {optionTypes.length > 0 && (
+                          <div className="border rounded-lg p-4">
+                            <div className="flex gap-2 mb-4">
+                              {optionTypes.map(type => (
+                                <Toggle
+                                  key={type}
+                                  pressed={editingOptionType === type}
+                                  onPressedChange={() => setEditingOptionType(type)}
+                                  className={`
+                                    rounded-full px-3 py-1 text-sm 
+                                    ${editingOptionType === type 
+                                      ? 'bg-black text-white' 
+                                      : 'bg-white border border-gray-300'
+                                    }
+                                  `}
+                                >
+                                  <span>{type}</span>
+                                  <button 
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeOptionType(type);
+                                    }}
+                                    className="ml-2 text-xs"
+                                  >
+                                    ✕
+                                  </button>
+                                </Toggle>
+                              ))}
+                            </div>
+                            
+                            {editingOptionType && (
+                              <div className="space-y-3">
+                                <h4 className="text-sm font-medium">Valeurs pour "{editingOptionType}"</h4>
+                                
+                                <div className="flex items-center gap-2">
+                                  <Input 
+                                    placeholder="Valeur de l'option (ex: S, M, L)" 
+                                    value={newOptionValue}
+                                    onChange={(e) => setNewOptionValue(e.target.value)}
+                                  />
+                                  <Button 
+                                    type="button" 
+                                    onClick={addOptionValue}
+                                    variant="outline"
+                                    size="sm"
+                                  >
+                                    Ajouter
+                                  </Button>
+                                </div>
+                                
+                                <div className="flex flex-wrap gap-2">
+                                  {optionValues[editingOptionType]?.map(value => (
+                                    <div 
+                                      key={value} 
+                                      className="bg-gray-100 rounded-full px-3 py-1 text-sm flex items-center"
+                                    >
+                                      {value}
+                                      <button
+                                        type="button"
+                                        onClick={() => removeOptionValue(editingOptionType, value)}
+                                        className="ml-2"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex gap-4">
