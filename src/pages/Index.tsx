@@ -1,5 +1,4 @@
 
-import { useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import PromoBar from "@/components/PromoBar";
@@ -10,7 +9,7 @@ const Index = () => {
 
   // Redirect to the products page
   // This is a simple redirect component since Index.tsx was a duplicate of Products.tsx
-  useEffect(() => {
+  React.useEffect(() => {
     navigate('/products');
   }, [navigate]);
 
