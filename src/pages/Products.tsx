@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +44,7 @@ const Products = () => {
     },
   });
 
+  
   // Filter products based on search and category
   const filteredProducts = products || [];
   
@@ -92,7 +92,7 @@ const Products = () => {
       
       {/* Hero Banner */}
       <div className="bg-black text-white mb-6">
-        <div className="container mx-auto flex flex-col md:flex-row items-center justify-between p-4">
+        <div className="container mx-auto flex flex-col md:flex-row items-center justify-between p-4 mx-[150px]">
           <div className="md:w-1/2 p-4">
             <h1 className="text-2xl md:text-3xl font-bold mb-2">FASHION NOVA</h1>
             <p className="text-sm mb-4">25% de réduction | Expédition gratuite</p>
