@@ -19,7 +19,7 @@ const Index = () => {
       <PromoBar />
       <Navbar />
       <div className="container mx-auto py-12 px-4 text-center">
-        <p>Redirection vers la page des produits...</p>
+        <p>Redirection vers la page des produits de Total-Service...</p>
       </div>
       <Footer />
     </div>
