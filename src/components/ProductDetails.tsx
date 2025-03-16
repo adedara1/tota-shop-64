@@ -48,7 +48,6 @@ const ProductDetails = ({
         </div>
       </div>
       
-      {/* Note: The button is intentionally kept here, and product options will be rendered after this component */}
       <button 
         onClick={handleButtonClick}
         className="block w-full bg-black text-white py-3 px-6 rounded hover:bg-gray-800 transition-colors text-center"
