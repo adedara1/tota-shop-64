@@ -9,7 +9,7 @@ interface ProductDetailsProps {
   cartUrl: string;
   buttonText: string;
   currency: string;
-  onButtonClick: () => void;
+  onButtonClick?: () => void;
 }
 
 const ProductDetails = ({
@@ -23,6 +23,15 @@ const ProductDetails = ({
   onButtonClick,
 }: ProductDetailsProps) => {
   const displayCurrency = currency === 'XOF' || currency === 'XAF' ? 'CFA' : currency;
+  
+  const handleButtonClick = () => {
+    if (onButtonClick) {
+      onButtonClick();
+    }
+    
+    // Open the cart URL in a new tab
+    window.open(cartUrl, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <div className="space-y-6 max-w-full">
@@ -40,7 +49,7 @@ const ProductDetails = ({
       </div>
       
       <button 
-        onClick={onButtonClick}
+        onClick={handleButtonClick}
         className="block w-full bg-black text-white py-3 px-6 rounded hover:bg-gray-800 transition-colors text-center"
       >
         {buttonText}

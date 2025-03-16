@@ -1,10 +1,9 @@
-
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import PromoBar from "@/components/PromoBar";
 import ProductGallery from "@/components/ProductGallery";
-import ProductDetails from "@/components/ProductDetails";
+import { ProductDetails } from "@/components/ProductDetails";
 import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -76,28 +75,12 @@ const ProductDetail = () => {
 
   const handleProductClick = async () => {
     if (id) {
-      // Increment product click count
-      const { error: productClickError } = await supabase.rpc('increment_product_click', {
+      const { error } = await supabase.rpc('increment_product_click', {
         product_id_param: id
       });
 
-      if (productClickError) {
-        console.error("Error incrementing product click count:", productClickError);
-      }
-
-      // Record button click in button_stats
-      const { error: buttonClickError } = await supabase.rpc('increment_button_click', {
-        button_name_param: 'add_to_cart',
-        page_name_param: `product/${id}`
-      });
-
-      if (buttonClickError) {
-        console.error("Error incrementing button click count:", buttonClickError);
-      }
-
-      // Redirect to cart URL
-      if (product?.cart_url) {
-        window.location.href = product.cart_url;
+      if (error) {
+        console.error("Error incrementing click count:", error);
       }
     }
   };
@@ -134,20 +117,21 @@ const ProductDetail = () => {
   }
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color }}>
+    <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product?.theme_color }}>
       <PromoBar />
       <Navbar />
       <main className="container mx-auto py-12 px-4 max-w-[100vw]">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-          <ProductGallery images={product.images} />
+          <ProductGallery images={product?.images || []} />
           <ProductDetails
-            name={product.name}
-            originalPrice={product.original_price}
-            discountedPrice={product.discounted_price}
-            description={product.description}
-            cartUrl={product.cart_url}
-            buttonText={product.button_text}
-            currency={product.currency}
+            key={product?.id}
+            name={product?.name || ''}
+            originalPrice={product?.original_price || 0}
+            discountedPrice={product?.discounted_price || 0}
+            description={product?.description || ''}
+            cartUrl={product?.cart_url || ''}
+            buttonText={product?.button_text || ''}
+            currency={product?.currency || 'XOF'}
             onButtonClick={handleProductClick}
           />
         </div>

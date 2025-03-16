@@ -9,16 +9,200 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      button_stats: {
+        Row: {
+          button_name: string
+          click_date: string | null
+          clicks_count: number | null
+          created_at: string
+          id: string
+          page_name: string
+          updated_at: string
+        }
+        Insert: {
+          button_name: string
+          click_date?: string | null
+          clicks_count?: number | null
+          created_at?: string
+          id?: string
+          page_name: string
+          updated_at?: string
+        }
+        Update: {
+          button_name?: string
+          click_date?: string | null
+          clicks_count?: number | null
+          created_at?: string
+          id?: string
+          page_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      popo_settings: {
+        Row: {
+          button1_text: string
+          button1_url: string
+          button2_text: string
+          button2_url: string
+          created_at: string
+          id: string
+          title1: string
+          title2: string
+          updated_at: string
+        }
+        Insert: {
+          button1_text?: string
+          button1_url?: string
+          button2_text?: string
+          button2_url?: string
+          created_at?: string
+          id?: string
+          title1?: string
+          title2?: string
+          updated_at?: string
+        }
+        Update: {
+          button1_text?: string
+          button1_url?: string
+          button2_text?: string
+          button2_url?: string
+          created_at?: string
+          id?: string
+          title1?: string
+          title2?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      product_stats: {
+        Row: {
+          clicks_count: number
+          created_at: string
+          id: string
+          product_id: string | null
+          updated_at: string
+          view_date: string
+          views_count: number
+        }
+        Insert: {
+          clicks_count?: number
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          updated_at?: string
+          view_date?: string
+          views_count?: number
+        }
+        Update: {
+          clicks_count?: number
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          updated_at?: string
+          view_date?: string
+          views_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_stats_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          button_text: string
+          cart_url: string
+          created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
+          description: string
+          discounted_price: number
+          id: string
+          images: string[]
+          is_visible: boolean
+          name: string
+          original_price: number
+          theme_color: string
+          updated_at: string
+        }
+        Insert: {
+          button_text?: string
+          cart_url: string
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          description: string
+          discounted_price: number
+          id?: string
+          images: string[]
+          is_visible?: boolean
+          name: string
+          original_price: number
+          theme_color?: string
+          updated_at?: string
+        }
+        Update: {
+          button_text?: string
+          cart_url?: string
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          description?: string
+          discounted_price?: number
+          id?: string
+          images?: string[]
+          is_visible?: boolean
+          name?: string
+          original_price?: number
+          theme_color?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_button_click: {
+        Args: {
+          button_name_param: string
+          page_name_param: string
+          click_date_param?: string
+        }
+        Returns: undefined
+      }
+      increment_product_click: {
+        Args: {
+          product_id_param: string
+          click_date_param?: string
+        }
+        Returns: undefined
+      }
+      increment_product_view: {
+        Args: {
+          product_id_param: string
+          view_date_param?: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      currency_code:
+        | "XOF"
+        | "XAF"
+        | "ZAR"
+        | "MAD"
+        | "EGP"
+        | "NGN"
+        | "KES"
+        | "TND"
+        | "UGX"
+        | "GHS"
+        | "USD"
+        | "EUR"
     }
     CompositeTypes: {
       [_ in never]: never
