@@ -1,9 +1,10 @@
+
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import PromoBar from "@/components/PromoBar";
 import ProductGallery from "@/components/ProductGallery";
-import { ProductDetails } from "@/components/ProductDetails";
+import ProductDetails from "@/components/ProductDetails";
 import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
