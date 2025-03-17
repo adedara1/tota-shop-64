@@ -232,7 +232,10 @@ const ProductForm = () => {
           .update(productData)
           .eq("id", editingProduct.id);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error("Error updating product:", updateError);
+          throw updateError;
+        }
 
         toast({
           title: "Succès",
@@ -243,7 +246,10 @@ const ProductForm = () => {
           .from("products")
           .insert(productData);
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error("Error creating product:", insertError);
+          throw insertError;
+        }
 
         toast({
           title: "Succès",

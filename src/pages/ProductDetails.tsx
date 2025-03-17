@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -118,12 +117,6 @@ const ProductDetail = () => {
     );
   }
 
-  // Default options if none are defined in the product
-  const defaultOptions = product.options || {
-    "Couleur de peau": ["Peau Claire", "Peau Noire/Marron"],
-    "Format": ["Petit", "Grand"]
-  };
-
   return (
     <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color }}>
       <PromoBar />
@@ -141,7 +134,7 @@ const ProductDetail = () => {
             buttonText={product.button_text}
             currency={product.currency}
             onButtonClick={handleProductClick}
-            options={defaultOptions}
+            options={product.options || {}}
           />
         </div>
       </main>

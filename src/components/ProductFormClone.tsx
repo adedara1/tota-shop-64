@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import RichTextEditor from "@/components/RichTextEditor";
 import ColorSelector from "@/components/ColorSelector";
 import { Database } from "@/integrations/supabase/types";
+import { Toggle } from "@/components/ui/toggle";
 
 type CurrencyCode = Database['public']['Enums']['currency_code'];
 
@@ -40,6 +40,11 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
   const [selectedColor, setSelectedColor] = useState(defaultColor);
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [whatsappMessage, setWhatsappMessage] = useState("");
+  const [optionTypes, setOptionTypes] = useState<string[]>([]);
+  const [optionValues, setOptionValues] = useState<Record<string, string[]>>({});
+  const [newOptionType, setNewOptionType] = useState("");
+  const [newOptionValue, setNewOptionValue] = useState("");
+  const [editingOptionType, setEditingOptionType] = useState("");
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -52,6 +57,50 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
       return;
     }
     setImages(files);
+  };
+
+  const addOptionType = () => {
+    if (newOptionType.trim() && !optionTypes.includes(newOptionType)) {
+      setOptionTypes([...optionTypes, newOptionType]);
+      setOptionValues({
+        ...optionValues,
+        [newOptionType]: []
+      });
+      setNewOptionType("");
+      setEditingOptionType(newOptionType);
+    }
+  };
+
+  const addOptionValue = () => {
+    if (editingOptionType && newOptionValue.trim() && 
+        !optionValues[editingOptionType]?.includes(newOptionValue)) {
+      setOptionValues({
+        ...optionValues,
+        [editingOptionType]: [...(optionValues[editingOptionType] || []), newOptionValue]
+      });
+      setNewOptionValue("");
+    }
+  };
+
+  const removeOptionType = (type: string) => {
+    const newTypes = optionTypes.filter(t => t !== type);
+    const newValues = { ...optionValues };
+    delete newValues[type];
+    
+    setOptionTypes(newTypes);
+    setOptionValues(newValues);
+    if (editingOptionType === type) {
+      setEditingOptionType("");
+    }
+  };
+
+  const removeOptionValue = (type: string, value: string) => {
+    if (optionValues[type]) {
+      setOptionValues({
+        ...optionValues,
+        [type]: optionValues[type].filter(v => v !== value)
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -99,6 +148,7 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
         is_visible: true,
         button_text: formData.get("button_text") as string || "Contactez-nous sur WhatsApp",
         currency: formData.get("currency") as CurrencyCode || "XOF",
+        options: optionTypes.length > 0 ? optionValues : null
       };
 
       console.log("Saving product data:", productData);
@@ -107,7 +157,10 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
         .from("products")
         .insert(productData);
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error("Error creating product:", insertError);
+        throw insertError;
+      }
 
       toast({
         title: "Succès",
@@ -231,6 +284,98 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
           selectedColor={selectedColor}
           onColorSelect={setSelectedColor}
         />
+      </div>
+
+      <div className="space-y-4">
+        <Label>Options du produit</Label>
+        
+        <div className="flex items-center gap-2">
+          <Input 
+            placeholder="Nom de l'option (ex: Taille, Couleur)" 
+            value={newOptionType}
+            onChange={(e) => setNewOptionType(e.target.value)}
+          />
+          <Button 
+            type="button" 
+            onClick={addOptionType}
+            variant="outline"
+          >
+            Ajouter
+          </Button>
+        </div>
+        
+        {optionTypes.length > 0 && (
+          <div className="border rounded-lg p-4">
+            <div className="flex gap-2 mb-4 flex-wrap">
+              {optionTypes.map(type => (
+                <Toggle
+                  key={type}
+                  pressed={editingOptionType === type}
+                  onPressedChange={() => setEditingOptionType(type)}
+                  className={`
+                    rounded-full px-3 py-1 text-sm 
+                    ${editingOptionType === type 
+                      ? 'bg-black text-white' 
+                      : 'bg-white border border-gray-300'
+                    }
+                  `}
+                >
+                  <span>{type}</span>
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeOptionType(type);
+                    }}
+                    className="ml-2 text-xs"
+                  >
+                    ✕
+                  </button>
+                </Toggle>
+              ))}
+            </div>
+            
+            {editingOptionType && (
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium">Valeurs pour "{editingOptionType}"</h4>
+                
+                <div className="flex items-center gap-2">
+                  <Input 
+                    placeholder="Valeur de l'option (ex: S, M, L)" 
+                    value={newOptionValue}
+                    onChange={(e) => setNewOptionValue(e.target.value)}
+                  />
+                  <Button 
+                    type="button" 
+                    onClick={addOptionValue}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Ajouter
+                  </Button>
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                  {optionValues[editingOptionType]?.map(value => (
+                    <div 
+                      key={value} 
+                      className="bg-gray-100 rounded-full px-3 py-1 text-sm flex items-center"
+                    >
+                      {value}
+                      <button
+                        type="button"
+                        onClick={() => removeOptionValue(editingOptionType, value)}
+                        className="ml-2"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex gap-4">

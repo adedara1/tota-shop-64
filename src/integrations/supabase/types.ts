@@ -125,6 +125,7 @@ export type Database = {
           images: string[]
           is_visible: boolean
           name: string
+          options: Json | null
           original_price: number
           theme_color: string
           updated_at: string
@@ -140,6 +141,7 @@ export type Database = {
           images: string[]
           is_visible?: boolean
           name: string
+          options?: Json | null
           original_price: number
           theme_color?: string
           updated_at?: string
@@ -155,6 +157,7 @@ export type Database = {
           images?: string[]
           is_visible?: boolean
           name?: string
+          options?: Json | null
           original_price?: number
           theme_color?: string
           updated_at?: string
