@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import ProductOptions from "./ProductOptions";
 import { Plus, Minus } from "lucide-react";
+import { Database } from "@/integrations/supabase/types";
 
 interface ProductDetailsProps {
   name: string;
@@ -11,7 +12,7 @@ interface ProductDetailsProps {
   description: string;
   cartUrl: string;
   buttonText: string;
-  currency: string;
+  currency: Database['public']['Enums']['currency_code'];
   onButtonClick?: () => void;
   options?: Record<string, string[]>;
 }
@@ -31,11 +32,25 @@ const ProductDetails = ({
   const [quantity, setQuantity] = useState(1);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   
+  // Initialize selectedOptions with the first option of each type
+  useState(() => {
+    const initialOptions: Record<string, string> = {};
+    
+    Object.entries(options).forEach(([optionType, values]) => {
+      if (values && values.length > 0) {
+        initialOptions[optionType] = values[0];
+      }
+    });
+    
+    setSelectedOptions(initialOptions);
+  });
+  
   const handleOptionSelect = (optionType: string, value: string) => {
     setSelectedOptions(prev => ({
       ...prev,
       [optionType]: value
     }));
+    console.log(`Selected ${optionType}: ${value}`);
   };
   
   const handleButtonClick = () => {
@@ -55,10 +70,18 @@ const ProductDetails = ({
       params.append(key, value);
     });
     
+    // Add price
+    params.append('price', discountedPrice.toString());
+    
+    // Add product name
+    params.append('product', name);
+    
     // Append parameters to URL
     if (params.toString()) {
       finalUrl += (finalUrl.includes('?') ? '&' : '?') + params.toString();
     }
+    
+    console.log("Checkout URL:", finalUrl);
     
     // Open the cart URL in a new tab
     window.open(finalUrl, '_blank', 'noopener,noreferrer');
@@ -117,6 +140,20 @@ const ProductDetails = ({
           selectedOption={selectedOptions[optionTitle]}
         />
       ))}
+      
+      {/* Selected Options Summary */}
+      {Object.keys(selectedOptions).length > 0 && (
+        <div className="bg-white/80 p-3 rounded-md">
+          <h3 className="text-sm font-medium mb-2">Options sélectionnées:</h3>
+          <ul className="space-y-1">
+            {Object.entries(selectedOptions).map(([option, value]) => (
+              <li key={option} className="text-sm">
+                <span className="font-medium">{option}:</span> {value}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       
       {/* Call to Action Button */}
       <button 

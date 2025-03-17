@@ -8,6 +8,7 @@ import ProductDetails from "@/components/ProductDetails";
 import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { Database } from "@/integrations/supabase/types";
 
 interface Product {
   id: string;
@@ -19,7 +20,8 @@ interface Product {
   images: string[];
   theme_color: string;
   button_text: string;
-  currency: string;
+  currency: Database['public']['Enums']['currency_code'];
+  options?: Record<string, string[]> | null;
 }
 
 const ProductDetail = () => {
@@ -47,7 +49,13 @@ const ProductDetail = () => {
           return;
         }
         
-        setProduct(data);
+        // Transform JSON options to Record<string, string[]> if needed
+        const transformedData: Product = {
+          ...data,
+          options: data.options ? data.options as Record<string, string[]> : null
+        };
+        
+        setProduct(transformedData);
 
         // Increment view count
         const { error: statsError } = await supabase.rpc('increment_product_view', {
@@ -118,22 +126,23 @@ const ProductDetail = () => {
   }
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product?.theme_color }}>
+    <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color }}>
       <PromoBar />
       <Navbar />
       <main className="container mx-auto py-12 px-4 max-w-[100vw]">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-          <ProductGallery images={product?.images || []} />
+          <ProductGallery images={product.images} />
           <ProductDetails
-            key={product?.id}
-            name={product?.name || ''}
-            originalPrice={product?.original_price || 0}
-            discountedPrice={product?.discounted_price || 0}
-            description={product?.description || ''}
-            cartUrl={product?.cart_url || ''}
-            buttonText={product?.button_text || ''}
-            currency={product?.currency || 'XOF'}
+            key={product.id}
+            name={product.name}
+            originalPrice={product.original_price}
+            discountedPrice={product.discounted_price}
+            description={product.description}
+            cartUrl={product.cart_url}
+            buttonText={product.button_text}
+            currency={product.currency}
             onButtonClick={handleProductClick}
+            options={product.options || {}}
           />
         </div>
       </main>
