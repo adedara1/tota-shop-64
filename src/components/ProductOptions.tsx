@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Toggle } from '@/components/ui/toggle';
 import { cn } from '@/lib/utils';
-import { Image } from 'lucide-react';
+import { ImageIcon } from 'lucide-react';
 
 interface OptionValue {
   value: string;
@@ -65,7 +65,9 @@ const ProductOptions = ({
           >
             {option.value}
             {option.image && (
-              <Image size={16} className="ml-2" />
+              <span className="ml-2">
+                <ImageIcon size={16} />
+              </span>
             )}
           </Toggle>
         ))}

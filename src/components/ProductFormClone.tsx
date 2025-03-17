@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +8,7 @@ import RichTextEditor from "@/components/RichTextEditor";
 import ColorSelector from "@/components/ColorSelector";
 import { Database } from "@/integrations/supabase/types";
 import { Toggle } from "@/components/ui/toggle";
-import { Image, X } from "lucide-react";
+import { ImageIcon, X } from "lucide-react";
 
 type CurrencyCode = Database['public']['Enums']['currency_code'];
 
@@ -92,7 +91,6 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
       
       let optionValue: string | OptionValue = newOptionValue;
       
-      // If there's an image file, upload it
       if (optionImageFile) {
         try {
           const fileName = `option-${crypto.randomUUID()}-${optionImageFile.name}`;
@@ -112,7 +110,6 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
 
           console.log("Option image uploaded successfully:", publicUrl);
           
-          // Create option value with image
           optionValue = {
             value: newOptionValue,
             image: publicUrl
@@ -136,7 +133,6 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
       setNewOptionValue("");
       setOptionImageFile(null);
       
-      // Reset the file input
       const fileInput = document.getElementById('option-image-input') as HTMLInputElement;
       if (fileInput) {
         fileInput.value = '';
@@ -429,8 +425,8 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
                       htmlFor="option-image-input" 
                       className="flex items-center gap-1 cursor-pointer text-sm p-2 border rounded hover:bg-gray-50"
                     >
-                      <Image size={16} className="text-gray-500" />
-                      Ajouter une image
+                      <ImageIcon size={16} className="text-gray-500" />
+                      <span>Ajouter une image</span>
                     </label>
                     <Input
                       id="option-image-input"
@@ -459,7 +455,9 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
                       >
                         {displayValue}
                         {hasImage && (
-                          <Image size={14} className="ml-1 text-blue-500" />
+                          <span className="ml-1 text-blue-500">
+                            <ImageIcon size={14} />
+                          </span>
                         )}
                         <button
                           type="button"
