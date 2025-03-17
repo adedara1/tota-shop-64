@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +21,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Database } from "@/integrations/supabase/types";
 import ProductFormClone from "@/components/ProductFormClone";
+import { Toggle } from "@/components/ui/toggle";
 
 type CurrencyCode = Database['public']['Enums']['currency_code'];
 
@@ -506,7 +508,7 @@ const ProductForm = () => {
                         
                         {optionTypes.length > 0 && (
                           <div className="border rounded-lg p-4">
-                            <div className="flex gap-2 mb-4">
+                            <div className="flex gap-2 mb-4 flex-wrap">
                               {optionTypes.map(type => (
                                 <Toggle
                                   key={type}
