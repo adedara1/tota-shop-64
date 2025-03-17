@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
 
+// Fix the interface to handle options correctly
 interface Product {
   id: string;
   name: string;
@@ -21,13 +22,14 @@ interface Product {
   theme_color: string;
   button_text: string;
   currency: Database['public']['Enums']['currency_code'];
-  options?: Record<string, string[]> | null;
+  options?: Record<string, any> | null;
 }
 
 const ProductDetail = () => {
   const { id } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedOptionImages, setSelectedOptionImages] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -49,10 +51,10 @@ const ProductDetail = () => {
           return;
         }
         
-        // Transform JSON options to Record<string, string[]> if needed
+        // Parse options from JSON if needed
         const transformedData: Product = {
           ...data,
-          options: data.options ? data.options as Record<string, string[]> : null
+          options: data.options
         };
         
         setProduct(transformedData);
@@ -94,6 +96,10 @@ const ProductDetail = () => {
     }
   };
 
+  const handleOptionImageChange = (images: string[]) => {
+    setSelectedOptionImages(images);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
@@ -125,13 +131,18 @@ const ProductDetail = () => {
     );
   }
 
+  // Combine product images with selected option images
+  const displayImages = selectedOptionImages.length > 0 
+    ? [...selectedOptionImages, ...product.images]
+    : product.images;
+
   return (
     <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color }}>
       <PromoBar />
       <Navbar />
       <main className="container mx-auto py-12 px-4 max-w-[100vw]">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-          <ProductGallery images={product.images} />
+          <ProductGallery images={displayImages} />
           <ProductDetails
             key={product.id}
             name={product.name}
@@ -143,6 +154,7 @@ const ProductDetail = () => {
             currency={product.currency}
             onButtonClick={handleProductClick}
             options={product.options || {}}
+            onOptionImageChange={handleOptionImageChange}
           />
         </div>
       </main>

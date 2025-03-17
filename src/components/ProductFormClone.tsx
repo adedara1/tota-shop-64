@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +9,7 @@ import RichTextEditor from "@/components/RichTextEditor";
 import ColorSelector from "@/components/ColorSelector";
 import { Database } from "@/integrations/supabase/types";
 import { Toggle } from "@/components/ui/toggle";
+import { Image, X } from "lucide-react";
 
 type CurrencyCode = Database['public']['Enums']['currency_code'];
 
@@ -31,6 +33,11 @@ interface ProductFormCloneProps {
   onCancel: () => void;
 }
 
+interface OptionValue {
+  value: string;
+  image?: string;
+}
+
 const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -41,10 +48,11 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [whatsappMessage, setWhatsappMessage] = useState("");
   const [optionTypes, setOptionTypes] = useState<string[]>([]);
-  const [optionValues, setOptionValues] = useState<Record<string, string[]>>({});
+  const [optionValues, setOptionValues] = useState<Record<string, any[]>>({});
   const [newOptionType, setNewOptionType] = useState("");
   const [newOptionValue, setNewOptionValue] = useState("");
   const [editingOptionType, setEditingOptionType] = useState("");
+  const [optionImageFile, setOptionImageFile] = useState<File | null>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -59,6 +67,12 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
     setImages(files);
   };
 
+  const handleOptionImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setOptionImageFile(e.target.files[0]);
+    }
+  };
+
   const addOptionType = () => {
     if (newOptionType.trim() && !optionTypes.includes(newOptionType)) {
       setOptionTypes([...optionTypes, newOptionType]);
@@ -71,14 +85,62 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
     }
   };
 
-  const addOptionValue = () => {
+  const addOptionValue = async () => {
     if (editingOptionType && newOptionValue.trim() && 
-        !optionValues[editingOptionType]?.includes(newOptionValue)) {
+        !optionValues[editingOptionType]?.some(item => 
+          typeof item === 'object' ? item.value === newOptionValue : item === newOptionValue)) {
+      
+      let optionValue: string | OptionValue = newOptionValue;
+      
+      // If there's an image file, upload it
+      if (optionImageFile) {
+        try {
+          const fileName = `option-${crypto.randomUUID()}-${optionImageFile.name}`;
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from("products")
+            .upload(fileName, optionImageFile);
+
+          if (uploadError) {
+            console.error("Error uploading option image:", uploadError);
+            throw uploadError;
+          }
+
+          const { data: { publicUrl } } = supabase.storage
+            .from("products")
+            .getPublicUrl(fileName);
+
+          console.log("Option image uploaded successfully:", publicUrl);
+          
+          // Create option value with image
+          optionValue = {
+            value: newOptionValue,
+            image: publicUrl
+          };
+          
+        } catch (error) {
+          console.error("Error uploading option image:", error);
+          toast({
+            title: "Erreur",
+            description: "Échec du téléchargement de l'image d'option",
+            variant: "destructive",
+          });
+        }
+      }
+      
       setOptionValues({
         ...optionValues,
-        [editingOptionType]: [...(optionValues[editingOptionType] || []), newOptionValue]
+        [editingOptionType]: [...(optionValues[editingOptionType] || []), optionValue]
       });
+      
       setNewOptionValue("");
+      setOptionImageFile(null);
+      
+      // Reset the file input
+      const fileInput = document.getElementById('option-image-input') as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = '';
+      }
     }
   };
 
@@ -94,11 +156,18 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
     }
   };
 
-  const removeOptionValue = (type: string, value: string) => {
+  const removeOptionValue = (type: string, value: string | OptionValue) => {
     if (optionValues[type]) {
+      const valueToCompare = typeof value === 'object' ? value.value : value;
+      
       setOptionValues({
         ...optionValues,
-        [type]: optionValues[type].filter(v => v !== value)
+        [type]: optionValues[type].filter(v => {
+          if (typeof v === 'object') {
+            return v.value !== valueToCompare;
+          }
+          return v !== valueToCompare;
+        })
       });
     }
   };
@@ -339,38 +408,59 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
               <div className="space-y-3">
                 <h4 className="text-sm font-medium">Valeurs pour "{editingOptionType}"</h4>
                 
-                <div className="flex items-center gap-2">
-                  <Input 
-                    placeholder="Valeur de l'option (ex: S, M, L)" 
-                    value={newOptionValue}
-                    onChange={(e) => setNewOptionValue(e.target.value)}
-                  />
-                  <Button 
-                    type="button" 
-                    onClick={addOptionValue}
-                    variant="outline"
-                    size="sm"
-                  >
-                    Ajouter
-                  </Button>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <Input 
+                      placeholder="Valeur de l'option (ex: S, M, L)" 
+                      value={newOptionValue}
+                      onChange={(e) => setNewOptionValue(e.target.value)}
+                    />
+                    <Button 
+                      type="button" 
+                      onClick={addOptionValue}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Ajouter
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="option-image-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleOptionImageChange}
+                    />
+                    <div className="text-xs text-gray-500">
+                      Image (optionnelle)
+                    </div>
+                  </div>
                 </div>
                 
                 <div className="flex flex-wrap gap-2">
-                  {optionValues[editingOptionType]?.map(value => (
-                    <div 
-                      key={value} 
-                      className="bg-gray-100 rounded-full px-3 py-1 text-sm flex items-center"
-                    >
-                      {value}
-                      <button
-                        type="button"
-                        onClick={() => removeOptionValue(editingOptionType, value)}
-                        className="ml-2"
+                  {optionValues[editingOptionType]?.map((value, index) => {
+                    const displayValue = typeof value === 'object' ? value.value : value;
+                    const hasImage = typeof value === 'object' && value.image;
+                    
+                    return (
+                      <div 
+                        key={index} 
+                        className={`${hasImage ? 'bg-blue-50' : 'bg-gray-100'} rounded-full px-3 py-1 text-sm flex items-center`}
                       >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
+                        {displayValue}
+                        {hasImage && (
+                          <Image size={14} className="ml-1 text-blue-500" />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeOptionValue(editingOptionType, value)}
+                          className="ml-2"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

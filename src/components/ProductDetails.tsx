@@ -1,9 +1,13 @@
 
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ProductOptions from "./ProductOptions";
 import { Plus, Minus } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
+
+interface OptionValue {
+  value: string;
+  image?: string;
+}
 
 interface ProductDetailsProps {
   name: string;
@@ -14,7 +18,8 @@ interface ProductDetailsProps {
   buttonText: string;
   currency: Database['public']['Enums']['currency_code'];
   onButtonClick?: () => void;
-  options?: Record<string, string[]>;
+  options?: Record<string, any>;
+  onOptionImageChange?: (images: string[]) => void;
 }
 
 const ProductDetails = ({
@@ -27,30 +32,72 @@ const ProductDetails = ({
   currency,
   onButtonClick,
   options = {},
+  onOptionImageChange,
 }: ProductDetailsProps) => {
   const displayCurrency = currency === 'XOF' || currency === 'XAF' ? 'CFA' : currency;
   const [quantity, setQuantity] = useState(1);
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
+  const [totalPrice, setTotalPrice] = useState(discountedPrice);
   
   // Initialize selectedOptions with the first option of each type
-  useState(() => {
-    const initialOptions: Record<string, string> = {};
+  useEffect(() => {
+    const initialOptions: Record<string, any> = {};
+    const optionImages: string[] = [];
     
     Object.entries(options).forEach(([optionType, values]) => {
       if (values && values.length > 0) {
-        initialOptions[optionType] = values[0];
+        // Check if value is an object with image property
+        const firstOption = values[0];
+        if (typeof firstOption === 'object' && firstOption !== null) {
+          initialOptions[optionType] = firstOption;
+          if (firstOption.image) {
+            optionImages.push(firstOption.image);
+          }
+        } else {
+          initialOptions[optionType] = { value: firstOption };
+        }
       }
     });
     
     setSelectedOptions(initialOptions);
-  });
+    
+    // Update gallery with option images
+    if (optionImages.length > 0 && onOptionImageChange) {
+      onOptionImageChange(optionImages);
+    }
+  }, [options, onOptionImageChange]);
   
-  const handleOptionSelect = (optionType: string, value: string) => {
+  // Update total price when quantity changes
+  useEffect(() => {
+    setTotalPrice(discountedPrice * quantity);
+  }, [discountedPrice, quantity]);
+  
+  const handleOptionSelect = (optionType: string, value: string | OptionValue) => {
     setSelectedOptions(prev => ({
       ...prev,
       [optionType]: value
     }));
-    console.log(`Selected ${optionType}: ${value}`);
+    
+    // Update image gallery if option has an image
+    if (onOptionImageChange) {
+      const selectedImages = Object.values(selectedOptions)
+        .filter(opt => typeof opt === 'object' && opt.image)
+        .map(opt => opt.image);
+      
+      // Add the newly selected option image if it exists
+      if (typeof value === 'object' && value.image) {
+        const newSelectedImages = [...selectedImages];
+        const existingIndex = newSelectedImages.indexOf(value.image);
+        
+        if (existingIndex === -1) {
+          newSelectedImages.push(value.image);
+        }
+        
+        onOptionImageChange(newSelectedImages);
+      }
+    }
+    
+    console.log(`Selected ${optionType}:`, value);
   };
   
   const handleButtonClick = () => {
@@ -67,11 +114,12 @@ const ProductDetails = ({
     
     // Add selected options
     Object.entries(selectedOptions).forEach(([key, value]) => {
-      params.append(key, value);
+      const optValue = typeof value === 'object' ? value.value : value;
+      params.append(key, optValue);
     });
     
-    // Add price
-    params.append('price', discountedPrice.toString());
+    // Add price (total price based on quantity)
+    params.append('price', totalPrice.toString());
     
     // Add product name
     params.append('product', name);
@@ -105,7 +153,7 @@ const ProductDetails = ({
           <span className="text-gray-400 line-through text-2xl ml-1">{displayCurrency}</span>
         </div>
         <div className="flex items-center">
-          <span className="text-3xl">{discountedPrice}</span>
+          <span className="text-3xl">{totalPrice}</span>
           <span className="text-3xl ml-1">{displayCurrency}</span>
         </div>
       </div>
@@ -137,7 +185,9 @@ const ProductDetails = ({
           title={optionTitle}
           options={optionValues}
           onSelect={(value) => handleOptionSelect(optionTitle, value)}
-          selectedOption={selectedOptions[optionTitle]}
+          selectedOption={typeof selectedOptions[optionTitle] === 'object' 
+            ? selectedOptions[optionTitle].value 
+            : selectedOptions[optionTitle]}
         />
       ))}
       
@@ -148,7 +198,9 @@ const ProductDetails = ({
           <ul className="space-y-1">
             {Object.entries(selectedOptions).map(([option, value]) => (
               <li key={option} className="text-sm">
-                <span className="font-medium">{option}:</span> {value}
+                <span className="font-medium">{option}:</span> {
+                  typeof value === 'object' ? value.value : value
+                }
               </li>
             ))}
           </ul>
