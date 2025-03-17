@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Toggle } from '@/components/ui/toggle';
 import { cn } from '@/lib/utils';
+import { Image } from 'lucide-react';
 
 interface OptionValue {
   value: string;
@@ -56,13 +57,16 @@ const ProductOptions = ({
             pressed={selected === option.value}
             onPressedChange={() => handleSelect(option)}
             className={cn(
-              "rounded-full px-4 py-2 text-sm border",
+              "rounded-full px-4 py-2 text-sm border flex items-center",
               selected === option.value
                 ? "bg-black text-white border-black"
                 : "bg-white text-black border-gray-300 hover:bg-gray-100"
             )}
           >
             {option.value}
+            {option.image && (
+              <Image size={16} className="ml-2" />
+            )}
           </Toggle>
         ))}
       </div>

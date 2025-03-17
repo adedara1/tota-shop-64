@@ -425,15 +425,25 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
                     </Button>
                   </div>
                   <div className="flex items-center gap-2">
+                    <label 
+                      htmlFor="option-image-input" 
+                      className="flex items-center gap-1 cursor-pointer text-sm p-2 border rounded hover:bg-gray-50"
+                    >
+                      <Image size={16} className="text-gray-500" />
+                      Ajouter une image
+                    </label>
                     <Input
                       id="option-image-input"
                       type="file"
                       accept="image/*"
                       onChange={handleOptionImageChange}
+                      className="hidden"
                     />
-                    <div className="text-xs text-gray-500">
-                      Image (optionnelle)
-                    </div>
+                    {optionImageFile && (
+                      <div className="text-xs text-gray-500">
+                        {optionImageFile.name}
+                      </div>
+                    )}
                   </div>
                 </div>
                 
