@@ -70,35 +70,6 @@ const Products = () => {
   for (let i = 1; i <= totalPages; i++) {
     pageNumbers.push(i);
   }
-  return <div className="min-h-screen bg-white">
-      <PromoBar />
-      <Navbar />
-      
-      {/* Hero Banner */}
-      <div className="bg-black text-white mb-6">
-        
-      </div>
-      
-      {/* Category Banners */}
-      <div className="container mx-auto mb-8 px-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-gray-200 rounded-md p-4 h-24 flex items-center justify-center">
-            <p className="text-sm font-medium">50% DE RÉDUCTION</p>
-          </div>
-          <div className="bg-gray-200 rounded-md p-4 h-24 flex items-center justify-center">
-            <p className="text-sm font-medium">Nouveautés</p>
-          </div>
-          <div className="bg-gray-200 rounded-md p-4 h-24 flex items-center justify-center">
-            <p className="text-sm font-medium">Tendances</p>
-          </div>
-          <div className="bg-gray-200 rounded-md p-4 h-24 flex items-center justify-center">
-            <p className="text-sm font-medium">Voir toutes les collections</p>
-          </div>
-        </div>
-      </div>
-      
-      
-      <Footer />
-    </div>;
+  return;
 };
 export default Products;
