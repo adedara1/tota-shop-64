@@ -10,16 +10,37 @@ export const initSupabase = async () => {
     
     // Check if the products_page_settings table exists
     try {
-      const { count, error } = await supabase
-        .from('products_page_settings')
-        .select('*', { count: 'exact', head: true });
+      // Use table_exists function if available
+      let tableExists = false;
       
-      if (error) {
-        // Table likely doesn't exist
-        console.log("Creating products_page_settings table via an initial insert...");
+      try {
+        const { data, error } = await supabase
+          .rpc('table_exists', { table_name: 'products_page_settings' });
         
-        // Try to create the table by inserting default data
-        // This is a workaround since we can't directly create tables via SQL without admin rights
+        if (error) {
+          console.error("Error checking table via RPC:", error);
+          // Fallback to direct query
+          const { count, error: countError } = await supabase
+            .from('products_page_settings')
+            .select('*', { count: 'exact', head: true });
+          
+          tableExists = !countError;
+        } else {
+          tableExists = data;
+        }
+      } catch (err) {
+        // Fallback to direct query
+        const { count, error: countError } = await supabase
+          .from('products_page_settings')
+          .select('*', { count: 'exact', head: true });
+        
+        tableExists = !countError;
+      }
+      
+      if (!tableExists) {
+        console.log("Creating default products_page_settings...");
+        
+        // Try to create a default entry
         const { error: insertError } = await supabase
           .from('products_page_settings')
           .insert({
@@ -42,12 +63,11 @@ export const initSupabase = async () => {
           });
         
         if (insertError) {
-          // If we can't insert, the table really doesn't exist or we don't have permissions
           console.error("Error initializing products_page_settings:", insertError);
           return false;
         }
         
-        console.log("Created products_page_settings table with default values");
+        console.log("Created products_page_settings with default values");
       } else {
         console.log("Products page settings table already exists");
       }

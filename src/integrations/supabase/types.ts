@@ -164,6 +164,57 @@ export type Database = {
         }
         Relationships: []
       }
+      products_page_settings: {
+        Row: {
+          background_color: string
+          categories: string[]
+          created_at: string
+          hero_banner_description: string
+          hero_banner_image: string | null
+          hero_banner_title: string
+          id: string
+          items_per_page: number
+          section_titles: Json
+          show_categories: boolean
+          show_filters: boolean
+          show_ratings: boolean
+          show_search: boolean
+          updated_at: string
+        }
+        Insert: {
+          background_color?: string
+          categories?: string[]
+          created_at?: string
+          hero_banner_description?: string
+          hero_banner_image?: string | null
+          hero_banner_title?: string
+          id?: string
+          items_per_page?: number
+          section_titles?: Json
+          show_categories?: boolean
+          show_filters?: boolean
+          show_ratings?: boolean
+          show_search?: boolean
+          updated_at?: string
+        }
+        Update: {
+          background_color?: string
+          categories?: string[]
+          created_at?: string
+          hero_banner_description?: string
+          hero_banner_image?: string | null
+          hero_banner_title?: string
+          id?: string
+          items_per_page?: number
+          section_titles?: Json
+          show_categories?: boolean
+          show_filters?: boolean
+          show_ratings?: boolean
+          show_search?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -190,6 +241,12 @@ export type Database = {
           view_date_param?: string
         }
         Returns: undefined
+      }
+      table_exists: {
+        Args: {
+          table_name: string
+        }
+        Returns: boolean
       }
     }
     Enums: {
