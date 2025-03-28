@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +25,8 @@ import {
   SlidersHorizontal, 
   Info,
   Save,
-  Star as StarIcon
+  Star as StarIcon,
+  Loader
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -39,79 +39,113 @@ const ProductsSettings = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [settings, setSettings] = useState<ProductsPageSettings>(defaultSettings);
   const [tableExists, setTableExists] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  // Check if the table exists and create it if it doesn't
   const checkTableExists = async () => {
     try {
-      // Try to query the table definition
-      const { data, error } = await supabase.rpc('check_if_table_exists', {
-        table_name: 'products_page_settings'
-      });
+      const { data, error } = await supabase
+        .from('products_page_settings')
+        .select('id')
+        .limit(1);
       
-      if (error) {
-        console.error("Error checking if table exists:", error);
+      if (error && error.code === '42P01') {
+        console.log("Table doesn't exist");
+        setTableExists(false);
         return false;
-      }
-      
-      const exists = !!data;
-      setTableExists(exists);
-      return exists;
-    } catch (error) {
-      console.error("Error checking if table exists:", error);
-      return false;
-    }
-  };
-
-  // Create the table if it doesn't exist
-  const createTable = async () => {
-    try {
-      // Create the table using a raw SQL query
-      const { error } = await supabase.rpc('create_products_page_settings_table');
-      
-      if (error) {
-        console.error("Error creating table:", error);
+      } else if (error) {
+        console.error("Error checking if table exists:", error);
         return false;
       }
       
       setTableExists(true);
       return true;
     } catch (error) {
-      console.error("Error creating table:", error);
+      console.error("Error checking if table exists:", error);
       return false;
     }
   };
 
-  // Fetch settings from Supabase
-  const { data: fetchedSettings, refetch } = useQuery({
+  const createTable = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products_page_settings')
+        .insert([
+          {
+            background_color: '#f1eee9',
+            hero_banner_title: 'Notre Collection',
+            hero_banner_description: 'Découvrez nos nouveautés et best-sellers',
+            section_titles: {
+              new_arrivals: 'Nouveautés',
+              best_sellers: 'Meilleures ventes',
+              trending: 'Tendances',
+              sales: 'Promotions',
+              seasonal: 'Collection saisonnière'
+            },
+            categories: ['Tout', 'Parfums', 'Soins', 'Accessoires', 'Cadeaux'],
+            show_search: true,
+            show_categories: true,
+            show_ratings: true,
+            show_filters: false,
+            items_per_page: 8
+          }
+        ])
+        .select();
+      
+      if (error) {
+        console.error("Error creating table entry:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de créer la configuration initiale. Vérifiez les logs pour plus de détails.",
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      console.log("Default settings created:", data);
+      setTableExists(true);
+      if (data && data.length > 0) {
+        setSettings(data[0] as unknown as ProductsPageSettings);
+      }
+      return true;
+    } catch (error) {
+      console.error("Error creating settings:", error);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    const initialize = async () => {
+      setIsInitializing(true);
+      const exists = await checkTableExists();
+      if (!exists) {
+        await createTable();
+      }
+      setIsInitializing(false);
+    };
+    
+    initialize();
+  }, []);
+
+  const { data: fetchedSettings, refetch, isLoading: isQueryLoading } = useQuery({
     queryKey: ["products-settings"],
     queryFn: async () => {
       try {
-        const tableExistsResult = await checkTableExists();
-        
-        if (!tableExistsResult) {
-          // Table doesn't exist, try to create it
-          const created = await createTable();
-          if (!created) {
-            // Couldn't create the table
-            return null;
-          }
-          // Return default settings since table was just created
+        if (!tableExists && !isInitializing) {
+          console.log("Table doesn't exist yet, using default settings");
           return defaultSettings;
         }
         
-        // Table exists, query it
         const { data, error } = await supabase.from('products_page_settings')
           .select('*')
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
 
-        if (error && error.code !== "PGRST116") {
+        if (error) {
           console.error("Error fetching page settings:", error);
           return null;
         }
 
-        // If no settings found, return default
         if (!data) {
           return defaultSettings;
         }
@@ -122,7 +156,8 @@ const ProductsSettings = () => {
         return null;
       }
     },
-    retry: false
+    enabled: !isInitializing,
+    retry: 1
   });
 
   useEffect(() => {
@@ -134,36 +169,33 @@ const ProductsSettings = () => {
   const handleSaveSettings = async () => {
     setIsLoading(true);
     try {
-      // Make sure the table exists before trying to save
       if (!tableExists) {
         const created = await createTable();
         if (!created) {
-          throw new Error("Couldn't create settings table");
+          throw new Error("Impossible de créer la table de configuration");
         }
       }
       
+      const dataToSave = {
+        ...settings,
+        updated_at: new Date().toISOString(),
+      };
+      
       let response;
       if (settings.id) {
-        // Update existing settings
         response = await supabase
           .from('products_page_settings')
-          .update({
-            ...settings,
-            updated_at: new Date().toISOString(),
-          })
+          .update(dataToSave)
           .eq("id", settings.id);
       } else {
-        // Insert new settings
         response = await supabase
           .from('products_page_settings')
-          .insert({
-            ...settings,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
+          .insert([dataToSave]);
       }
 
-      if (response.error) throw response.error;
+      if (response.error) {
+        throw response.error;
+      }
       
       toast({
         title: "Configuration sauvegardée",
@@ -171,11 +203,11 @@ const ProductsSettings = () => {
       });
       
       refetch();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving settings:", error);
       toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la sauvegarde des paramètres. Vérifiez les logs pour plus de détails.",
+        title: "Erreur de sauvegarde",
+        description: error.message || "Une erreur est survenue lors de la sauvegarde des paramètres.",
         variant: "destructive",
       });
     } finally {
@@ -216,7 +248,6 @@ const ProductsSettings = () => {
     setActiveTab(getTabForItem(itemId));
     setSelectedConfigItem(itemId);
     
-    // Find the sheet trigger and click it
     const sheetTrigger = document.querySelector(`[data-item-id="${itemId}"]`);
     if (sheetTrigger) {
       (sheetTrigger as HTMLElement).click();
@@ -247,6 +278,15 @@ const ProductsSettings = () => {
     { id: "pagination", title: "Pagination", icon: <SlidersHorizontal size={20} />, tab: "filtering" },
   ];
 
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+        <Loader className="animate-spin h-8 w-8 mb-4" />
+        <p>Initialisation de la configuration...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -254,360 +294,360 @@ const ProductsSettings = () => {
       <div className="container mx-auto py-8 px-4">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl font-bold">Configuration de la Page Produits</h1>
-          <Button onClick={handleSaveSettings} disabled={isLoading}>
+          <Button onClick={handleSaveSettings} disabled={isLoading || isQueryLoading}>
             <Save className="mr-2 h-4 w-4" />
             {isLoading ? "Sauvegarde en cours..." : "Sauvegarder"}
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-          <div className="md:col-span-3">
-            <Tabs defaultValue="general" value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid grid-cols-3 mb-4">
-                <TabsTrigger value="general">Général</TabsTrigger>
-                <TabsTrigger value="appearance">Apparence</TabsTrigger>
-                <TabsTrigger value="filtering">Filtres</TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            <div className="space-y-2">
-              {configItems
-                .filter(item => item.tab === activeTab)
-                .map((item) => (
-                  <Sheet key={item.id}>
-                    <SheetTrigger asChild>
-                      <Card 
-                        className={`cursor-pointer hover:shadow-md transition-all ${selectedConfigItem === item.id ? 'border-primary' : ''}`}
-                        onClick={() => handleConfigItemClick(item.id)}
-                        data-item-id={item.id}
-                      >
-                        <CardContent className="p-4 flex items-center justify-between">
-                          <div className="flex items-center">
-                            {item.icon}
-                            <span className="ml-2">{item.title}</span>
-                          </div>
-                          <SlidersHorizontal size={16} />
-                        </CardContent>
-                      </Card>
-                    </SheetTrigger>
-                    <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
-                      <SheetHeader>
-                        <SheetTitle>{item.title}</SheetTitle>
-                        <SheetDescription>
-                          Configurez les paramètres pour {item.title.toLowerCase()}
-                        </SheetDescription>
-                      </SheetHeader>
-                      
-                      <div className="mt-6 space-y-6">
-                        {item.id === "general" && (
-                          <>
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <Label htmlFor="show_search">Afficher la recherche</Label>
-                                  <HoverCard>
-                                    <HoverCardTrigger>
-                                      <Info size={14} className="text-gray-400" />
-                                    </HoverCardTrigger>
-                                    <HoverCardContent>
-                                      Active ou désactive la barre de recherche en haut de la page produits.
-                                    </HoverCardContent>
-                                  </HoverCard>
-                                </div>
-                                <input
-                                  type="checkbox"
-                                  id="show_search"
-                                  checked={settings.show_search}
-                                  onChange={(e) => handleInputChange("show_search", e.target.checked)}
-                                  className="toggle"
-                                />
-                              </div>
-                              
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <Label htmlFor="show_categories">Afficher les catégories</Label>
-                                  <HoverCard>
-                                    <HoverCardTrigger>
-                                      <Info size={14} className="text-gray-400" />
-                                    </HoverCardTrigger>
-                                    <HoverCardContent>
-                                      Active ou désactive l'affichage des onglets de catégories en haut de la page.
-                                    </HoverCardContent>
-                                  </HoverCard>
-                                </div>
-                                <input
-                                  type="checkbox"
-                                  id="show_categories"
-                                  checked={settings.show_categories}
-                                  onChange={(e) => handleInputChange("show_categories", e.target.checked)}
-                                  className="toggle"
-                                />
-                              </div>
-                              
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <Label htmlFor="show_ratings">Afficher les évaluations</Label>
-                                  <HoverCard>
-                                    <HoverCardTrigger>
-                                      <Info size={14} className="text-gray-400" />
-                                    </HoverCardTrigger>
-                                    <HoverCardContent>
-                                      Active ou désactive l'affichage des étoiles d'évaluation sur les cartes produits.
-                                    </HoverCardContent>
-                                  </HoverCard>
-                                </div>
-                                <input
-                                  type="checkbox"
-                                  id="show_ratings"
-                                  checked={settings.show_ratings}
-                                  onChange={(e) => handleInputChange("show_ratings", e.target.checked)}
-                                  className="toggle"
-                                />
-                              </div>
-                            </div>
-                          </>
-                        )}
-                        
-                        {item.id === "hero" && (
-                          <>
-                            <div className="space-y-4">
-                              <div>
-                                <Label htmlFor="hero_banner_image">Image de la bannière</Label>
-                                <Input
-                                  id="hero_banner_image"
-                                  value={settings.hero_banner_image}
-                                  onChange={(e) => handleInputChange("hero_banner_image", e.target.value)}
-                                  placeholder="URL de l'image (ex: /lovable-uploads/image.png)"
-                                  className="mt-1"
-                                />
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Utilisez une image de grande taille (1920x400px recommandé)
-                                </p>
-                              </div>
-                              
-                              <div>
-                                <Label htmlFor="hero_banner_title">Titre de la bannière</Label>
-                                <Input
-                                  id="hero_banner_title"
-                                  value={settings.hero_banner_title}
-                                  onChange={(e) => handleInputChange("hero_banner_title", e.target.value)}
-                                  placeholder="Titre principal"
-                                  className="mt-1"
-                                />
-                              </div>
-                              
-                              <div>
-                                <Label htmlFor="hero_banner_description">Description de la bannière</Label>
-                                <Textarea
-                                  id="hero_banner_description"
-                                  value={settings.hero_banner_description}
-                                  onChange={(e) => handleInputChange("hero_banner_description", e.target.value)}
-                                  placeholder="Description courte"
-                                  className="mt-1"
-                                />
-                              </div>
-                            </div>
-                          </>
-                        )}
-                        
-                        {item.id === "sections" && (
-                          <>
-                            <div className="space-y-4">
-                              <div>
-                                <Label htmlFor="section_title_new_arrivals">Titre section Nouveautés</Label>
-                                <Input
-                                  id="section_title_new_arrivals"
-                                  value={settings.section_titles.new_arrivals}
-                                  onChange={(e) => handleNestedInputChange("section_titles", "new_arrivals", e.target.value)}
-                                  placeholder="Nouveautés"
-                                  className="mt-1"
-                                />
-                              </div>
-                              
-                              <div>
-                                <Label htmlFor="section_title_best_sellers">Titre section Meilleures ventes</Label>
-                                <Input
-                                  id="section_title_best_sellers"
-                                  value={settings.section_titles.best_sellers}
-                                  onChange={(e) => handleNestedInputChange("section_titles", "best_sellers", e.target.value)}
-                                  placeholder="Meilleures ventes"
-                                  className="mt-1"
-                                />
-                              </div>
-                              
-                              <div>
-                                <Label htmlFor="section_title_trending">Titre section Tendances</Label>
-                                <Input
-                                  id="section_title_trending"
-                                  value={settings.section_titles.trending}
-                                  onChange={(e) => handleNestedInputChange("section_titles", "trending", e.target.value)}
-                                  placeholder="Tendances"
-                                  className="mt-1"
-                                />
-                              </div>
-                              
-                              <div>
-                                <Label htmlFor="section_title_sales">Titre section Promotions</Label>
-                                <Input
-                                  id="section_title_sales"
-                                  value={settings.section_titles.sales}
-                                  onChange={(e) => handleNestedInputChange("section_titles", "sales", e.target.value)}
-                                  placeholder="Promotions"
-                                  className="mt-1"
-                                />
-                              </div>
-                              
-                              <div>
-                                <Label htmlFor="section_title_seasonal">Titre section Saisonniers</Label>
-                                <Input
-                                  id="section_title_seasonal"
-                                  value={settings.section_titles.seasonal}
-                                  onChange={(e) => handleNestedInputChange("section_titles", "seasonal", e.target.value)}
-                                  placeholder="Collection saisonnière"
-                                  className="mt-1"
-                                />
-                              </div>
-                            </div>
-                          </>
-                        )}
-                        
-                        {item.id === "categories" && (
-                          <>
-                            <div className="space-y-4">
-                              <div>
-                                <Label htmlFor="categories">Catégories (séparées par des virgules)</Label>
-                                <Textarea
-                                  id="categories"
-                                  value={settings.categories.join(', ')}
-                                  onChange={(e) => handleCategoriesChange(e.target.value)}
-                                  placeholder="Tout, Parfums, Soins, Accessoires, Cadeaux"
-                                  className="mt-1"
-                                />
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Ces catégories apparaîtront comme onglets de filtrage sur la page produits.
-                                </p>
-                              </div>
-                            </div>
-                          </>
-                        )}
-                        
-                        {item.id === "appearance" && (
-                          <>
-                            <div className="space-y-4">
-                              <div>
-                                <Label htmlFor="background_color">Couleur d'arrière-plan</Label>
-                                <div className="flex items-center mt-2 gap-4">
-                                  <div 
-                                    className="w-10 h-10 rounded-full border"
-                                    style={{ backgroundColor: settings.background_color }}
-                                  />
-                                  <ColorSelector
-                                    selectedColor={settings.background_color}
-                                    onColorSelect={(color) => handleInputChange("background_color", color)}
-                                  />
-                                </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Code hexadécimal de la couleur d'arrière-plan
-                                </p>
-                              </div>
-                            </div>
-                          </>
-                        )}
-                        
-                        {item.id === "filtering" && (
-                          <>
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <Label htmlFor="show_filters">Afficher des filtres avancés</Label>
-                                  <HoverCard>
-                                    <HoverCardTrigger>
-                                      <Info size={14} className="text-gray-400" />
-                                    </HoverCardTrigger>
-                                    <HoverCardContent>
-                                      Active ou désactive les options de filtrage avancées (prix, notes, etc.)
-                                    </HoverCardContent>
-                                  </HoverCard>
-                                </div>
-                                <input
-                                  type="checkbox"
-                                  id="show_filters"
-                                  checked={settings.show_filters}
-                                  onChange={(e) => handleInputChange("show_filters", e.target.checked)}
-                                  className="toggle"
-                                />
-                              </div>
-                            </div>
-                          </>
-                        )}
-                        
-                        {item.id === "pagination" && (
-                          <>
-                            <div className="space-y-4">
-                              <div>
-                                <Label htmlFor="items_per_page">Produits par page</Label>
-                                <Input
-                                  id="items_per_page"
-                                  type="number"
-                                  min={4}
-                                  max={24}
-                                  value={settings.items_per_page}
-                                  onChange={(e) => handleInputChange("items_per_page", parseInt(e.target.value) || 8)}
-                                  className="mt-1"
-                                />
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Nombre de produits à afficher par page (recommandé: 8-12)
-                                </p>
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-                ))}
-            </div>
+        {isQueryLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader className="animate-spin h-8 w-8 mr-2" />
+            <p>Chargement des paramètres...</p>
           </div>
-          
-          <div className="md:col-span-9">
-            <Card>
-              <CardHeader>
-                <CardTitle>Aperçu</CardTitle>
-                <CardDescription>
-                  Aperçu de la page produits avec vos configurations actuelles. Cliquez sur un élément pour le configurer.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="border rounded-lg overflow-hidden" style={{ backgroundColor: settings.background_color }}>
-                  {/* Hero Banner - Clickable */}
-                  <div 
-                    className="relative w-full h-[200px] overflow-hidden cursor-pointer transition-opacity hover:opacity-90"
-                    onClick={() => handlePreviewItemClick("hero")}
-                  >
-                    {settings.hero_banner_image ? (
-                      <img 
-                        src={settings.hero_banner_image} 
-                        alt={settings.hero_banner_title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                        <p className="text-gray-500">Bannière (cliquez pour configurer)</p>
-                      </div>
-                    )}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 hover:opacity-100 transition-opacity">
-                      <div className="bg-white bg-opacity-75 px-3 py-1 rounded-full text-sm">
-                        Configurer la bannière
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+            <div className="md:col-span-3">
+              <Tabs defaultValue="general" value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid grid-cols-3 mb-4">
+                  <TabsTrigger value="general">Général</TabsTrigger>
+                  <TabsTrigger value="appearance">Apparence</TabsTrigger>
+                  <TabsTrigger value="filtering">Filtres</TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              <div className="space-y-2">
+                {configItems
+                  .filter(item => item.tab === activeTab)
+                  .map((item) => (
+                    <Sheet key={item.id}>
+                      <SheetTrigger asChild>
+                        <Card 
+                          className={`cursor-pointer hover:shadow-md transition-all ${selectedConfigItem === item.id ? 'border-primary' : ''}`}
+                          onClick={() => handleConfigItemClick(item.id)}
+                          data-item-id={item.id}
+                        >
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div className="flex items-center">
+                              {item.icon}
+                              <span className="ml-2">{item.title}</span>
+                            </div>
+                            <SlidersHorizontal size={16} />
+                          </CardContent>
+                        </Card>
+                      </SheetTrigger>
+                      <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+                        <SheetHeader>
+                          <SheetTitle>{item.title}</SheetTitle>
+                          <SheetDescription>
+                            Configurez les paramètres pour {item.title.toLowerCase()}
+                          </SheetDescription>
+                        </SheetHeader>
+                        
+                        <div className="mt-6 space-y-6">
+                          {item.id === "general" && (
+                            <>
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Label htmlFor="show_search">Afficher la recherche</Label>
+                                    <HoverCard>
+                                      <HoverCardTrigger>
+                                        <Info size={14} className="text-gray-400" />
+                                      </HoverCardTrigger>
+                                      <HoverCardContent>
+                                        Active ou désactive la barre de recherche en haut de la page produits.
+                                      </HoverCardContent>
+                                    </HoverCard>
+                                  </div>
+                                  <input
+                                    type="checkbox"
+                                    id="show_search"
+                                    checked={settings.show_search}
+                                    onChange={(e) => handleInputChange("show_search", e.target.checked)}
+                                    className="toggle"
+                                  />
+                                </div>
+                                
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Label htmlFor="show_categories">Afficher les catégories</Label>
+                                    <HoverCard>
+                                      <HoverCardTrigger>
+                                        <Info size={14} className="text-gray-400" />
+                                      </HoverCardTrigger>
+                                      <HoverCardContent>
+                                        Active ou désactive l'affichage des onglets de catégories en haut de la page.
+                                      </HoverCardContent>
+                                    </HoverCard>
+                                  </div>
+                                  <input
+                                    type="checkbox"
+                                    id="show_categories"
+                                    checked={settings.show_categories}
+                                    onChange={(e) => handleInputChange("show_categories", e.target.checked)}
+                                    className="toggle"
+                                  />
+                                </div>
+                                
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Label htmlFor="show_ratings">Afficher les évaluations</Label>
+                                    <HoverCard>
+                                      <HoverCardTrigger>
+                                        <Info size={14} className="text-gray-400" />
+                                      </HoverCardTrigger>
+                                      <HoverCardContent>
+                                        Active ou désactive l'affichage des étoiles d'évaluation sur les cartes produits.
+                                      </HoverCardContent>
+                                    </HoverCard>
+                                  </div>
+                                  <input
+                                    type="checkbox"
+                                    id="show_ratings"
+                                    checked={settings.show_ratings}
+                                    onChange={(e) => handleInputChange("show_ratings", e.target.checked)}
+                                    className="toggle"
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          
+                          {item.id === "hero" && (
+                            <>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label htmlFor="hero_banner_image">Image de la bannière</Label>
+                                  <Input
+                                    id="hero_banner_image"
+                                    value={settings.hero_banner_image}
+                                    onChange={(e) => handleInputChange("hero_banner_image", e.target.value)}
+                                    placeholder="URL de l'image (ex: /lovable-uploads/image.png)"
+                                    className="mt-1"
+                                  />
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Utilisez une image de grande taille (1920x400px recommandé)
+                                  </p>
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor="hero_banner_title">Titre de la bannière</Label>
+                                  <Input
+                                    id="hero_banner_title"
+                                    value={settings.hero_banner_title}
+                                    onChange={(e) => handleInputChange("hero_banner_title", e.target.value)}
+                                    placeholder="Titre principal"
+                                    className="mt-1"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor="hero_banner_description">Description de la bannière</Label>
+                                  <Textarea
+                                    id="hero_banner_description"
+                                    value={settings.hero_banner_description}
+                                    onChange={(e) => handleInputChange("hero_banner_description", e.target.value)}
+                                    placeholder="Description courte"
+                                    className="mt-1"
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          
+                          {item.id === "sections" && (
+                            <>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label htmlFor="section_title_new_arrivals">Titre section Nouveautés</Label>
+                                  <Input
+                                    id="section_title_new_arrivals"
+                                    value={settings.section_titles.new_arrivals}
+                                    onChange={(e) => handleNestedInputChange("section_titles", "new_arrivals", e.target.value)}
+                                    placeholder="Nouveautés"
+                                    className="mt-1"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor="section_title_best_sellers">Titre section Meilleures ventes</Label>
+                                  <Input
+                                    id="section_title_best_sellers"
+                                    value={settings.section_titles.best_sellers}
+                                    onChange={(e) => handleNestedInputChange("section_titles", "best_sellers", e.target.value)}
+                                    placeholder="Meilleures ventes"
+                                    className="mt-1"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor="section_title_trending">Titre section Tendances</Label>
+                                  <Input
+                                    id="section_title_trending"
+                                    value={settings.section_titles.trending}
+                                    onChange={(e) => handleNestedInputChange("section_titles", "trending", e.target.value)}
+                                    placeholder="Tendances"
+                                    className="mt-1"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor="section_title_sales">Titre section Promotions</Label>
+                                  <Input
+                                    id="section_title_sales"
+                                    value={settings.section_titles.sales}
+                                    onChange={(e) => handleNestedInputChange("section_titles", "sales", e.target.value)}
+                                    placeholder="Promotions"
+                                    className="mt-1"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor="section_title_seasonal">Titre section Saisonniers</Label>
+                                  <Input
+                                    id="section_title_seasonal"
+                                    value={settings.section_titles.seasonal}
+                                    onChange={(e) => handleNestedInputChange("section_titles", "seasonal", e.target.value)}
+                                    placeholder="Collection saisonnière"
+                                    className="mt-1"
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          
+                          {item.id === "categories" && (
+                            <>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label htmlFor="categories">Catégories (séparées par des virgules)</Label>
+                                  <Textarea
+                                    id="categories"
+                                    value={settings.categories.join(', ')}
+                                    onChange={(e) => handleCategoriesChange(e.target.value)}
+                                    placeholder="Tout, Parfums, Soins, Accessoires, Cadeaux"
+                                    className="mt-1"
+                                  />
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Ces catégories apparaîtront comme onglets de filtrage sur la page produits.
+                                  </p>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          
+                          {item.id === "appearance" && (
+                            <>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label htmlFor="background_color">Couleur d'arrière-plan</Label>
+                                  <div className="flex items-center mt-2 gap-4">
+                                    <div 
+                                      className="w-10 h-10 rounded-full border"
+                                      style={{ backgroundColor: settings.background_color }}
+                                    />
+                                    <ColorSelector
+                                      selectedColor={settings.background_color}
+                                      onColorSelect={(color) => handleInputChange("background_color", color)}
+                                    />
+                                  </div>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Code hexadécimal de la couleur d'arrière-plan
+                                  </p>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          
+                          {item.id === "filtering" && (
+                            <>
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Label htmlFor="show_filters">Afficher des filtres avancés</Label>
+                                    <HoverCard>
+                                      <HoverCardTrigger>
+                                        <Info size={14} className="text-gray-400" />
+                                      </HoverCardTrigger>
+                                      <HoverCardContent>
+                                        Active ou désactive les options de filtrage avancées (prix, notes, etc.)
+                                      </HoverCardContent>
+                                    </HoverCard>
+                                  </div>
+                                  <input
+                                    type="checkbox"
+                                    id="show_filters"
+                                    checked={settings.show_filters}
+                                    onChange={(e) => handleInputChange("show_filters", e.target.checked)}
+                                    className="toggle"
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          
+                          {item.id === "pagination" && (
+                            <>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label htmlFor="items_per_page">Produits par page</Label>
+                                  <Input
+                                    id="items_per_page"
+                                    type="number"
+                                    min={4}
+                                    max={24}
+                                    value={settings.items_per_page}
+                                    onChange={(e) => handleInputChange("items_per_page", parseInt(e.target.value) || 8)}
+                                    className="mt-1"
+                                  />
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Nombre de produits à afficher par page (recommandé: 8-12)
+                                  </p>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </SheetContent>
+                    </Sheet>
+                  ))}
+              </div>
+            </div>
+            
+            <div className="md:col-span-9">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Aperçu</CardTitle>
+                  <CardDescription>
+                    Aperçu de la page produits avec vos configurations actuelles. Cliquez sur un élément pour le configurer.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="border rounded-lg overflow-hidden" style={{ backgroundColor: settings.background_color }}>
+                    <div 
+                      className="relative w-full h-[200px] overflow-hidden cursor-pointer transition-opacity hover:opacity-90"
+                      onClick={() => handlePreviewItemClick("hero")}
+                    >
+                      {settings.hero_banner_image ? (
+                        <img 
+                          src={settings.hero_banner_image} 
+                          alt={settings.hero_banner_title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                          <p className="text-gray-500">Bannière (cliquez pour configurer)</p>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 hover:opacity-100 transition-opacity">
+                        <div className="bg-white bg-opacity-75 px-3 py-1 rounded-full text-sm">
+                          Configurer la bannière
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="p-4">
-                    {/* Search Bar - Clickable */}
-                    <div 
-                      className="cursor-pointer mb-4"
-                      onClick={() => handlePreviewItemClick("general")}
-                    >
+                    
+                    <div className="p-4">
                       <div className={`relative w-full max-w-md mx-auto ${!settings.show_search ? 'opacity-50' : ''}`}>
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                         <div className="pl-10 pr-4 py-2 rounded-full border border-gray-300 w-full">
@@ -619,104 +659,97 @@ const ProductsSettings = () => {
                           </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    {/* Categories - Clickable */}
-                    <div 
-                      className={`mb-4 cursor-pointer ${!settings.show_categories ? 'opacity-50' : ''}`}
-                      onClick={() => handlePreviewItemClick("categories")}
-                    >
-                      <div className="flex flex-wrap justify-center gap-2 relative">
-                        {settings.categories.map((category, index) => (
-                          <div 
-                            key={index}
-                            className={`px-4 py-1 rounded-full text-sm ${index === 0 ? 'bg-black text-white' : 'bg-white border'}`}
-                          >
-                            {category}
-                          </div>
-                        ))}
-                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 hover:opacity-100 transition-opacity rounded-full">
-                          <div className="bg-white bg-opacity-75 px-3 py-1 rounded-full text-sm">
-                            Configurer les catégories
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Section Title - Clickable */}
-                    <div 
-                      className="mb-4 cursor-pointer"
-                      onClick={() => handlePreviewItemClick("sections")}
-                    >
-                      <div className="relative mb-3">
-                        <div className="absolute inset-0 flex items-center">
-                          <div className="w-full border-t border-gray-300"></div>
-                        </div>
-                        <div className="relative flex justify-center">
-                          <span className="px-4 text-lg font-medium text-gray-900 flex items-center" style={{ backgroundColor: settings.background_color }}>
-                            <span className="text-2xl font-serif italic mr-2">A</span>
-                            {settings.section_titles.new_arrivals}
-                          </span>
-                        </div>
-                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 hover:opacity-100 transition-opacity">
-                          <div className="bg-white bg-opacity-75 px-3 py-1 rounded-full text-sm">
-                            Configurer les titres de sections
+                      
+                      <div className={`mb-4 cursor-pointer ${!settings.show_categories ? 'opacity-50' : ''}`}>
+                        <div className="flex flex-wrap justify-center gap-2 relative">
+                          {settings.categories.map((category, index) => (
+                            <div 
+                              key={index}
+                              className={`px-4 py-1 rounded-full text-sm ${index === 0 ? 'bg-black text-white' : 'bg-white border'}`}
+                            >
+                              {category}
+                            </div>
+                          ))}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 hover:opacity-100 transition-opacity rounded-full">
+                            <div className="bg-white bg-opacity-75 px-3 py-1 rounded-full text-sm">
+                              Configurer les catégories
+                            </div>
                           </div>
                         </div>
                       </div>
                       
-                      {/* Product Grid */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {[1, 2, 3, 4].map((item) => (
-                          <div key={item} className="rounded-lg overflow-hidden bg-white border shadow-sm">
-                            <div className="h-32 bg-gray-100"></div>
-                            <div className="p-2 text-center">
-                              <div className="text-sm uppercase tracking-wider mb-1">Produit {item}</div>
-                              {settings.show_ratings && (
-                                <div className="flex justify-center mb-1">
-                                  {[1, 2, 3, 4, 5].map((star) => (
-                                    <StarIcon 
-                                      key={star} 
-                                      size={12} 
-                                      className={star <= 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} 
-                                    />
-                                  ))}
-                                </div>
-                              )}
-                              <div className="font-medium">€99.00</div>
+                      <div 
+                        className="mb-4 cursor-pointer"
+                        onClick={() => handlePreviewItemClick("sections")}
+                      >
+                        <div className="relative mb-3">
+                          <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-300"></div>
+                          </div>
+                          <div className="relative flex justify-center">
+                            <span className="px-4 text-lg font-medium text-gray-900 flex items-center" style={{ backgroundColor: settings.background_color }}>
+                              <span className="text-2xl font-serif italic mr-2">A</span>
+                              {settings.section_titles.new_arrivals}
+                            </span>
+                          </div>
+                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 hover:opacity-100 transition-opacity rounded-full">
+                            <div className="bg-white bg-opacity-75 px-3 py-1 rounded-full text-sm">
+                              Configurer les titres de sections
                             </div>
                           </div>
-                        ))}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {[1, 2, 3, 4].map((item) => (
+                            <div key={item} className="rounded-lg overflow-hidden bg-white border shadow-sm">
+                              <div className="h-32 bg-gray-100"></div>
+                              <div className="p-2 text-center">
+                                <div className="text-sm uppercase tracking-wider mb-1">Produit {item}</div>
+                                {settings.show_ratings && (
+                                  <div className="flex justify-center mb-1">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                      <StarIcon 
+                                        key={star} 
+                                        size={12} 
+                                        className={star <= 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} 
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                                <div className="font-medium">€99.00</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                    
-                    {/* Background Color - Clickable */}
-                    <div 
-                      className="absolute bottom-4 right-4 cursor-pointer"
-                      onClick={() => handlePreviewItemClick("appearance")}
-                    >
-                      <div className="bg-white rounded-full p-2 shadow-md flex items-center gap-2">
-                        <div 
-                          className="w-4 h-4 rounded-full border"
-                          style={{ backgroundColor: settings.background_color }}
-                        />
-                        <span className="text-xs">Configurer l'apparence</span>
+                      
+                      <div 
+                        className="absolute bottom-4 right-4 cursor-pointer"
+                        onClick={() => handlePreviewItemClick("appearance")}
+                      >
+                        <div className="bg-white rounded-full p-2 shadow-md flex items-center gap-2">
+                          <div 
+                            className="w-4 h-4 rounded-full border"
+                            style={{ backgroundColor: settings.background_color }}
+                          />
+                          <span className="text-xs">Configurer l'apparence</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button variant="outline" onClick={handleSaveSettings} disabled={isLoading}>
-                  {isLoading ? "Sauvegarde en cours..." : "Sauvegarder"}
-                </Button>
-                <Button variant="outline" onClick={() => window.open("/products", "_blank")}>
-                  Voir la page en direct
-                </Button>
-              </CardFooter>
-            </Card>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={handleSaveSettings} disabled={isLoading}>
+                    {isLoading ? "Sauvegarde en cours..." : "Sauvegarder"}
+                  </Button>
+                  <Button variant="outline" onClick={() => window.open("/products", "_blank")}>
+                    Voir la page en direct
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
           </div>
-        </div>
+        )}
       </div>
       
       <Footer />

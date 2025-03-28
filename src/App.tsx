@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,19 +21,38 @@ import PopoSettings from "./pages/PopoSettings";
 import Formulaire from "./pages/Formulaire";
 import ProductsSettings from "./pages/ProductsSettings";
 import { initSupabase } from "./utils/supabaseInit";
+import { useToast } from "./hooks/use-toast";
 
 const queryClient = new QueryClient();
 
 const App = () => {
+  const [isInitializing, setIsInitializing] = useState(true);
+  const { toast } = useToast();
+
   useEffect(() => {
     // Initialize Supabase functions and tables
-    initSupabase().then((success) => {
-      if (success) {
-        console.log("Supabase initialized successfully");
-      } else {
-        console.error("Failed to initialize Supabase");
+    const initialize = async () => {
+      try {
+        setIsInitializing(true);
+        const success = await initSupabase();
+        if (success) {
+          console.log("Supabase initialized successfully");
+        } else {
+          console.error("Failed to initialize Supabase");
+          toast({
+            title: "Erreur d'initialisation",
+            description: "Impossible d'initialiser correctement la base de données. Certaines fonctionnalités pourraient ne pas fonctionner.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error("Error initializing Supabase:", error);
+      } finally {
+        setIsInitializing(false);
       }
-    });
+    };
+    
+    initialize();
   }, []);
 
   return (
