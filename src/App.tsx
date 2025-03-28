@@ -18,6 +18,7 @@ import ButtonStats from "./pages/ButtonStats";
 import Popo from "./pages/Popo";
 import PopoSettings from "./pages/PopoSettings";
 import Formulaire from "./pages/Formulaire";
+import ProductsSettings from "./pages/ProductsSettings";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,14 @@ const App = () => (
           <Route path="/contact" element={<Contact />} />
           <Route path="/popo" element={<Popo />} />
           <Route path="/formulaire" element={<Formulaire />} />
+          <Route
+            path="/products-set"
+            element={
+              <ProtectedRoute>
+                <ProductsSettings />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/popo-setting"
             element={

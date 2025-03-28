@@ -5,19 +5,47 @@ import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import PromoBar from "@/components/PromoBar";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { Search, Star } from "lucide-react";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import Footer from "@/components/Footer";
+import { defaultSettings, ProductsPageSettings } from "@/models/products-page-settings";
 
 const Products = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const productsPerPage = 8;
+  const [settings, setSettings] = useState<ProductsPageSettings>(defaultSettings);
+  
+  // Fetch page settings
+  const { data: pageSettings } = useQuery({
+    queryKey: ["products-page-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products_page_settings")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
 
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching page settings:", error);
+        return null;
+      }
+
+      return data as ProductsPageSettings;
+    },
+  });
+
+  useEffect(() => {
+    if (pageSettings) {
+      setSettings(pageSettings);
+    }
+  }, [pageSettings]);
+
+  // Fetch products
   const {
     data: products,
     isLoading
@@ -27,13 +55,16 @@ const Products = () => {
       let query = supabase.from("products").select("*").eq('is_visible', true).order("created_at", {
         ascending: false
       });
+      
       if (searchQuery) {
         query = query.ilike("name", `%${searchQuery}%`);
       }
-      const {
-        data,
-        error
-      } = await query;
+      
+      if (selectedCategory && selectedCategory !== "all" && selectedCategory !== "Tout") {
+        query = query.ilike("category", `%${selectedCategory}%`);
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     }
@@ -43,13 +74,17 @@ const Products = () => {
   const filteredProducts = products || [];
 
   // Pagination logic
+  const productsPerPage = settings.items_per_page;
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
   const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
-  // Categories for tabs
-  const categories = ["Tout", "Parfums", "Soins", "Accessoires", "Cadeaux"];
+  // Generate page numbers for pagination
+  const pageNumbers = [];
+  for (let i = 1; i <= totalPages; i++) {
+    pageNumbers.push(i);
+  }
   
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -60,12 +95,6 @@ const Products = () => {
     setSelectedCategory(category);
     setCurrentPage(1);
   };
-
-  // Generate page numbers for pagination
-  const pageNumbers = [];
-  for (let i = 1; i <= totalPages; i++) {
-    pageNumbers.push(i);
-  }
 
   // Function to render star ratings
   const renderStars = (rating: number) => {
@@ -95,15 +124,15 @@ const Products = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#fdf7f7]">
+    <div className="min-h-screen" style={{ backgroundColor: settings.background_color || "#fdf7f7" }}>
       <PromoBar />
       <Navbar />
       
       {/* Hero Banner */}
       <div className="relative w-full h-[400px] overflow-hidden">
         <img 
-          src="/lovable-uploads/88668931-9bc2-4d50-b115-231ec9516b1e.png" 
-          alt="Luxury Fragrance Collection" 
+          src={settings.hero_banner_image} 
+          alt={settings.hero_banner_title} 
           className="w-full h-full object-cover"
         />
       </div>
@@ -111,31 +140,35 @@ const Products = () => {
       <div className="container mx-auto py-8 px-4">
         {/* Search and Filter */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <div className="relative w-full md:w-auto">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-            <Input
-              type="text"
-              placeholder="Rechercher..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 rounded-full border-gray-300 w-full md:w-[300px]"
-            />
-          </div>
+          {settings.show_search && (
+            <div className="relative w-full md:w-auto">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <Input
+                type="text"
+                placeholder="Rechercher..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-2 rounded-full border-gray-300 w-full md:w-[300px]"
+              />
+            </div>
+          )}
           
-          <Tabs defaultValue={categories[0]} className="w-full md:w-auto">
-            <TabsList className="bg-transparent border border-gray-200 rounded-full p-1">
-              {categories.map((category) => (
-                <TabsTrigger
-                  key={category}
-                  value={category}
-                  onClick={() => handleCategoryChange(category)}
-                  className="rounded-full px-4 py-1 data-[state=active]:bg-black data-[state=active]:text-white"
-                >
-                  {category}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+          {settings.show_categories && (
+            <Tabs defaultValue={settings.categories[0]} className="w-full md:w-auto">
+              <TabsList className="bg-transparent border border-gray-200 rounded-full p-1">
+                {settings.categories.map((category) => (
+                  <TabsTrigger
+                    key={category}
+                    value={category}
+                    onClick={() => handleCategoryChange(category)}
+                    className="rounded-full px-4 py-1 data-[state=active]:bg-black data-[state=active]:text-white"
+                  >
+                    {category}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          )}
         </div>
 
         {/* New Arrivals Section */}
@@ -145,9 +178,9 @@ const Products = () => {
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-[#fdf7f7] px-6 text-lg font-medium text-gray-900 flex items-center">
+              <span className="bg-[#fdf7f7] px-6 text-lg font-medium text-gray-900 flex items-center" style={{ backgroundColor: settings.background_color }}>
                 <span className="text-2xl font-serif italic mr-2">A</span>
-                New Arrivals
+                {settings.section_titles.new_arrivals}
               </span>
             </div>
           </div>
@@ -173,9 +206,11 @@ const Products = () => {
                   </div>
                   <CardContent className="p-4">
                     <h3 className="font-serif text-sm uppercase tracking-wider text-center mb-2">{product.name}</h3>
-                    <div className="flex justify-center mb-2">
-                      {renderStars(4.5)}
-                    </div>
+                    {settings.show_ratings && (
+                      <div className="flex justify-center mb-2">
+                        {renderStars(4.5)}
+                      </div>
+                    )}
                     <div className="flex justify-center gap-2 items-center">
                       {product.discounted_price < product.original_price ? (
                         <>
@@ -201,9 +236,9 @@ const Products = () => {
                 <div className="w-full border-t border-gray-300"></div>
               </div>
               <div className="relative flex justify-center">
-                <span className="bg-[#fdf7f7] px-6 text-lg font-medium text-gray-900 flex items-center">
+                <span className="bg-[#fdf7f7] px-6 text-lg font-medium text-gray-900 flex items-center" style={{ backgroundColor: settings.background_color }}>
                   <span className="text-2xl font-serif italic mr-2">A</span>
-                  Best Fall & Winter Fragrances
+                  {settings.section_titles.seasonal}
                 </span>
               </div>
             </div>

@@ -1,11 +1,29 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, Search, Menu, User } from "lucide-react";
+import { ShoppingBag, Search, Menu, User, Settings } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
 const Navbar = () => {
   const location = useLocation();
   const isProductDetailPage = location.pathname.startsWith('/product/');
-  return <div className="bg-white py-6 px-8">
+  
+  // Check if user is logged in
+  const { data: session } = useQuery({
+    queryKey: ["session"],
+    queryFn: async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      return data.session;
+    },
+  });
+
+  const isAdmin = !!session;
+
+  return (
+    <div className="bg-white py-6 px-8">
       {/* Traditional navigation bar */}
       <div className="flex justify-between items-center mb-6">
         <div className="font-bold text-xl">Total-Service</div>
@@ -15,6 +33,11 @@ const Navbar = () => {
           <Link to="/contact" className="hover:text-gray-600">Contact</Link>
         </div>
         <div className="flex items-center space-x-4">
+          {isAdmin && (
+            <Link to="/products-set" title="Paramètres de la page produits">
+              <Settings className="h-5 w-5" />
+            </Link>
+          )}
           <Link to="/account">
             <User className="h-5 w-5" />
           </Link>
@@ -26,6 +49,8 @@ const Navbar = () => {
 
       {/* Main black navbar with rounded corners - hidden on product detail pages */}
       {!isProductDetailPage}
-    </div>;
+    </div>
+  );
 };
+
 export default Navbar;
