@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 
 const Footer = () => {
@@ -10,7 +11,7 @@ const Footer = () => {
             <Link to="/contact" className="hover:text-gray-300">Contact</Link>
           </nav>
           <div className="text-sm text-gray-300">
-            © 2025 Digit-sarl. Tous droits réservés.
+            © 2025 Total-Service. Tous droits réservés.
           </div>
         </div>
       </div>

@@ -45,7 +45,7 @@ export const initSupabase = async () => {
           .from('products_page_settings')
           .insert({
             background_color: '#f1eee9',
-            hero_banner_title: 'Notre Collection',
+            hero_banner_title: 'Bienvenue sur Total-Service',
             hero_banner_description: 'Découvrez nos nouveautés et best-sellers',
             section_titles: {
               new_arrivals: 'Nouveautés',
