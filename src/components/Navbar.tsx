@@ -47,16 +47,16 @@ const Navbar = ({ cartCount = 0 }: NavbarProps) => {
   return (
     <nav className="py-6 relative">
       <div className="container mx-auto flex justify-between items-center px-4">
-        <Link to="/" className="text-xl font-serif italic">
-          La Maison
+        <Link to="/products" className="text-xl font-serif italic">
+          Total-Service
         </Link>
 
         {/* Desktop Menu */}
         <div className="hidden md:flex items-center space-x-8">
           <Link
-            to="/"
+            to="/products"
             className={`font-medium ${
-              location.pathname === "/" ? "text-black" : "text-gray-600"
+              location.pathname === "/" || location.pathname === "/products" ? "text-black" : "text-gray-600"
             }`}
           >
             Accueil
@@ -118,9 +118,9 @@ const Navbar = ({ cartCount = 0 }: NavbarProps) => {
         <div className="md:hidden absolute top-full left-0 right-0 bg-white z-50 shadow-lg">
           <div className="container mx-auto py-4 space-y-4 px-4">
             <Link
-              to="/"
+              to="/products"
               className={`block font-medium ${
-                location.pathname === "/" ? "text-black" : "text-gray-600"
+                location.pathname === "/" || location.pathname === "/products" ? "text-black" : "text-gray-600"
               }`}
               onClick={() => setIsMobileMenuOpen(false)}
             >

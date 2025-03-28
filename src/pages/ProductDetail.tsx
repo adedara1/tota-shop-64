@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Star } from "lucide-react";
 
 interface Product {
   id: string;
@@ -173,11 +174,11 @@ const ProductDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
+      <div className="min-h-screen" style={{ backgroundColor: "#000000" }}>
         <PromoBar />
         <Navbar cartCount={cartCount} />
         <div className="container mx-auto py-12 px-4">
-          <div className="text-center">Chargement...</div>
+          <div className="text-center text-white">Chargement...</div>
         </div>
         <Footer />
       </div>
@@ -186,13 +187,13 @@ const ProductDetail = () => {
 
   if (!product) {
     return (
-      <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: "#f1eee9" }}>
+      <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: "#000000" }}>
         <PromoBar />
         <Navbar cartCount={cartCount} />
         <div className="container mx-auto py-12 px-4 max-w-[100vw]">
-          <div className="text-center">
+          <div className="text-center text-white">
             <h2 className="text-2xl font-medium mb-4">Produit non trouvé</h2>
-            <p className="text-gray-600">
+            <p className="text-gray-400">
               Le produit que vous recherchez n'existe pas.
             </p>
           </div>
@@ -206,14 +207,58 @@ const ProductDetail = () => {
     ? [...selectedOptionImages, ...product.images]
     : product.images;
 
+  // Calculate discount percentage
+  const discountPercentage = product.original_price > 0 
+    ? Math.round(((product.original_price - product.discounted_price) / product.original_price) * 100) 
+    : 0;
+
   return (
-    <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color }}>
+    <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: "#000000" }}>
       <PromoBar />
       <Navbar cartCount={cartCount} />
       <main className="container mx-auto py-4 md:py-12 px-4 max-w-[100vw]">
         <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-8 lg:gap-12`}>
           <ProductGallery images={displayImages} />
-          <div className="md:order-2 order-2">
+          <div className="md:order-2 order-2 text-white">
+            <div className="mb-6">
+              <h2 className="uppercase text-sm font-bold tracking-wider">
+                {product.name}™
+              </h2>
+              
+              {/* Rating stars */}
+              <div className="flex items-center mt-2">
+                <div className="flex">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star 
+                      key={star} 
+                      size={16} 
+                      className="text-yellow-400 fill-yellow-400" 
+                    />
+                  ))}
+                </div>
+                <span className="text-xs ml-2">1,238 reviews</span>
+              </div>
+              
+              {/* Price display */}
+              <div className="flex items-center gap-2 mt-4">
+                <span className="text-xl font-bold text-orange-500">${product.discounted_price.toFixed(2)}</span>
+                {product.original_price > product.discounted_price && (
+                  <span className="text-sm line-through text-gray-400">${product.original_price.toFixed(2)}</span>
+                )}
+                {discountPercentage > 0 && (
+                  <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
+                    {discountPercentage}% OFF
+                  </span>
+                )}
+              </div>
+              
+              {/* In stock indicator */}
+              <div className="flex items-center mt-4 text-sm">
+                <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                <span>In stock, ready to ship</span>
+              </div>
+            </div>
+            
             <ProductDetails
               key={product.id}
               name={product.name}

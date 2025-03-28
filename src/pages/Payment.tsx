@@ -118,6 +118,33 @@ Téléphone: ${phone}
 Adresse: ${address || 'Non spécifiée'}
       `.trim();
       
+      // Save order in database using cart_items table
+      const orderData = {
+        customer_name: name,
+        customer_email: email,
+        customer_phone: phone,
+        customer_address: address,
+        order_items: cartItems,
+        total_amount: totalAmount,
+        status: 'pending'
+      };
+      
+      // Insert directly into cart_items table since we don't have orders table yet
+      const { error } = await supabase.from('cart_items').insert(
+        cartItems.map(item => ({
+          product_id: item.product_id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          options: item.options,
+          image: item.image
+        }))
+      );
+      
+      if (error) {
+        console.error("Error saving order items:", error);
+      }
+      
       // Clear cart
       localStorage.removeItem('cartItems');
       window.dispatchEvent(new Event('cartUpdated'));
@@ -130,21 +157,6 @@ Adresse: ${address || 'Non spécifiée'}
         title: "Commande envoyée",
         description: "Votre commande a été envoyée. Nous vous contacterons dès que possible."
       });
-      
-      // Save order in database
-      const { error } = await supabase.from('orders').insert({
-        customer_name: name,
-        customer_email: email,
-        customer_phone: phone,
-        customer_address: address,
-        order_items: cartItems,
-        total_amount: totalAmount,
-        status: 'pending'
-      });
-      
-      if (error) {
-        console.error("Error saving order:", error);
-      }
       
       // Redirect to thank you page
       navigate('/products');

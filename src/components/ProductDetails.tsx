@@ -80,32 +80,28 @@ const ProductDetails = ({
     setTotalPrice(discountedPrice * quantity);
   }, [discountedPrice, quantity]);
   
-  const handleOptionSelect = (optionType: string, value: string | OptionValue) => {
-    setSelectedOptions(prev => ({
-      ...prev,
-      [optionType]: value
-    }));
+  const handleOptionSelect = (optionType: string, selectedValue: string | OptionValue) => {
+    const newSelectedOptions = { ...selectedOptions };
+    
+    // Make sure we store the option as an object
+    if (typeof selectedValue === 'string') {
+      newSelectedOptions[optionType] = { value: selectedValue };
+    } else {
+      newSelectedOptions[optionType] = selectedValue;
+    }
+    
+    setSelectedOptions(newSelectedOptions);
     
     // Update image gallery if option has an image
     if (onOptionImageChange) {
-      const selectedImages = Object.values(selectedOptions)
+      const selectedImages = Object.values(newSelectedOptions)
         .filter(opt => typeof opt === 'object' && opt.image)
-        .map(opt => opt.image);
+        .map(opt => opt.image as string);
       
-      // Add the newly selected option image if it exists
-      if (typeof value === 'object' && value.image) {
-        const newSelectedImages = [...selectedImages];
-        const existingIndex = newSelectedImages.indexOf(value.image);
-        
-        if (existingIndex === -1) {
-          newSelectedImages.push(value.image);
-        }
-        
-        onOptionImageChange(newSelectedImages);
-      }
+      onOptionImageChange(selectedImages);
     }
     
-    console.log(`Selected ${optionType}:`, value);
+    console.log(`Selected ${optionType}:`, selectedValue);
   };
   
   const handleButtonClick = () => {
@@ -205,9 +201,13 @@ const ProductDetails = ({
           title={optionTitle}
           options={optionValues}
           onSelect={(value) => handleOptionSelect(optionTitle, value)}
-          selectedOption={typeof selectedOptions[optionTitle] === 'object' 
-            ? selectedOptions[optionTitle].value 
-            : selectedOptions[optionTitle]}
+          selectedOption={
+            selectedOptions[optionTitle] 
+              ? (typeof selectedOptions[optionTitle] === 'object' 
+                  ? selectedOptions[optionTitle].value 
+                  : selectedOptions[optionTitle])
+              : undefined
+          }
         />
       ))}
       
