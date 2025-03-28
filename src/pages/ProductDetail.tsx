@@ -9,6 +9,7 @@ import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Product {
   id: string;
@@ -29,6 +30,7 @@ const ProductDetail = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedOptionImages, setSelectedOptionImages] = useState<string[]>([]);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -136,8 +138,8 @@ const ProductDetail = () => {
     <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color }}>
       <PromoBar />
       <Navbar />
-      <main className="container mx-auto py-12 px-4 max-w-[100vw]">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+      <main className="container mx-auto py-4 md:py-12 px-4 max-w-[100vw]">
+        <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-8 lg:gap-12`}>
           <ProductGallery images={displayImages} />
           <div className="md:order-2 order-2">
             <ProductDetails
