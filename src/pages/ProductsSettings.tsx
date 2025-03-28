@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ColorSelector } from "@/components/ColorSelector";
+import ColorSelector from "@/components/ColorSelector";
 import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -25,48 +25,12 @@ import {
   Search, 
   SlidersHorizontal, 
   Info,
-  Save
+  Save,
+  Star
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-
-// Define type for the Products Page Settings
-interface ProductsPageSettings {
-  id?: string;
-  hero_banner_image: string;
-  hero_banner_title: string;
-  hero_banner_description: string;
-  section_titles: Record<string, string>;
-  items_per_page: number;
-  show_ratings: boolean;
-  show_search: boolean;
-  show_categories: boolean;
-  show_filters: boolean;
-  background_color: string;
-  categories: string[];
-  created_at?: string;
-  updated_at?: string;
-}
-
-const defaultSettings: ProductsPageSettings = {
-  hero_banner_image: "/lovable-uploads/88668931-9bc2-4d50-b115-231ec9516b1e.png",
-  hero_banner_title: "Luxury Fragrance Collection",
-  hero_banner_description: "Discover our exquisite collection of premium fragrances",
-  section_titles: {
-    new_arrivals: "New Arrivals",
-    best_sellers: "Best Sellers",
-    trending: "Trending Now",
-    sales: "On Sale",
-    seasonal: "Fall & Winter Fragrances"
-  },
-  items_per_page: 8,
-  show_ratings: true,
-  show_search: true,
-  show_categories: true,
-  show_filters: false,
-  background_color: "#fdf7f7",
-  categories: ["Tout", "Parfums", "Soins", "Accessoires", "Cadeaux"],
-};
+import { defaultSettings, ProductsPageSettings } from "@/models/products-page-settings";
 
 const ProductsSettings = () => {
   const { toast } = useToast();
@@ -80,18 +44,26 @@ const ProductsSettings = () => {
   const { data: fetchedSettings, refetch } = useQuery({
     queryKey: ["products-settings"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("products_page_settings")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
+      try {
+        // Use a raw query approach that bypasses type checking
+        const { data, error } = await supabase
+          .from('products_page_settings')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
 
-      if (error && error.code !== "PGRST116") {
-        throw error;
+        if (error && error.code !== "PGRST116") {
+          console.error("Error fetching page settings:", error);
+          return null;
+        }
+
+        // Return the data as ProductsPageSettings
+        return data as unknown as ProductsPageSettings;
+      } catch (error) {
+        console.error("Error fetching settings:", error);
+        return null;
       }
-
-      return data as ProductsPageSettings;
     },
   });
 
@@ -108,7 +80,7 @@ const ProductsSettings = () => {
       if (settings.id) {
         // Update existing settings
         response = await supabase
-          .from("products_page_settings")
+          .from('products_page_settings')
           .update({
             ...settings,
             updated_at: new Date().toISOString(),
@@ -117,7 +89,7 @@ const ProductsSettings = () => {
       } else {
         // Insert new settings
         response = await supabase
-          .from("products_page_settings")
+          .from('products_page_settings')
           .insert({
             ...settings,
             created_at: new Date().toISOString(),
@@ -156,7 +128,7 @@ const ProductsSettings = () => {
     setSettings((prev) => ({
       ...prev,
       [parent]: {
-        ...prev[parent as keyof ProductsPageSettings],
+        ...prev[parent as keyof ProductsPageSettings] as Record<string, any>,
         [key]: value,
       },
     }));

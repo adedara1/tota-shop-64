@@ -51,10 +51,10 @@ const ProductDetail = () => {
           return;
         }
         
-        // Parse options from JSON if needed
+        // Transform data to the Product interface
         const transformedData: Product = {
           ...data,
-          options: data.options
+          options: data.options as Record<string, any> | null
         };
         
         setProduct(transformedData);
