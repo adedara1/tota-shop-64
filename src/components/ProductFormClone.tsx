@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +9,7 @@ import RichTextEditor from "@/components/RichTextEditor";
 import ColorSelector from "@/components/ColorSelector";
 import { Database } from "@/integrations/supabase/types";
 import { Toggle } from "@/components/ui/toggle";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ImageIcon, X } from "lucide-react";
 
 type CurrencyCode = Database['public']['Enums']['currency_code'];
@@ -52,6 +54,8 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
   const [newOptionValue, setNewOptionValue] = useState("");
   const [editingOptionType, setEditingOptionType] = useState("");
   const [optionImageFile, setOptionImageFile] = useState<File | null>(null);
+  const [useInternalCart, setUseInternalCart] = useState(false);
+  const [customUrl, setCustomUrl] = useState("");
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -199,21 +203,34 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
         }
       }
 
-      const cleanWhatsappNumber = whatsappNumber.replace(/\D/g, '');
-      const whatsappUrl = `https://wa.me/${cleanWhatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+      let cartUrl = "";
+      
+      if (useInternalCart) {
+        // Si le panier interne est utilisé, on laisse cart_url vide ou avec une valeur spéciale
+        cartUrl = "#internal";
+      } else {
+        // Sinon on utilise soit l'URL WhatsApp, soit l'URL personnalisée
+        if (customUrl) {
+          cartUrl = customUrl;
+        } else {
+          const cleanWhatsappNumber = whatsappNumber.replace(/\D/g, '');
+          cartUrl = `https://wa.me/${cleanWhatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+        }
+      }
 
       const productData = {
         name: formData.get("name") as string,
         original_price: parseInt(formData.get("original_price") as string),
         discounted_price: parseInt(formData.get("discounted_price") as string),
         description: description,
-        cart_url: whatsappUrl,
+        cart_url: cartUrl,
         theme_color: selectedColor,
         images: imageUrls,
         is_visible: true,
         button_text: formData.get("button_text") as string || "Contactez-nous sur WhatsApp",
         currency: formData.get("currency") as CurrencyCode || "XOF",
-        options: optionTypes.length > 0 ? optionValues : null
+        options: optionTypes.length > 0 ? optionValues : null,
+        use_internal_cart: useInternalCart
       };
 
       console.log("Saving product data:", productData);
@@ -300,27 +317,74 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
         />
       </div>
 
-      <div>
-        <Label htmlFor="whatsapp-number-clone">Numéro WhatsApp</Label>
-        <Input
-          id="whatsapp-number-clone"
-          value={whatsappNumber}
-          onChange={(e) => setWhatsappNumber(e.target.value)}
-          placeholder="Ex: 51180895"
-          required
+      <div className="flex items-center space-x-2 my-4">
+        <Checkbox 
+          id="use-internal-cart" 
+          checked={useInternalCart} 
+          onCheckedChange={(checked) => {
+            setUseInternalCart(checked === true);
+          }}
         />
+        <Label htmlFor="use-internal-cart" className="font-medium cursor-pointer">
+          Utiliser le panier interne du site
+        </Label>
       </div>
+      
+      {!useInternalCart && (
+        <div className="rounded-md border p-4 space-y-4">
+          <div className="flex items-center space-x-2 mb-2">
+            <Checkbox 
+              id="use-custom-url" 
+              checked={!!customUrl} 
+              onCheckedChange={(checked) => {
+                if (!checked) {
+                  setCustomUrl("");
+                }
+              }}
+            />
+            <Label htmlFor="use-custom-url" className="font-medium cursor-pointer">
+              Utiliser une URL personnalisée
+            </Label>
+          </div>
+          
+          {customUrl ? (
+            <div>
+              <Label htmlFor="custom-url">URL personnalisée</Label>
+              <Input
+                id="custom-url"
+                value={customUrl}
+                onChange={(e) => setCustomUrl(e.target.value)}
+                placeholder="https://example.com"
+                required={!!customUrl}
+              />
+            </div>
+          ) : (
+            <>
+              <div>
+                <Label htmlFor="whatsapp-number-clone">Numéro WhatsApp</Label>
+                <Input
+                  id="whatsapp-number-clone"
+                  value={whatsappNumber}
+                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                  placeholder="Ex: 51180895"
+                  required={!useInternalCart && !customUrl}
+                />
+              </div>
 
-      <div>
-        <Label htmlFor="whatsapp-message-clone">Message WhatsApp par défaut</Label>
-        <Input
-          id="whatsapp-message-clone"
-          value={whatsappMessage}
-          onChange={(e) => setWhatsappMessage(e.target.value)}
-          placeholder="Ex: Bonjour"
-          required
-        />
-      </div>
+              <div>
+                <Label htmlFor="whatsapp-message-clone">Message WhatsApp par défaut</Label>
+                <Input
+                  id="whatsapp-message-clone"
+                  value={whatsappMessage}
+                  onChange={(e) => setWhatsappMessage(e.target.value)}
+                  placeholder="Ex: Bonjour"
+                  required={!useInternalCart && !customUrl}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       <div>
         <Label htmlFor="button_text-clone">Texte du bouton</Label>
@@ -328,8 +392,8 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
           id="button_text-clone"
           name="button_text"
           required
-          defaultValue="Contactez-nous sur WhatsApp"
-          placeholder="Contactez-nous sur WhatsApp"
+          defaultValue={useInternalCart ? "Ajouter au panier" : "Contactez-nous sur WhatsApp"}
+          placeholder={useInternalCart ? "Ajouter au panier" : "Contactez-nous sur WhatsApp"}
         />
       </div>
 
