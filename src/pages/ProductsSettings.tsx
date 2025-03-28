@@ -1,316 +1,874 @@
 
 import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PageSettingsType } from "@/models/products-page-settings";
-import Navbar from "@/components/Navbar";
 import { Textarea } from "@/components/ui/textarea";
-import RichTextEditor from "@/components/RichTextEditor";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ColorSelector from "@/components/ColorSelector";
+import { useToast } from "@/hooks/use-toast";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { 
+  Settings, 
+  Layout, 
+  Type, 
+  ImageIcon, 
+  Paintbrush, 
+  Sliders, 
+  Search, 
+  SlidersHorizontal, 
+  Info,
+  Save,
+  Star as StarIcon,
+  Loader
+} from "lucide-react";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { defaultSettings, ProductsPageSettings } from "@/models/products-page-settings";
+
+// We use this workaround since the table may not exist in type definitions
+interface RawSettingsResponse {
+  id?: string;
+  hero_banner_image?: string;
+  hero_banner_title?: string;
+  hero_banner_description?: string;
+  section_titles?: Record<string, string>;
+  items_per_page?: number;
+  show_ratings?: boolean;
+  show_search?: boolean;
+  show_categories?: boolean;
+  show_filters?: boolean;
+  background_color?: string;
+  categories?: string[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  images: string[];
+  original_price: number;
+  discounted_price: number;
+  currency: string;
+}
 
 const ProductsSettings = () => {
-  const [loading, setLoading] = useState(false);
-  const [settings, setSettings] = useState<PageSettingsType | null>(null);
-  const [heroImage, setHeroImage] = useState<File | null>(null);
-  const [mobileHeroImage, setMobileHeroImage] = useState<File | null>(null);
-  const [bannerMessage, setBannerMessage] = useState("");
-  const [showBanner, setShowBanner] = useState(false);
-  const [description, setDescription] = useState("");
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("general");
+  const [selectedConfigItem, setSelectedConfigItem] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [settings, setSettings] = useState<ProductsPageSettings>(defaultSettings);
+  const [tableExists, setTableExists] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
+  const checkTableExists = async () => {
     try {
       const { data, error } = await supabase
-        .from("page_settings")
-        .select()
-        .eq("id", "products")
-        .single();
-
-      if (error) throw error;
-      setSettings(data);
-      setBannerMessage(data.banner_message || "");
-      setShowBanner(data.show_banner);
-      setDescription(data.description || "");
+        .rpc('table_exists', { table_name: 'products_page_settings' });
+      
+      if (error || !data) {
+        // Try a simpler approach
+        const { count, error: countError } = await supabase
+          .from('products_page_settings')
+          .select('*', { count: 'exact', head: true });
+        
+        if (countError) {
+          console.log("Table doesn't exist");
+          setTableExists(false);
+          return false;
+        }
+      }
+      
+      setTableExists(true);
+      return true;
     } catch (error) {
-      console.error("Error fetching settings:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les paramètres",
-        variant: "destructive",
-      });
+      console.error("Error checking if table exists:", error);
+      return false;
     }
   };
 
-  const handleHeroImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setHeroImage(e.target.files[0]);
-    }
-  };
-
-  const handleMobileHeroImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setMobileHeroImage(e.target.files[0]);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-
+  const createTable = async () => {
     try {
-      const formData = new FormData(e.currentTarget);
-      let heroImageUrl = settings?.hero_image || "";
-      let mobileHeroImageUrl = settings?.mobile_hero_image || "";
-
-      // Upload hero image if changed
-      if (heroImage) {
-        const fileName = `hero_${Date.now()}_${heroImage.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from("products")
-          .upload(fileName, heroImage);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from("products")
-          .getPublicUrl(fileName);
-
-        heroImageUrl = publicUrl;
+      const { data, error } = await supabase
+        .from('products_page_settings')
+        .insert({
+          background_color: '#f1eee9',
+          hero_banner_title: 'Notre Collection',
+          hero_banner_description: 'Découvrez nos nouveautés et best-sellers',
+          section_titles: {
+            new_arrivals: 'Nouveautés',
+            best_sellers: 'Meilleures ventes',
+            trending: 'Tendances',
+            sales: 'Promotions',
+            seasonal: 'Collection saisonnière'
+          },
+          categories: ['Tout', 'Parfums', 'Soins', 'Accessoires', 'Cadeaux'],
+          show_search: true,
+          show_categories: true,
+          show_ratings: true,
+          show_filters: false,
+          items_per_page: 8
+        })
+        .select();
+      
+      if (error) {
+        console.error("Error creating table entry:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de créer la configuration initiale. Vérifiez les logs pour plus de détails.",
+          variant: "destructive",
+        });
+        return false;
       }
-
-      // Upload mobile hero image if changed
-      if (mobileHeroImage) {
-        const fileName = `mobile_hero_${Date.now()}_${mobileHeroImage.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from("products")
-          .upload(fileName, mobileHeroImage);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from("products")
-          .getPublicUrl(fileName);
-
-        mobileHeroImageUrl = publicUrl;
+      
+      console.log("Default settings created:", data);
+      setTableExists(true);
+      if (data && data.length > 0) {
+        setSettings(data[0] as unknown as ProductsPageSettings);
       }
+      return true;
+    } catch (error) {
+      console.error("Error creating settings:", error);
+      return false;
+    }
+  };
 
-      const updatedSettings = {
-        title: formData.get("title") as string,
-        hero_image: heroImageUrl,
-        mobile_hero_image: mobileHeroImageUrl,
-        banner_message: bannerMessage,
-        show_banner: showBanner,
-        description: description,
+  useEffect(() => {
+    const initialize = async () => {
+      setIsInitializing(true);
+      const exists = await checkTableExists();
+      if (!exists) {
+        await createTable();
+      }
+      setIsInitializing(false);
+    };
+    
+    initialize();
+  }, []);
+
+  // Fetch real products for preview
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoadingProducts(true);
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('id, name, images, original_price, discounted_price, currency')
+          .limit(4);
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          setProducts(data);
+        }
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+    
+    fetchProducts();
+  }, []);
+
+  const { data: fetchedSettings, refetch, isLoading: isQueryLoading } = useQuery({
+    queryKey: ["products-settings"],
+    queryFn: async () => {
+      try {
+        if (!tableExists && !isInitializing) {
+          console.log("Table doesn't exist yet, using default settings");
+          return defaultSettings;
+        }
+        
+        // Use raw Supabase query to be more flexible
+        const { data, error } = await supabase
+          .from('products_page_settings')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (error) {
+          console.error("Error fetching page settings:", error);
+          return defaultSettings;
+        }
+
+        if (!data) {
+          return defaultSettings;
+        }
+
+        // Map raw response to our type
+        const rawData = data as RawSettingsResponse;
+        const mappedData: ProductsPageSettings = {
+          id: rawData.id,
+          hero_banner_image: rawData.hero_banner_image || defaultSettings.hero_banner_image,
+          hero_banner_title: rawData.hero_banner_title || defaultSettings.hero_banner_title,
+          hero_banner_description: rawData.hero_banner_description || defaultSettings.hero_banner_description,
+          section_titles: rawData.section_titles || defaultSettings.section_titles,
+          items_per_page: rawData.items_per_page || defaultSettings.items_per_page,
+          show_ratings: rawData.show_ratings !== undefined ? rawData.show_ratings : defaultSettings.show_ratings,
+          show_search: rawData.show_search !== undefined ? rawData.show_search : defaultSettings.show_search,
+          show_categories: rawData.show_categories !== undefined ? rawData.show_categories : defaultSettings.show_categories,
+          show_filters: rawData.show_filters !== undefined ? rawData.show_filters : defaultSettings.show_filters,
+          background_color: rawData.background_color || defaultSettings.background_color,
+          categories: rawData.categories || defaultSettings.categories,
+          created_at: rawData.created_at,
+          updated_at: rawData.updated_at
+        };
+
+        return mappedData;
+      } catch (error) {
+        console.error("Error fetching settings:", error);
+        return defaultSettings;
+      }
+    },
+    enabled: !isInitializing,
+    retry: 1
+  });
+
+  useEffect(() => {
+    if (fetchedSettings) {
+      setSettings(fetchedSettings);
+    }
+  }, [fetchedSettings]);
+
+  const handleSaveSettings = async () => {
+    setIsLoading(true);
+    try {
+      if (!tableExists) {
+        const created = await createTable();
+        if (!created) {
+          throw new Error("Impossible de créer la table de configuration");
+        }
+      }
+      
+      const dataToSave = {
+        ...settings,
+        updated_at: new Date().toISOString(),
       };
+      
+      let response;
+      if (settings.id) {
+        response = await supabase
+          .from('products_page_settings')
+          .update(dataToSave)
+          .eq("id", settings.id);
+      } else {
+        response = await supabase
+          .from('products_page_settings')
+          .insert([dataToSave]);
+      }
 
-      const { error: updateError } = await supabase
-        .from("page_settings")
-        .update(updatedSettings)
-        .eq("id", "products");
-
-      if (updateError) throw updateError;
-
+      if (response.error) {
+        throw response.error;
+      }
+      
       toast({
-        title: "Succès",
-        description: "Paramètres mis à jour avec succès",
+        title: "Configuration sauvegardée",
+        description: "Les paramètres de la page produits ont été mis à jour avec succès.",
       });
       
-      fetchSettings();
-    } catch (error) {
-      console.error("Error updating settings:", error);
+      refetch();
+    } catch (error: any) {
+      console.error("Error saving settings:", error);
       toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour les paramètres",
+        title: "Erreur de sauvegarde",
+        description: error.message || "Une erreur est survenue lors de la sauvegarde des paramètres.",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  if (!settings) {
+  const handleInputChange = (key: string, value: any) => {
+    setSettings((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  const handleNestedInputChange = (parent: string, key: string, value: any) => {
+    setSettings((prev) => ({
+      ...prev,
+      [parent]: {
+        ...prev[parent as keyof ProductsPageSettings] as Record<string, any>,
+        [key]: value,
+      },
+    }));
+  };
+
+  const handleCategoriesChange = (categories: string) => {
+    const categoriesArray = categories.split(',').map(cat => cat.trim());
+    setSettings((prev) => ({
+      ...prev,
+      categories: categoriesArray,
+    }));
+  };
+
+  const handleConfigItemClick = (itemId: string) => {
+    setSelectedConfigItem(itemId);
+  };
+
+  const handlePreviewItemClick = (itemId: string) => {
+    setActiveTab(getTabForItem(itemId));
+    setSelectedConfigItem(itemId);
+    
+    const sheetTrigger = document.querySelector(`[data-item-id="${itemId}"]`);
+    if (sheetTrigger) {
+      (sheetTrigger as HTMLElement).click();
+    }
+  };
+
+  const getTabForItem = (itemId: string): string => {
+    const tabMapping: Record<string, string> = {
+      "general": "general",
+      "hero": "appearance",
+      "sections": "appearance",
+      "categories": "appearance",
+      "appearance": "appearance",
+      "filtering": "filtering",
+      "pagination": "filtering"
+    };
+    
+    return tabMapping[itemId] || "general";
+  };
+
+  const configItems = [
+    { id: "general", title: "Paramètres Généraux", icon: <Settings size={20} />, tab: "general" },
+    { id: "hero", title: "Bannière Héro", icon: <ImageIcon size={20} />, tab: "appearance" },
+    { id: "sections", title: "Sections", icon: <Layout size={20} />, tab: "appearance" },
+    { id: "categories", title: "Catégories", icon: <Type size={20} />, tab: "appearance" },
+    { id: "appearance", title: "Apparence", icon: <Paintbrush size={20} />, tab: "appearance" },
+    { id: "filtering", title: "Filtres", icon: <Sliders size={20} />, tab: "filtering" },
+    { id: "pagination", title: "Pagination", icon: <SlidersHorizontal size={20} />, tab: "filtering" },
+  ];
+
+  if (isInitializing) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="container mx-auto py-12 px-4">
-          <div className="text-center">Chargement...</div>
-        </div>
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+        <Loader className="animate-spin h-8 w-8 mb-4" />
+        <p>Initialisation de la configuration...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white">
       <Navbar />
-      <div className="container mx-auto py-12 px-4">
-        <h1 className="text-3xl font-medium mb-6">Paramètres de la page produits</h1>
+      
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-2xl font-bold">Configuration de la Page Produits</h1>
+          <Button onClick={handleSaveSettings} disabled={isLoading || isQueryLoading}>
+            <Save className="mr-2 h-4 w-4" />
+            {isLoading ? "Sauvegarde en cours..." : "Sauvegarder"}
+          </Button>
+        </div>
 
-        <Tabs defaultValue="hero">
-          <TabsList>
-            <TabsTrigger value="hero">Bannière Héro</TabsTrigger>
-            <TabsTrigger value="promo">Bannière Promo</TabsTrigger>
-            <TabsTrigger value="description">Description</TabsTrigger>
-          </TabsList>
+        {isQueryLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader className="animate-spin h-8 w-8 mr-2" />
+            <p>Chargement des paramètres...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+            <div className="md:col-span-3">
+              <Tabs defaultValue="general" value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid grid-cols-3 mb-4">
+                  <TabsTrigger value="general">Général</TabsTrigger>
+                  <TabsTrigger value="appearance">Apparence</TabsTrigger>
+                  <TabsTrigger value="filtering">Filtres</TabsTrigger>
+                </TabsList>
+              </Tabs>
 
-          <TabsContent value="hero" className="p-4 border rounded-lg mt-4">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <Label htmlFor="title">Titre de la page</Label>
-                <Input
-                  id="title"
-                  name="title"
-                  defaultValue={settings.title}
-                  placeholder="Titre de la page"
-                />
+              <div className="space-y-2">
+                {configItems
+                  .filter(item => item.tab === activeTab)
+                  .map((item) => (
+                    <Sheet key={item.id}>
+                      <SheetTrigger asChild>
+                        <Card 
+                          className={`cursor-pointer hover:shadow-md transition-all ${selectedConfigItem === item.id ? 'border-primary' : ''}`}
+                          onClick={() => handleConfigItemClick(item.id)}
+                          data-item-id={item.id}
+                        >
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div className="flex items-center">
+                              {item.icon}
+                              <span className="ml-2">{item.title}</span>
+                            </div>
+                            <SlidersHorizontal size={16} />
+                          </CardContent>
+                        </Card>
+                      </SheetTrigger>
+                      <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+                        <SheetHeader>
+                          <SheetTitle>{item.title}</SheetTitle>
+                          <SheetDescription>
+                            Configurez les paramètres pour {item.title.toLowerCase()}
+                          </SheetDescription>
+                        </SheetHeader>
+                        
+                        <div className="mt-6 space-y-6">
+                          {item.id === "general" && (
+                            <>
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Label htmlFor="show_search">Afficher la recherche</Label>
+                                    <HoverCard>
+                                      <HoverCardTrigger>
+                                        <Info size={14} className="text-gray-400" />
+                                      </HoverCardTrigger>
+                                      <HoverCardContent>
+                                        Active ou désactive la barre de recherche en haut de la page produits.
+                                      </HoverCardContent>
+                                    </HoverCard>
+                                  </div>
+                                  <input
+                                    type="checkbox"
+                                    id="show_search"
+                                    checked={settings.show_search}
+                                    onChange={(e) => handleInputChange("show_search", e.target.checked)}
+                                    className="toggle"
+                                  />
+                                </div>
+                                
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Label htmlFor="show_categories">Afficher les catégories</Label>
+                                    <HoverCard>
+                                      <HoverCardTrigger>
+                                        <Info size={14} className="text-gray-400" />
+                                      </HoverCardTrigger>
+                                      <HoverCardContent>
+                                        Active ou désactive l'affichage des onglets de catégories en haut de la page.
+                                      </HoverCardContent>
+                                    </HoverCard>
+                                  </div>
+                                  <input
+                                    type="checkbox"
+                                    id="show_categories"
+                                    checked={settings.show_categories}
+                                    onChange={(e) => handleInputChange("show_categories", e.target.checked)}
+                                    className="toggle"
+                                  />
+                                </div>
+                                
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Label htmlFor="show_ratings">Afficher les évaluations</Label>
+                                    <HoverCard>
+                                      <HoverCardTrigger>
+                                        <Info size={14} className="text-gray-400" />
+                                      </HoverCardTrigger>
+                                      <HoverCardContent>
+                                        Active ou désactive l'affichage des étoiles d'évaluation sur les cartes produits.
+                                      </HoverCardContent>
+                                    </HoverCard>
+                                  </div>
+                                  <input
+                                    type="checkbox"
+                                    id="show_ratings"
+                                    checked={settings.show_ratings}
+                                    onChange={(e) => handleInputChange("show_ratings", e.target.checked)}
+                                    className="toggle"
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          
+                          {item.id === "hero" && (
+                            <>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label htmlFor="hero_banner_image">Image de la bannière</Label>
+                                  <Input
+                                    id="hero_banner_image"
+                                    value={settings.hero_banner_image}
+                                    onChange={(e) => handleInputChange("hero_banner_image", e.target.value)}
+                                    placeholder="URL de l'image (ex: /lovable-uploads/image.png)"
+                                    className="mt-1"
+                                  />
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Utilisez une image de grande taille (1920x400px recommandé)
+                                  </p>
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor="hero_banner_title">Titre de la bannière</Label>
+                                  <Input
+                                    id="hero_banner_title"
+                                    value={settings.hero_banner_title}
+                                    onChange={(e) => handleInputChange("hero_banner_title", e.target.value)}
+                                    placeholder="Titre principal"
+                                    className="mt-1"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor="hero_banner_description">Description de la bannière</Label>
+                                  <Textarea
+                                    id="hero_banner_description"
+                                    value={settings.hero_banner_description}
+                                    onChange={(e) => handleInputChange("hero_banner_description", e.target.value)}
+                                    placeholder="Description courte"
+                                    className="mt-1"
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          
+                          {item.id === "sections" && (
+                            <>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label htmlFor="section_title_new_arrivals">Titre section Nouveautés</Label>
+                                  <Input
+                                    id="section_title_new_arrivals"
+                                    value={settings.section_titles.new_arrivals}
+                                    onChange={(e) => handleNestedInputChange("section_titles", "new_arrivals", e.target.value)}
+                                    placeholder="Nouveautés"
+                                    className="mt-1"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor="section_title_best_sellers">Titre section Meilleures ventes</Label>
+                                  <Input
+                                    id="section_title_best_sellers"
+                                    value={settings.section_titles.best_sellers}
+                                    onChange={(e) => handleNestedInputChange("section_titles", "best_sellers", e.target.value)}
+                                    placeholder="Meilleures ventes"
+                                    className="mt-1"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor="section_title_trending">Titre section Tendances</Label>
+                                  <Input
+                                    id="section_title_trending"
+                                    value={settings.section_titles.trending}
+                                    onChange={(e) => handleNestedInputChange("section_titles", "trending", e.target.value)}
+                                    placeholder="Tendances"
+                                    className="mt-1"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor="section_title_sales">Titre section Promotions</Label>
+                                  <Input
+                                    id="section_title_sales"
+                                    value={settings.section_titles.sales}
+                                    onChange={(e) => handleNestedInputChange("section_titles", "sales", e.target.value)}
+                                    placeholder="Promotions"
+                                    className="mt-1"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor="section_title_seasonal">Titre section Saisonniers</Label>
+                                  <Input
+                                    id="section_title_seasonal"
+                                    value={settings.section_titles.seasonal}
+                                    onChange={(e) => handleNestedInputChange("section_titles", "seasonal", e.target.value)}
+                                    placeholder="Collection saisonnière"
+                                    className="mt-1"
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          
+                          {item.id === "categories" && (
+                            <>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label htmlFor="categories">Catégories (séparées par des virgules)</Label>
+                                  <Textarea
+                                    id="categories"
+                                    value={settings.categories.join(', ')}
+                                    onChange={(e) => handleCategoriesChange(e.target.value)}
+                                    placeholder="Tout, Parfums, Soins, Accessoires, Cadeaux"
+                                    className="mt-1"
+                                  />
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Ces catégories apparaîtront comme onglets de filtrage sur la page produits.
+                                  </p>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          
+                          {item.id === "appearance" && (
+                            <>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label htmlFor="background_color">Couleur d'arrière-plan</Label>
+                                  <div className="flex items-center mt-2 gap-4">
+                                    <div 
+                                      className="w-10 h-10 rounded-full border"
+                                      style={{ backgroundColor: settings.background_color }}
+                                    />
+                                    <ColorSelector
+                                      selectedColor={settings.background_color}
+                                      onColorSelect={(color) => handleInputChange("background_color", color)}
+                                    />
+                                  </div>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Code hexadécimal de la couleur d'arrière-plan
+                                  </p>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          
+                          {item.id === "filtering" && (
+                            <>
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Label htmlFor="show_filters">Afficher des filtres avancés</Label>
+                                    <HoverCard>
+                                      <HoverCardTrigger>
+                                        <Info size={14} className="text-gray-400" />
+                                      </HoverCardTrigger>
+                                      <HoverCardContent>
+                                        Active ou désactive les options de filtrage avancées (prix, notes, etc.)
+                                      </HoverCardContent>
+                                    </HoverCard>
+                                  </div>
+                                  <input
+                                    type="checkbox"
+                                    id="show_filters"
+                                    checked={settings.show_filters}
+                                    onChange={(e) => handleInputChange("show_filters", e.target.checked)}
+                                    className="toggle"
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          
+                          {item.id === "pagination" && (
+                            <>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label htmlFor="items_per_page">Produits par page</Label>
+                                  <Input
+                                    id="items_per_page"
+                                    type="number"
+                                    min={4}
+                                    max={24}
+                                    value={settings.items_per_page}
+                                    onChange={(e) => handleInputChange("items_per_page", parseInt(e.target.value) || 8)}
+                                    className="mt-1"
+                                  />
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Nombre de produits à afficher par page (recommandé: 8-12)
+                                  </p>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </SheetContent>
+                    </Sheet>
+                  ))}
               </div>
-
-              <div>
-                <Label htmlFor="hero_image">Image de bannière (Desktop : 1920px × 600px)</Label>
-                <div className="mt-2 mb-4">
-                  {settings.hero_image && (
-                    <img
-                      src={settings.hero_image}
-                      alt="Bannière actuelle"
-                      className="max-h-48 rounded-md mb-2"
-                    />
-                  )}
-                </div>
-                <Input
-                  id="hero_image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleHeroImageChange}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="mobile_hero_image">Image de bannière mobile (768px × 500px)</Label>
-                <div className="mt-2 mb-4">
-                  {settings.mobile_hero_image && (
-                    <img
-                      src={settings.mobile_hero_image}
-                      alt="Bannière mobile actuelle"
-                      className="max-h-48 rounded-md mb-2"
-                    />
-                  )}
-                </div>
-                <Input
-                  id="mobile_hero_image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleMobileHeroImageChange}
-                />
-              </div>
-
-              <Button type="submit" disabled={loading}>
-                {loading ? "En cours..." : "Enregistrer"}
-              </Button>
-            </form>
-          </TabsContent>
-
-          <TabsContent value="promo" className="p-4 border rounded-lg mt-4">
-            <div className="space-y-6">
-              <div>
-                <div className="flex items-center space-x-2 mb-2">
-                  <Label htmlFor="show_banner">Afficher la bannière</Label>
-                  <input
-                    id="show_banner"
-                    type="checkbox"
-                    checked={showBanner}
-                    onChange={(e) => setShowBanner(e.target.checked)}
-                    className="h-4 w-4"
-                  />
-                </div>
-                <Textarea
-                  id="banner_message"
-                  value={bannerMessage}
-                  onChange={(e) => setBannerMessage(e.target.value)}
-                  placeholder="Message promotionnel"
-                />
-              </div>
-
-              <Button disabled={loading} onClick={async () => {
-                setLoading(true);
-                try {
-                  const { error } = await supabase
-                    .from("page_settings")
-                    .update({
-                      show_banner: showBanner,
-                      banner_message: bannerMessage,
-                    })
-                    .eq("id", "products");
-
-                  if (error) throw error;
-
-                  toast({
-                    title: "Succès",
-                    description: "Bannière mise à jour avec succès",
-                  });
-                } catch (error) {
-                  console.error("Error updating banner:", error);
-                  toast({
-                    title: "Erreur",
-                    description: "Impossible de mettre à jour la bannière",
-                    variant: "destructive",
-                  });
-                } finally {
-                  setLoading(false);
-                }
-              }}>
-                {loading ? "En cours..." : "Enregistrer"}
-              </Button>
             </div>
-          </TabsContent>
-
-          <TabsContent value="description" className="p-4 border rounded-lg mt-4">
-            <div className="space-y-6">
-              <div>
-                <Label htmlFor="description">Description de la page</Label>
-                <div className="mt-2">
-                  <RichTextEditor value={description} onChange={setDescription} />
-                </div>
-              </div>
-
-              <Button disabled={loading} onClick={async () => {
-                setLoading(true);
-                try {
-                  const { error } = await supabase
-                    .from("page_settings")
-                    .update({
-                      description,
-                    })
-                    .eq("id", "products");
-
-                  if (error) throw error;
-
-                  toast({
-                    title: "Succès",
-                    description: "Description mise à jour avec succès",
-                  });
-                } catch (error) {
-                  console.error("Error updating description:", error);
-                  toast({
-                    title: "Erreur",
-                    description: "Impossible de mettre à jour la description",
-                    variant: "destructive",
-                  });
-                } finally {
-                  setLoading(false);
-                }
-              }}>
-                {loading ? "En cours..." : "Enregistrer"}
-              </Button>
+            
+            <div className="md:col-span-9">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Aperçu</CardTitle>
+                  <CardDescription>
+                    Aperçu de la page produits avec vos configurations actuelles. Cliquez sur un élément pour le configurer.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="border rounded-lg overflow-hidden" style={{ backgroundColor: settings.background_color }}>
+                    <div 
+                      className="relative w-full h-[200px] overflow-hidden cursor-pointer transition-opacity hover:opacity-90"
+                      onClick={() => handlePreviewItemClick("hero")}
+                    >
+                      {settings.hero_banner_image ? (
+                        <img 
+                          src={settings.hero_banner_image} 
+                          alt={settings.hero_banner_title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                          <p className="text-gray-500">Bannière (cliquez pour configurer)</p>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 hover:opacity-100 transition-opacity">
+                        <div className="bg-white bg-opacity-75 px-3 py-1 rounded-full text-sm">
+                          Configurer la bannière
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4">
+                      <div className={`relative w-full max-w-md mx-auto ${!settings.show_search ? 'opacity-50' : ''}`}>
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                        <div className="pl-10 pr-4 py-2 rounded-full border border-gray-300 w-full">
+                          Rechercher...
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 hover:opacity-100 transition-opacity rounded-full">
+                          <div className="bg-white bg-opacity-75 px-3 py-1 rounded-full text-sm">
+                            Configurer la recherche
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className={`mb-4 cursor-pointer ${!settings.show_categories ? 'opacity-50' : ''}`}>
+                        <div className="flex flex-wrap justify-center gap-2 relative">
+                          {settings.categories.map((category, index) => (
+                            <div 
+                              key={index}
+                              className={`px-4 py-1 rounded-full text-sm ${index === 0 ? 'bg-black text-white' : 'bg-white border'}`}
+                            >
+                              {category}
+                            </div>
+                          ))}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 hover:opacity-100 transition-opacity rounded-full">
+                            <div className="bg-white bg-opacity-75 px-3 py-1 rounded-full text-sm">
+                              Configurer les catégories
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div 
+                        className="mb-4 cursor-pointer"
+                        onClick={() => handlePreviewItemClick("sections")}
+                      >
+                        <div className="relative mb-3">
+                          <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-300"></div>
+                          </div>
+                          <div className="relative flex justify-center">
+                            <span className="px-4 text-lg font-medium text-gray-900 flex items-center" style={{ backgroundColor: settings.background_color }}>
+                              <span className="text-2xl font-serif italic mr-2">A</span>
+                              {settings.section_titles.new_arrivals}
+                            </span>
+                          </div>
+                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 hover:opacity-100 transition-opacity rounded-full">
+                            <div className="bg-white bg-opacity-75 px-3 py-1 rounded-full text-sm">
+                              Configurer les titres de sections
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {isLoadingProducts ? (
+                            Array(4).fill(0).map((_, index) => (
+                              <div key={index} className="rounded-lg overflow-hidden bg-white border shadow-sm animate-pulse">
+                                <div className="h-32 bg-gray-100"></div>
+                                <div className="p-2 text-center">
+                                  <div className="h-4 bg-gray-200 rounded mb-1"></div>
+                                  <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto mb-1"></div>
+                                </div>
+                              </div>
+                            ))
+                          ) : products.length > 0 ? (
+                            products.map((product) => (
+                              <div key={product.id} className="rounded-lg overflow-hidden bg-white border shadow-sm">
+                                <div className="h-32 bg-gray-100">
+                                  {product.images && product.images.length > 0 && (
+                                    <img 
+                                      src={product.images[0]} 
+                                      alt={product.name} 
+                                      className="w-full h-full object-cover"
+                                    />
+                                  )}
+                                </div>
+                                <div className="p-2 text-center">
+                                  <div className="text-sm uppercase tracking-wider mb-1 truncate">{product.name}</div>
+                                  {settings.show_ratings && (
+                                    <div className="flex justify-center mb-1">
+                                      {[1, 2, 3, 4, 5].map((star) => (
+                                        <StarIcon 
+                                          key={star} 
+                                          size={12} 
+                                          className={star <= 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} 
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
+                                  <div className="font-medium">{product.discounted_price} {product.currency}</div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            Array(4).fill(0).map((_, index) => (
+                              <div key={index} className="rounded-lg overflow-hidden bg-white border shadow-sm">
+                                <div className="h-32 bg-gray-100"></div>
+                                <div className="p-2 text-center">
+                                  <div className="text-sm uppercase tracking-wider mb-1">Produit exemple</div>
+                                  {settings.show_ratings && (
+                                    <div className="flex justify-center mb-1">
+                                      {[1, 2, 3, 4, 5].map((star) => (
+                                        <StarIcon 
+                                          key={star} 
+                                          size={12} 
+                                          className={star <= 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} 
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
+                                  <div className="font-medium">0 XOF</div>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div 
+                        className="absolute bottom-4 right-4 cursor-pointer"
+                        onClick={() => handlePreviewItemClick("appearance")}
+                      >
+                        <div className="bg-white rounded-full p-2 shadow-md flex items-center gap-2">
+                          <div 
+                            className="w-4 h-4 rounded-full border"
+                            style={{ backgroundColor: settings.background_color }}
+                          />
+                          <span className="text-xs">Configurer l'apparence</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={handleSaveSettings} disabled={isLoading}>
+                    {isLoading ? "Sauvegarde en cours..." : "Sauvegarder"}
+                  </Button>
+                  <Button variant="outline" onClick={() => window.open("/products", "_blank")}>
+                    Voir la page en direct
+                  </Button>
+                </CardFooter>
+              </Card>
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </div>
+      
+      <Footer />
     </div>
   );
 };
