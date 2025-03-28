@@ -48,6 +48,15 @@ interface RawSettingsResponse {
   updated_at?: string;
 }
 
+interface Product {
+  id: string;
+  name: string;
+  images: string[];
+  original_price: number;
+  discounted_price: number;
+  currency: string;
+}
+
 const ProductsSettings = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("general");
@@ -56,6 +65,8 @@ const ProductsSettings = () => {
   const [settings, setSettings] = useState<ProductsPageSettings>(defaultSettings);
   const [tableExists, setTableExists] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
   const checkTableExists = async () => {
     try {
@@ -140,6 +151,33 @@ const ProductsSettings = () => {
     };
     
     initialize();
+  }, []);
+
+  // Fetch real products for preview
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoadingProducts(true);
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('id, name, images, original_price, discounted_price, currency')
+          .limit(4);
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          setProducts(data);
+        }
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+    
+    fetchProducts();
   }, []);
 
   const { data: fetchedSettings, refetch, isLoading: isQueryLoading } = useQuery({
@@ -737,26 +775,67 @@ const ProductsSettings = () => {
                         </div>
                         
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          {[1, 2, 3, 4].map((item) => (
-                            <div key={item} className="rounded-lg overflow-hidden bg-white border shadow-sm">
-                              <div className="h-32 bg-gray-100"></div>
-                              <div className="p-2 text-center">
-                                <div className="text-sm uppercase tracking-wider mb-1">Produit {item}</div>
-                                {settings.show_ratings && (
-                                  <div className="flex justify-center mb-1">
-                                    {[1, 2, 3, 4, 5].map((star) => (
-                                      <StarIcon 
-                                        key={star} 
-                                        size={12} 
-                                        className={star <= 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} 
-                                      />
-                                    ))}
-                                  </div>
-                                )}
-                                <div className="font-medium">€99.00</div>
+                          {isLoadingProducts ? (
+                            Array(4).fill(0).map((_, index) => (
+                              <div key={index} className="rounded-lg overflow-hidden bg-white border shadow-sm animate-pulse">
+                                <div className="h-32 bg-gray-100"></div>
+                                <div className="p-2 text-center">
+                                  <div className="h-4 bg-gray-200 rounded mb-1"></div>
+                                  <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto mb-1"></div>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))
+                          ) : products.length > 0 ? (
+                            products.map((product) => (
+                              <div key={product.id} className="rounded-lg overflow-hidden bg-white border shadow-sm">
+                                <div className="h-32 bg-gray-100">
+                                  {product.images && product.images.length > 0 && (
+                                    <img 
+                                      src={product.images[0]} 
+                                      alt={product.name} 
+                                      className="w-full h-full object-cover"
+                                    />
+                                  )}
+                                </div>
+                                <div className="p-2 text-center">
+                                  <div className="text-sm uppercase tracking-wider mb-1 truncate">{product.name}</div>
+                                  {settings.show_ratings && (
+                                    <div className="flex justify-center mb-1">
+                                      {[1, 2, 3, 4, 5].map((star) => (
+                                        <StarIcon 
+                                          key={star} 
+                                          size={12} 
+                                          className={star <= 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} 
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
+                                  <div className="font-medium">{product.discounted_price} {product.currency}</div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            Array(4).fill(0).map((_, index) => (
+                              <div key={index} className="rounded-lg overflow-hidden bg-white border shadow-sm">
+                                <div className="h-32 bg-gray-100"></div>
+                                <div className="p-2 text-center">
+                                  <div className="text-sm uppercase tracking-wider mb-1">Produit exemple</div>
+                                  {settings.show_ratings && (
+                                    <div className="flex justify-center mb-1">
+                                      {[1, 2, 3, 4, 5].map((star) => (
+                                        <StarIcon 
+                                          key={star} 
+                                          size={12} 
+                                          className={star <= 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} 
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
+                                  <div className="font-medium">0 XOF</div>
+                                </div>
+                              </div>
+                            ))
+                          )}
                         </div>
                       </div>
                       

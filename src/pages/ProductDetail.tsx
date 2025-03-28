@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -138,19 +139,21 @@ const ProductDetail = () => {
       <main className="container mx-auto py-12 px-4 max-w-[100vw]">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
           <ProductGallery images={displayImages} />
-          <ProductDetails
-            key={product.id}
-            name={product.name}
-            originalPrice={product.original_price}
-            discountedPrice={product.discounted_price}
-            description={product.description}
-            cartUrl={product.cart_url}
-            buttonText={product.button_text}
-            currency={product.currency}
-            onButtonClick={handleProductClick}
-            options={product.options || {}}
-            onOptionImageChange={handleOptionImageChange}
-          />
+          <div className="md:order-2 order-2">
+            <ProductDetails
+              key={product.id}
+              name={product.name}
+              originalPrice={product.original_price}
+              discountedPrice={product.discounted_price}
+              description={product.description}
+              cartUrl={product.cart_url}
+              buttonText={product.button_text}
+              currency={product.currency}
+              onButtonClick={handleProductClick}
+              options={product.options || {}}
+              onOptionImageChange={handleOptionImageChange}
+            />
+          </div>
         </div>
       </main>
       <Footer />
