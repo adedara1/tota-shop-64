@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,7 +67,13 @@ interface Product {
   is_visible: boolean;
   button_text: string;
   currency: CurrencyCode;
-  options?: Record<string, any>; // Changed from Record<string, string[]> to Record<string, any>
+  options?: Record<string, any>;
+  use_internal_cart?: boolean;
+  secondary_button?: {
+    text: string;
+    url: string;
+    color: string;
+  };
 }
 
 const ProductForm = () => {
@@ -87,6 +92,10 @@ const ProductForm = () => {
   const [newOptionType, setNewOptionType] = useState("");
   const [newOptionValue, setNewOptionValue] = useState("");
   const [editingOptionType, setEditingOptionType] = useState("");
+  const [useInternalCart, setUseInternalCart] = useState(false);
+  const [secondaryButtonText, setSecondaryButtonText] = useState("");
+  const [secondaryButtonUrl, setSecondaryButtonUrl] = useState("");
+  const [secondaryButtonColor, setSecondaryButtonColor] = useState("#f59e0b");
 
   const fetchProducts = async () => {
     try {
@@ -110,6 +119,23 @@ const ProductForm = () => {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    if (editingProduct) {
+      setSelectedColor(editingProduct.theme_color || defaultColor);
+      setUseInternalCart(editingProduct.use_internal_cart || false);
+      
+      if (editingProduct.secondary_button) {
+        setSecondaryButtonText(editingProduct.secondary_button.text || "");
+        setSecondaryButtonUrl(editingProduct.secondary_button.url || "");
+        setSecondaryButtonColor(editingProduct.secondary_button.color || "#f59e0b");
+      } else {
+        setSecondaryButtonText("");
+        setSecondaryButtonUrl("");
+        setSecondaryButtonColor("#f59e0b");
+      }
+    }
+  }, [editingProduct]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -210,18 +236,26 @@ const ProductForm = () => {
         }
       }
 
+      const secondaryButton = secondaryButtonText ? {
+        text: secondaryButtonText,
+        url: secondaryButtonUrl,
+        color: secondaryButtonColor
+      } : null;
+
       const productData = {
         name: formData.get("name") as string,
         original_price: parseInt(formData.get("original_price") as string),
         discounted_price: parseInt(formData.get("discounted_price") as string),
         description: description,
-        cart_url: formData.get("cart_url") as string,
+        cart_url: useInternalCart ? "" : (formData.get("cart_url") as string),
         theme_color: selectedColor,
         images: imageUrls.length > 0 ? imageUrls : (editingProduct?.images || []),
         is_visible: editingProduct ? editingProduct.is_visible : true,
         button_text: formData.get("button_text") as string || "Ajouter au panier",
         currency: formData.get("currency") as CurrencyCode || "XOF",
-        options: optionTypes.length > 0 ? optionValues : null
+        options: optionTypes.length > 0 ? optionValues : null,
+        use_internal_cart: useInternalCart,
+        secondary_button: secondaryButton
       };
 
       console.log("Saving product data:", productData);
@@ -367,6 +401,10 @@ const ProductForm = () => {
     setNewOptionType("");
     setNewOptionValue("");
     setEditingOptionType("");
+    setUseInternalCart(false);
+    setSecondaryButtonText("");
+    setSecondaryButtonUrl("");
+    setSecondaryButtonColor("#f59e0b");
     const form = document.querySelector("form") as HTMLFormElement;
     if (form) form.reset();
   };
@@ -489,8 +527,9 @@ const ProductForm = () => {
                           id="cart_url" 
                           name="cart_url" 
                           type="url" 
-                          required 
+                          required={!useInternalCart}
                           defaultValue={editingProduct?.cart_url}
+                          disabled={useInternalCart}
                         />
                       </div>
 
@@ -584,6 +623,51 @@ const ProductForm = () => {
                             )}
                           </div>
                         )}
+                      </div>
+
+                      <div className="space-y-2 border-t pt-4 mt-4">
+                        <Label>Bouton secondaire (optionnel)</Label>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="secondary_button_text">Texte du bouton secondaire</Label>
+                            <Input
+                              id="secondary_button_text"
+                              value={secondaryButtonText}
+                              onChange={(e) => setSecondaryButtonText(e.target.value)}
+                              placeholder="Par exemple: En savoir plus"
+                            />
+                          </div>
+                          
+                          {secondaryButtonText && (
+                            <>
+                              <div>
+                                <Label htmlFor="secondary_button_url">URL du bouton secondaire</Label>
+                                <Input
+                                  id="secondary_button_url"
+                                  value={secondaryButtonUrl}
+                                  onChange={(e) => setSecondaryButtonUrl(e.target.value)}
+                                  placeholder="https://exemple.com"
+                                  type="url"
+                                  required={!!secondaryButtonText}
+                                />
+                              </div>
+                              
+                              <div>
+                                <Label htmlFor="secondary_button_color">Couleur du bouton</Label>
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="color"
+                                    id="secondary_button_color"
+                                    value={secondaryButtonColor}
+                                    onChange={(e) => setSecondaryButtonColor(e.target.value)}
+                                    className="h-10 w-10 rounded border"
+                                  />
+                                  <span className="text-sm">{secondaryButtonColor}</span>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex gap-4">
