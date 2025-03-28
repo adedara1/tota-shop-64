@@ -3,8 +3,6 @@ import { useState, useEffect } from "react";
 import ProductOptions from "./ProductOptions";
 import { Plus, Minus } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
-import { addToCart } from "@/utils/cartUtils";
-import { useToast } from "@/hooks/use-toast";
 
 interface OptionValue {
   value: string;
@@ -22,13 +20,6 @@ interface ProductDetailsProps {
   onButtonClick?: () => void;
   options?: Record<string, any>;
   onOptionImageChange?: (images: string[]) => void;
-  productId?: string;
-  useInternalCart?: boolean;
-  secondaryButton?: {
-    text: string;
-    url: string;
-    color: string;
-  };
 }
 
 const ProductDetails = ({
@@ -42,16 +33,11 @@ const ProductDetails = ({
   onButtonClick,
   options = {},
   onOptionImageChange,
-  productId,
-  useInternalCart = false,
-  secondaryButton,
 }: ProductDetailsProps) => {
-  const { toast } = useToast();
   const displayCurrency = currency === 'XOF' || currency === 'XAF' ? 'CFA' : currency;
   const [quantity, setQuantity] = useState(1);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
   const [totalPrice, setTotalPrice] = useState(discountedPrice);
-  const [isAddingToCart, setIsAddingToCart] = useState(false);
   
   // Initialize selectedOptions with the first option of each type
   useEffect(() => {
@@ -114,54 +100,9 @@ const ProductDetails = ({
     console.log(`Selected ${optionType}:`, value);
   };
   
-  const handleButtonClick = async () => {
+  const handleButtonClick = () => {
     if (onButtonClick) {
       onButtonClick();
-    }
-    
-    if (useInternalCart && productId) {
-      setIsAddingToCart(true);
-      
-      try {
-        // Convert selected options to format for cart
-        const optionsForCart: Record<string, string> = {};
-        Object.entries(selectedOptions).forEach(([key, value]) => {
-          optionsForCart[key] = typeof value === 'object' ? value.value : value;
-        });
-        
-        const success = await addToCart({
-          productId,
-          name,
-          price: discountedPrice,
-          quantity,
-          options: optionsForCart,
-          image: options.images && options.images.length > 0 ? options.images[0] : undefined
-        });
-        
-        if (success) {
-          toast({
-            title: "Produit ajouté",
-            description: `${name} a été ajouté à votre panier`,
-          });
-        } else {
-          toast({
-            title: "Erreur",
-            description: "Impossible d'ajouter le produit au panier",
-            variant: "destructive",
-          });
-        }
-      } catch (error) {
-        console.error("Error adding to cart:", error);
-        toast({
-          title: "Erreur",
-          description: "Impossible d'ajouter le produit au panier",
-          variant: "destructive",
-        });
-      } finally {
-        setIsAddingToCart(false);
-      }
-      
-      return;
     }
     
     // Construct URL with selected options
@@ -192,12 +133,6 @@ const ProductDetails = ({
     
     // Open the cart URL in a new tab
     window.open(finalUrl, '_blank', 'noopener,noreferrer');
-  };
-
-  const handleSecondaryButtonClick = () => {
-    if (secondaryButton?.url) {
-      window.open(secondaryButton.url, '_blank', 'noopener,noreferrer');
-    }
   };
 
   const increaseQuantity = () => {
@@ -275,25 +210,10 @@ const ProductDetails = ({
       {/* Call to Action Button */}
       <button 
         onClick={handleButtonClick}
-        disabled={isAddingToCart}
-        className="block w-full bg-orange-500 text-white py-3 px-6 rounded hover:bg-orange-600 transition-colors text-center mt-4 disabled:opacity-75"
+        className="block w-full bg-orange-500 text-white py-3 px-6 rounded hover:bg-orange-600 transition-colors text-center mt-4"
       >
-        {isAddingToCart ? "Ajout en cours..." : buttonText}
+        {buttonText}
       </button>
-      
-      {/* Secondary Button (if present) */}
-      {secondaryButton && secondaryButton.text && (
-        <button 
-          onClick={handleSecondaryButtonClick}
-          className="block w-full py-3 px-6 rounded text-center mt-2 border"
-          style={{ 
-            backgroundColor: secondaryButton.color || '#f59e0b',
-            color: isLightColor(secondaryButton.color) ? 'black' : 'white'
-          }}
-        >
-          {secondaryButton.text}
-        </button>
-      )}
       
       <div className="space-y-4 pt-6">
         <div className="mt-6 text-gray-600 prose max-w-full overflow-hidden break-words">
@@ -303,29 +223,5 @@ const ProductDetails = ({
     </div>
   );
 };
-
-// Helper function to determine if a color is light or dark
-function isLightColor(color: string): boolean {
-  // Default to true if color is not provided
-  if (!color) return true;
-  
-  // Convert hex to RGB
-  let r, g, b;
-  
-  if (color.startsWith('#')) {
-    const hex = color.substring(1);
-    r = parseInt(hex.substring(0, 2), 16);
-    g = parseInt(hex.substring(2, 4), 16);
-    b = parseInt(hex.substring(4, 6), 16);
-  } else {
-    return true; // Default for non-hex colors
-  }
-  
-  // Calculate luminance using the formula
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  
-  // Return true if the color is light (luminance > 0.5)
-  return luminance > 0.5;
-}
 
 export default ProductDetails;

@@ -6,20 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageSettingsType } from "@/models/products-page-settings";
 import Navbar from "@/components/Navbar";
 import { Textarea } from "@/components/ui/textarea";
 import RichTextEditor from "@/components/RichTextEditor";
-
-// Define the type for the settings
-interface PageSettingsType {
-  id: string;
-  title: string;
-  hero_image: string;
-  mobile_hero_image?: string;
-  banner_message?: string;
-  show_banner?: boolean;
-  description?: string;
-}
 
 const ProductsSettings = () => {
   const [loading, setLoading] = useState(false);
@@ -38,7 +28,7 @@ const ProductsSettings = () => {
   const fetchSettings = async () => {
     try {
       const { data, error } = await supabase
-        .from("products_page_settings")
+        .from("page_settings")
         .select()
         .eq("id", "products")
         .single();
@@ -46,7 +36,7 @@ const ProductsSettings = () => {
       if (error) throw error;
       setSettings(data);
       setBannerMessage(data.banner_message || "");
-      setShowBanner(data.show_banner || false);
+      setShowBanner(data.show_banner);
       setDescription(data.description || "");
     } catch (error) {
       console.error("Error fetching settings:", error);
@@ -121,7 +111,7 @@ const ProductsSettings = () => {
       };
 
       const { error: updateError } = await supabase
-        .from("products_page_settings")
+        .from("page_settings")
         .update(updatedSettings)
         .eq("id", "products");
 
@@ -250,7 +240,7 @@ const ProductsSettings = () => {
                 setLoading(true);
                 try {
                   const { error } = await supabase
-                    .from("products_page_settings")
+                    .from("page_settings")
                     .update({
                       show_banner: showBanner,
                       banner_message: bannerMessage,
@@ -292,7 +282,7 @@ const ProductsSettings = () => {
                 setLoading(true);
                 try {
                   const { error } = await supabase
-                    .from("products_page_settings")
+                    .from("page_settings")
                     .update({
                       description,
                     })

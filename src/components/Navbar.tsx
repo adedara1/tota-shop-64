@@ -34,7 +34,7 @@ const Navbar = () => {
   const shouldHideSettingsIcon = isProductsPage || isProductDetailPage;
 
   return (
-    <div className={`bg-white ${isMobile ? 'py-2 px-4' : 'py-6 px-8'}`}>
+    <div className={`bg-white ${isMobile ? 'py-3 px-4' : 'py-6 px-8'}`}>
       {/* Traditional navigation bar */}
       <div className="flex justify-between items-center mb-6">
         <div className="font-bold text-xl">Total-Service</div>

@@ -23,12 +23,6 @@ interface Product {
   button_text: string;
   currency: Database['public']['Enums']['currency_code'];
   options?: Record<string, any> | null;
-  use_internal_cart?: boolean;
-  secondary_button?: {
-    text: string;
-    url: string;
-    color: string;
-  } | null;
 }
 
 const ProductDetail = () => {
@@ -60,8 +54,7 @@ const ProductDetail = () => {
         
         const transformedData: Product = {
           ...data,
-          options: typeof data.options === 'object' ? data.options : null,
-          secondary_button: data.secondary_button || null
+          options: typeof data.options === 'object' ? data.options : null
         };
         
         setProduct(transformedData);
@@ -151,7 +144,6 @@ const ProductDetail = () => {
           <div className="md:order-2 order-2">
             <ProductDetails
               key={product.id}
-              productId={product.id}
               name={product.name}
               originalPrice={product.original_price}
               discountedPrice={product.discounted_price}
@@ -162,8 +154,6 @@ const ProductDetail = () => {
               onButtonClick={handleProductClick}
               options={product.options || {}}
               onOptionImageChange={handleOptionImageChange}
-              useInternalCart={product.use_internal_cart}
-              secondaryButton={product.secondary_button || undefined}
             />
           </div>
         </div>
