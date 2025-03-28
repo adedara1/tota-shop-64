@@ -13,6 +13,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import Footer from "@/components/Footer";
 import { defaultSettings, ProductsPageSettings } from "@/models/products-page-settings";
 
+// Workaround interface for raw Supabase response
+interface RawSettingsResponse {
+  id?: string;
+  hero_banner_image?: string;
+  hero_banner_title?: string;
+  hero_banner_description?: string;
+  section_titles?: Record<string, string>;
+  items_per_page?: number;
+  show_ratings?: boolean;
+  show_search?: boolean;
+  show_categories?: boolean;
+  show_filters?: boolean;
+  background_color?: string;
+  categories?: string[];
+  created_at?: string;
+  updated_at?: string;
+}
+
 const Products = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -24,7 +42,7 @@ const Products = () => {
     queryKey: ["products-page-settings"],
     queryFn: async () => {
       try {
-        // Use a raw query approach that bypasses type checking
+        // Use raw query without type checking
         const { data, error } = await supabase
           .from('products_page_settings')
           .select('*')
@@ -32,17 +50,34 @@ const Products = () => {
           .limit(1)
           .single();
 
-        if (error && error.code !== "PGRST116") {
+        if (error) {
           console.error("Error fetching page settings:", error);
-          return null;
+          return defaultSettings;
         }
 
-        // Ensure the data conforms to our expected shape
-        const result = data as unknown as ProductsPageSettings;
-        return result;
+        // Map raw response to our type
+        const rawData = data as RawSettingsResponse;
+        const mappedData: ProductsPageSettings = {
+          id: rawData.id,
+          hero_banner_image: rawData.hero_banner_image || defaultSettings.hero_banner_image,
+          hero_banner_title: rawData.hero_banner_title || defaultSettings.hero_banner_title,
+          hero_banner_description: rawData.hero_banner_description || defaultSettings.hero_banner_description,
+          section_titles: rawData.section_titles || defaultSettings.section_titles,
+          items_per_page: rawData.items_per_page || defaultSettings.items_per_page,
+          show_ratings: rawData.show_ratings !== undefined ? rawData.show_ratings : defaultSettings.show_ratings,
+          show_search: rawData.show_search !== undefined ? rawData.show_search : defaultSettings.show_search,
+          show_categories: rawData.show_categories !== undefined ? rawData.show_categories : defaultSettings.show_categories,
+          show_filters: rawData.show_filters !== undefined ? rawData.show_filters : defaultSettings.show_filters,
+          background_color: rawData.background_color || defaultSettings.background_color,
+          categories: rawData.categories || defaultSettings.categories,
+          created_at: rawData.created_at,
+          updated_at: rawData.updated_at
+        };
+        
+        return mappedData;
       } catch (error) {
         console.error("Error fetching settings:", error);
-        return null;
+        return defaultSettings;
       }
     },
   });

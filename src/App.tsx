@@ -41,7 +41,7 @@ const App = () => {
           console.error("Failed to initialize Supabase");
           toast({
             title: "Erreur d'initialisation",
-            description: "Impossible d'initialiser correctement la base de données. Certaines fonctionnalités pourraient ne pas fonctionner.",
+            description: "Des problèmes d'initialisation ont été rencontrés. Certaines fonctionnalités pourraient être limitées.",
             variant: "destructive",
           });
         }

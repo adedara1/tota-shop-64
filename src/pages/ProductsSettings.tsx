@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,10 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ColorSelector from "@/components/ColorSelector";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { 
   Settings, 
   Layout, 
@@ -20,7 +19,6 @@ import {
   ImageIcon, 
   Paintbrush, 
   Sliders, 
-  ShoppingBag, 
   Search, 
   SlidersHorizontal, 
   Info,
@@ -31,6 +29,24 @@ import {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { defaultSettings, ProductsPageSettings } from "@/models/products-page-settings";
+
+// We use this workaround since the table may not exist in type definitions
+interface RawSettingsResponse {
+  id?: string;
+  hero_banner_image?: string;
+  hero_banner_title?: string;
+  hero_banner_description?: string;
+  section_titles?: Record<string, string>;
+  items_per_page?: number;
+  show_ratings?: boolean;
+  show_search?: boolean;
+  show_categories?: boolean;
+  show_filters?: boolean;
+  background_color?: string;
+  categories?: string[];
+  created_at?: string;
+  updated_at?: string;
+}
 
 const ProductsSettings = () => {
   const { toast } = useToast();
@@ -44,17 +60,19 @@ const ProductsSettings = () => {
   const checkTableExists = async () => {
     try {
       const { data, error } = await supabase
-        .from('products_page_settings')
-        .select('id')
-        .limit(1);
+        .rpc('table_exists', { table_name: 'products_page_settings' });
       
-      if (error && error.code === '42P01') {
-        console.log("Table doesn't exist");
-        setTableExists(false);
-        return false;
-      } else if (error) {
-        console.error("Error checking if table exists:", error);
-        return false;
+      if (error || !data) {
+        // Try a simpler approach
+        const { count, error: countError } = await supabase
+          .from('products_page_settings')
+          .select('*', { count: 'exact', head: true });
+        
+        if (countError) {
+          console.log("Table doesn't exist");
+          setTableExists(false);
+          return false;
+        }
       }
       
       setTableExists(true);
@@ -69,26 +87,24 @@ const ProductsSettings = () => {
     try {
       const { data, error } = await supabase
         .from('products_page_settings')
-        .insert([
-          {
-            background_color: '#f1eee9',
-            hero_banner_title: 'Notre Collection',
-            hero_banner_description: 'Découvrez nos nouveautés et best-sellers',
-            section_titles: {
-              new_arrivals: 'Nouveautés',
-              best_sellers: 'Meilleures ventes',
-              trending: 'Tendances',
-              sales: 'Promotions',
-              seasonal: 'Collection saisonnière'
-            },
-            categories: ['Tout', 'Parfums', 'Soins', 'Accessoires', 'Cadeaux'],
-            show_search: true,
-            show_categories: true,
-            show_ratings: true,
-            show_filters: false,
-            items_per_page: 8
-          }
-        ])
+        .insert({
+          background_color: '#f1eee9',
+          hero_banner_title: 'Notre Collection',
+          hero_banner_description: 'Découvrez nos nouveautés et best-sellers',
+          section_titles: {
+            new_arrivals: 'Nouveautés',
+            best_sellers: 'Meilleures ventes',
+            trending: 'Tendances',
+            sales: 'Promotions',
+            seasonal: 'Collection saisonnière'
+          },
+          categories: ['Tout', 'Parfums', 'Soins', 'Accessoires', 'Cadeaux'],
+          show_search: true,
+          show_categories: true,
+          show_ratings: true,
+          show_filters: false,
+          items_per_page: 8
+        })
         .select();
       
       if (error) {
@@ -135,7 +151,9 @@ const ProductsSettings = () => {
           return defaultSettings;
         }
         
-        const { data, error } = await supabase.from('products_page_settings')
+        // Use raw Supabase query to be more flexible
+        const { data, error } = await supabase
+          .from('products_page_settings')
           .select('*')
           .order('created_at', { ascending: false })
           .limit(1)
@@ -143,17 +161,36 @@ const ProductsSettings = () => {
 
         if (error) {
           console.error("Error fetching page settings:", error);
-          return null;
+          return defaultSettings;
         }
 
         if (!data) {
           return defaultSettings;
         }
 
-        return data as unknown as ProductsPageSettings;
+        // Map raw response to our type
+        const rawData = data as RawSettingsResponse;
+        const mappedData: ProductsPageSettings = {
+          id: rawData.id,
+          hero_banner_image: rawData.hero_banner_image || defaultSettings.hero_banner_image,
+          hero_banner_title: rawData.hero_banner_title || defaultSettings.hero_banner_title,
+          hero_banner_description: rawData.hero_banner_description || defaultSettings.hero_banner_description,
+          section_titles: rawData.section_titles || defaultSettings.section_titles,
+          items_per_page: rawData.items_per_page || defaultSettings.items_per_page,
+          show_ratings: rawData.show_ratings !== undefined ? rawData.show_ratings : defaultSettings.show_ratings,
+          show_search: rawData.show_search !== undefined ? rawData.show_search : defaultSettings.show_search,
+          show_categories: rawData.show_categories !== undefined ? rawData.show_categories : defaultSettings.show_categories,
+          show_filters: rawData.show_filters !== undefined ? rawData.show_filters : defaultSettings.show_filters,
+          background_color: rawData.background_color || defaultSettings.background_color,
+          categories: rawData.categories || defaultSettings.categories,
+          created_at: rawData.created_at,
+          updated_at: rawData.updated_at
+        };
+
+        return mappedData;
       } catch (error) {
         console.error("Error fetching settings:", error);
-        return null;
+        return defaultSettings;
       }
     },
     enabled: !isInitializing,
