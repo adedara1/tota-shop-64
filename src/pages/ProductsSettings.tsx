@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ColorSelector from "@/components/ColorSelector";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
@@ -26,7 +26,7 @@ import {
   SlidersHorizontal, 
   Info,
   Save,
-  Star
+  Star as StarIcon
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -35,19 +35,72 @@ import { defaultSettings, ProductsPageSettings } from "@/models/products-page-se
 const ProductsSettings = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("general");
-  const [activeConfigItem, setActiveConfigItem] = useState(null);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [settings, setSettings] = useState<ProductsPageSettings>(defaultSettings);
+  const [selectedConfigItem, setSelectedConfigItem] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [settings, setSettings] = useState<ProductsPageSettings>(defaultSettings);
+  const [tableExists, setTableExists] = useState(false);
+
+  // Check if the table exists and create it if it doesn't
+  const checkTableExists = async () => {
+    try {
+      // Try to query the table definition
+      const { data, error } = await supabase.rpc('check_if_table_exists', {
+        table_name: 'products_page_settings'
+      });
+      
+      if (error) {
+        console.error("Error checking if table exists:", error);
+        return false;
+      }
+      
+      const exists = !!data;
+      setTableExists(exists);
+      return exists;
+    } catch (error) {
+      console.error("Error checking if table exists:", error);
+      return false;
+    }
+  };
+
+  // Create the table if it doesn't exist
+  const createTable = async () => {
+    try {
+      // Create the table using a raw SQL query
+      const { error } = await supabase.rpc('create_products_page_settings_table');
+      
+      if (error) {
+        console.error("Error creating table:", error);
+        return false;
+      }
+      
+      setTableExists(true);
+      return true;
+    } catch (error) {
+      console.error("Error creating table:", error);
+      return false;
+    }
+  };
 
   // Fetch settings from Supabase
   const { data: fetchedSettings, refetch } = useQuery({
     queryKey: ["products-settings"],
     queryFn: async () => {
       try {
-        // Use a raw query approach that bypasses type checking
-        const { data, error } = await supabase
-          .from('products_page_settings')
+        const tableExistsResult = await checkTableExists();
+        
+        if (!tableExistsResult) {
+          // Table doesn't exist, try to create it
+          const created = await createTable();
+          if (!created) {
+            // Couldn't create the table
+            return null;
+          }
+          // Return default settings since table was just created
+          return defaultSettings;
+        }
+        
+        // Table exists, query it
+        const { data, error } = await supabase.from('products_page_settings')
           .select('*')
           .order('created_at', { ascending: false })
           .limit(1)
@@ -58,13 +111,18 @@ const ProductsSettings = () => {
           return null;
         }
 
-        // Return the data as ProductsPageSettings
+        // If no settings found, return default
+        if (!data) {
+          return defaultSettings;
+        }
+
         return data as unknown as ProductsPageSettings;
       } catch (error) {
         console.error("Error fetching settings:", error);
         return null;
       }
     },
+    retry: false
   });
 
   useEffect(() => {
@@ -76,6 +134,14 @@ const ProductsSettings = () => {
   const handleSaveSettings = async () => {
     setIsLoading(true);
     try {
+      // Make sure the table exists before trying to save
+      if (!tableExists) {
+        const created = await createTable();
+        if (!created) {
+          throw new Error("Couldn't create settings table");
+        }
+      }
+      
       let response;
       if (settings.id) {
         // Update existing settings
@@ -109,7 +175,7 @@ const ProductsSettings = () => {
       console.error("Error saving settings:", error);
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue lors de la sauvegarde des paramètres.",
+        description: "Une erreur est survenue lors de la sauvegarde des paramètres. Vérifiez les logs pour plus de détails.",
         variant: "destructive",
       });
     } finally {
@@ -142,9 +208,33 @@ const ProductsSettings = () => {
     }));
   };
 
-  const openConfigSheet = (item: any) => {
-    setActiveConfigItem(item);
-    setOpenDialog(true);
+  const handleConfigItemClick = (itemId: string) => {
+    setSelectedConfigItem(itemId);
+  };
+
+  const handlePreviewItemClick = (itemId: string) => {
+    setActiveTab(getTabForItem(itemId));
+    setSelectedConfigItem(itemId);
+    
+    // Find the sheet trigger and click it
+    const sheetTrigger = document.querySelector(`[data-item-id="${itemId}"]`);
+    if (sheetTrigger) {
+      (sheetTrigger as HTMLElement).click();
+    }
+  };
+
+  const getTabForItem = (itemId: string): string => {
+    const tabMapping: Record<string, string> = {
+      "general": "general",
+      "hero": "appearance",
+      "sections": "appearance",
+      "categories": "appearance",
+      "appearance": "appearance",
+      "filtering": "filtering",
+      "pagination": "filtering"
+    };
+    
+    return tabMapping[itemId] || "general";
   };
 
   const configItems = [
@@ -154,7 +244,7 @@ const ProductsSettings = () => {
     { id: "categories", title: "Catégories", icon: <Type size={20} />, tab: "appearance" },
     { id: "appearance", title: "Apparence", icon: <Paintbrush size={20} />, tab: "appearance" },
     { id: "filtering", title: "Filtres", icon: <Sliders size={20} />, tab: "filtering" },
-    { id: "pagination", title: "Pagination", icon: <SlidersHorizontal size={20} />, tab: "pagination" },
+    { id: "pagination", title: "Pagination", icon: <SlidersHorizontal size={20} />, tab: "filtering" },
   ];
 
   return (
@@ -166,7 +256,7 @@ const ProductsSettings = () => {
           <h1 className="text-2xl font-bold">Configuration de la Page Produits</h1>
           <Button onClick={handleSaveSettings} disabled={isLoading}>
             <Save className="mr-2 h-4 w-4" />
-            Sauvegarder
+            {isLoading ? "Sauvegarde en cours..." : "Sauvegarder"}
           </Button>
         </div>
 
@@ -186,7 +276,11 @@ const ProductsSettings = () => {
                 .map((item) => (
                   <Sheet key={item.id}>
                     <SheetTrigger asChild>
-                      <Card className="cursor-pointer hover:shadow-md transition-all">
+                      <Card 
+                        className={`cursor-pointer hover:shadow-md transition-all ${selectedConfigItem === item.id ? 'border-primary' : ''}`}
+                        onClick={() => handleConfigItemClick(item.id)}
+                        data-item-id={item.id}
+                      >
                         <CardContent className="p-4 flex items-center justify-between">
                           <div className="flex items-center">
                             {item.icon}
@@ -407,13 +501,9 @@ const ProductsSettings = () => {
                                     className="w-10 h-10 rounded-full border"
                                     style={{ backgroundColor: settings.background_color }}
                                   />
-                                  <Input
-                                    id="background_color"
-                                    type="text"
-                                    value={settings.background_color}
-                                    onChange={(e) => handleInputChange("background_color", e.target.value)}
-                                    placeholder="#fdf7f7"
-                                    className="flex-1"
+                                  <ColorSelector
+                                    selectedColor={settings.background_color}
+                                    onColorSelect={(color) => handleInputChange("background_color", color)}
                                   />
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">
@@ -484,31 +574,59 @@ const ProductsSettings = () => {
               <CardHeader>
                 <CardTitle>Aperçu</CardTitle>
                 <CardDescription>
-                  Aperçu de la page produits avec vos configurations actuelles
+                  Aperçu de la page produits avec vos configurations actuelles. Cliquez sur un élément pour le configurer.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="border rounded-lg overflow-hidden" style={{ backgroundColor: settings.background_color }}>
-                  <div className="relative w-full h-[200px] overflow-hidden">
-                    <img 
-                      src={settings.hero_banner_image} 
-                      alt={settings.hero_banner_title}
-                      className="w-full h-full object-cover"
-                    />
+                  {/* Hero Banner - Clickable */}
+                  <div 
+                    className="relative w-full h-[200px] overflow-hidden cursor-pointer transition-opacity hover:opacity-90"
+                    onClick={() => handlePreviewItemClick("hero")}
+                  >
+                    {settings.hero_banner_image ? (
+                      <img 
+                        src={settings.hero_banner_image} 
+                        alt={settings.hero_banner_title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                        <p className="text-gray-500">Bannière (cliquez pour configurer)</p>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 hover:opacity-100 transition-opacity">
+                      <div className="bg-white bg-opacity-75 px-3 py-1 rounded-full text-sm">
+                        Configurer la bannière
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="p-4">
-                    {settings.show_search && (
-                      <div className="relative w-full max-w-md mx-auto mb-4">
+                    {/* Search Bar - Clickable */}
+                    <div 
+                      className="cursor-pointer mb-4"
+                      onClick={() => handlePreviewItemClick("general")}
+                    >
+                      <div className={`relative w-full max-w-md mx-auto ${!settings.show_search ? 'opacity-50' : ''}`}>
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                         <div className="pl-10 pr-4 py-2 rounded-full border border-gray-300 w-full">
                           Rechercher...
                         </div>
+                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 hover:opacity-100 transition-opacity rounded-full">
+                          <div className="bg-white bg-opacity-75 px-3 py-1 rounded-full text-sm">
+                            Configurer la recherche
+                          </div>
+                        </div>
                       </div>
-                    )}
+                    </div>
                     
-                    {settings.show_categories && (
-                      <div className="flex flex-wrap justify-center gap-2 mb-4">
+                    {/* Categories - Clickable */}
+                    <div 
+                      className={`mb-4 cursor-pointer ${!settings.show_categories ? 'opacity-50' : ''}`}
+                      onClick={() => handlePreviewItemClick("categories")}
+                    >
+                      <div className="flex flex-wrap justify-center gap-2 relative">
                         {settings.categories.map((category, index) => (
                           <div 
                             key={index}
@@ -517,10 +635,19 @@ const ProductsSettings = () => {
                             {category}
                           </div>
                         ))}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 hover:opacity-100 transition-opacity rounded-full">
+                          <div className="bg-white bg-opacity-75 px-3 py-1 rounded-full text-sm">
+                            Configurer les catégories
+                          </div>
+                        </div>
                       </div>
-                    )}
+                    </div>
                     
-                    <div className="mb-4">
+                    {/* Section Title - Clickable */}
+                    <div 
+                      className="mb-4 cursor-pointer"
+                      onClick={() => handlePreviewItemClick("sections")}
+                    >
                       <div className="relative mb-3">
                         <div className="absolute inset-0 flex items-center">
                           <div className="w-full border-t border-gray-300"></div>
@@ -531,8 +658,14 @@ const ProductsSettings = () => {
                             {settings.section_titles.new_arrivals}
                           </span>
                         </div>
+                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 hover:opacity-100 transition-opacity">
+                          <div className="bg-white bg-opacity-75 px-3 py-1 rounded-full text-sm">
+                            Configurer les titres de sections
+                          </div>
+                        </div>
                       </div>
                       
+                      {/* Product Grid */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {[1, 2, 3, 4].map((item) => (
                           <div key={item} className="rounded-lg overflow-hidden bg-white border shadow-sm">
@@ -542,7 +675,7 @@ const ProductsSettings = () => {
                               {settings.show_ratings && (
                                 <div className="flex justify-center mb-1">
                                   {[1, 2, 3, 4, 5].map((star) => (
-                                    <Star 
+                                    <StarIcon 
                                       key={star} 
                                       size={12} 
                                       className={star <= 4 ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} 
@@ -556,10 +689,27 @@ const ProductsSettings = () => {
                         ))}
                       </div>
                     </div>
+                    
+                    {/* Background Color - Clickable */}
+                    <div 
+                      className="absolute bottom-4 right-4 cursor-pointer"
+                      onClick={() => handlePreviewItemClick("appearance")}
+                    >
+                      <div className="bg-white rounded-full p-2 shadow-md flex items-center gap-2">
+                        <div 
+                          className="w-4 h-4 rounded-full border"
+                          style={{ backgroundColor: settings.background_color }}
+                        />
+                        <span className="text-xs">Configurer l'apparence</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-end">
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={handleSaveSettings} disabled={isLoading}>
+                  {isLoading ? "Sauvegarde en cours..." : "Sauvegarder"}
+                </Button>
                 <Button variant="outline" onClick={() => window.open("/products", "_blank")}>
                   Voir la page en direct
                 </Button>

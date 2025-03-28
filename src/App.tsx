@@ -1,4 +1,5 @@
 
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,79 +20,93 @@ import Popo from "./pages/Popo";
 import PopoSettings from "./pages/PopoSettings";
 import Formulaire from "./pages/Formulaire";
 import ProductsSettings from "./pages/ProductsSettings";
+import { initSupabase } from "./utils/supabaseInit";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/auth" element={<Auth />} />
-          <Route
-            path="/"
-            element={<Navigate to="/home" replace />}
-          />
-          <Route 
-            path="/home" 
-            element={
-              <ProtectedRoute>
-                <Home />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/products" element={<Products />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/popo" element={<Popo />} />
-          <Route path="/formulaire" element={<Formulaire />} />
-          <Route
-            path="/products-set"
-            element={
-              <ProtectedRoute>
-                <ProductsSettings />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/popo-setting"
-            element={
-              <ProtectedRoute>
-                <PopoSettings />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/product-form"
-            element={
-              <ProtectedRoute>
-                <ProductForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/stats"
-            element={
-              <ProtectedRoute>
-                <Stats />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/paiement" element={<Payment />} />
-          <Route
-            path="*"
-            element={
-              <ProtectedRoute>
-                <NotFound />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  useEffect(() => {
+    // Initialize Supabase functions and tables
+    initSupabase().then((success) => {
+      if (success) {
+        console.log("Supabase initialized successfully");
+      } else {
+        console.error("Failed to initialize Supabase");
+      }
+    });
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            <Route
+              path="/"
+              element={<Navigate to="/home" replace />}
+            />
+            <Route 
+              path="/home" 
+              element={
+                <ProtectedRoute>
+                  <Home />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/products" element={<Products />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/popo" element={<Popo />} />
+            <Route path="/formulaire" element={<Formulaire />} />
+            <Route
+              path="/products-set"
+              element={
+                <ProtectedRoute>
+                  <ProductsSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/popo-setting"
+              element={
+                <ProtectedRoute>
+                  <PopoSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/product-form"
+              element={
+                <ProtectedRoute>
+                  <ProductForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/stats"
+              element={
+                <ProtectedRoute>
+                  <Stats />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/paiement" element={<Payment />} />
+            <Route
+              path="*"
+              element={
+                <ProtectedRoute>
+                  <NotFound />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

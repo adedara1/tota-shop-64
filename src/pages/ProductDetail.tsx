@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -10,7 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
 
-// Fix the interface to handle options correctly
 interface Product {
   id: string;
   name: string;
@@ -51,15 +49,13 @@ const ProductDetail = () => {
           return;
         }
         
-        // Transform data to the Product interface
         const transformedData: Product = {
           ...data,
-          options: data.options as Record<string, any> | null
+          options: typeof data.options === 'object' ? data.options : null
         };
         
         setProduct(transformedData);
 
-        // Increment view count
         const { error: statsError } = await supabase.rpc('increment_product_view', {
           product_id_param: id
         });
@@ -131,7 +127,6 @@ const ProductDetail = () => {
     );
   }
 
-  // Combine product images with selected option images
   const displayImages = selectedOptionImages.length > 0 
     ? [...selectedOptionImages, ...product.images]
     : product.images;
