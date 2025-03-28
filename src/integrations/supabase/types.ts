@@ -39,6 +39,50 @@ export type Database = {
         }
         Relationships: []
       }
+      cart_items: {
+        Row: {
+          created_at: string
+          id: string
+          image: string | null
+          name: string
+          options: Json | null
+          price: number
+          product_id: string | null
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image?: string | null
+          name: string
+          options?: Json | null
+          price: number
+          product_id?: string | null
+          quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image?: string | null
+          name?: string
+          options?: Json | null
+          price?: number
+          product_id?: string | null
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cart_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       popo_settings: {
         Row: {
           button1_text: string
@@ -127,8 +171,10 @@ export type Database = {
           name: string
           options: Json | null
           original_price: number
+          secondary_button: Json | null
           theme_color: string
           updated_at: string
+          use_internal_cart: boolean | null
         }
         Insert: {
           button_text?: string
@@ -143,8 +189,10 @@ export type Database = {
           name: string
           options?: Json | null
           original_price: number
+          secondary_button?: Json | null
           theme_color?: string
           updated_at?: string
+          use_internal_cart?: boolean | null
         }
         Update: {
           button_text?: string
@@ -159,22 +207,28 @@ export type Database = {
           name?: string
           options?: Json | null
           original_price?: number
+          secondary_button?: Json | null
           theme_color?: string
           updated_at?: string
+          use_internal_cart?: boolean | null
         }
         Relationships: []
       }
       products_page_settings: {
         Row: {
           background_color: string
+          banner_message: string | null
           categories: string[]
           created_at: string
+          description: string | null
           hero_banner_description: string
-          hero_banner_image: string | null
+          hero_banner_image: string
           hero_banner_title: string
           id: string
           items_per_page: number
+          mobile_hero_image: string | null
           section_titles: Json
+          show_banner: boolean | null
           show_categories: boolean
           show_filters: boolean
           show_ratings: boolean
@@ -183,14 +237,18 @@ export type Database = {
         }
         Insert: {
           background_color?: string
+          banner_message?: string | null
           categories?: string[]
           created_at?: string
-          hero_banner_description?: string
-          hero_banner_image?: string | null
-          hero_banner_title?: string
-          id?: string
+          description?: string | null
+          hero_banner_description: string
+          hero_banner_image: string
+          hero_banner_title: string
+          id: string
           items_per_page?: number
-          section_titles?: Json
+          mobile_hero_image?: string | null
+          section_titles: Json
+          show_banner?: boolean | null
           show_categories?: boolean
           show_filters?: boolean
           show_ratings?: boolean
@@ -199,14 +257,18 @@ export type Database = {
         }
         Update: {
           background_color?: string
+          banner_message?: string | null
           categories?: string[]
           created_at?: string
+          description?: string | null
           hero_banner_description?: string
-          hero_banner_image?: string | null
+          hero_banner_image?: string
           hero_banner_title?: string
           id?: string
           items_per_page?: number
+          mobile_hero_image?: string | null
           section_titles?: Json
+          show_banner?: boolean | null
           show_categories?: boolean
           show_filters?: boolean
           show_ratings?: boolean
