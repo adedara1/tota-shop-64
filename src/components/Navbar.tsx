@@ -1,69 +1,153 @@
 
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { ShoppingBag, Search, Menu, User, Settings } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { X, Menu, ShoppingBag } from "lucide-react";
 
-const Navbar = () => {
+interface NavbarProps {
+  cartCount?: number;
+}
+
+const Navbar = ({ cartCount = 0 }: NavbarProps) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const isProductDetailPage = location.pathname.startsWith('/product/');
-  const isProductsPage = location.pathname === '/products';
-  const isMobile = useIsMobile();
-  
-  // Check if user is logged in
-  const { data: session } = useQuery({
-    queryKey: ["session"],
-    queryFn: async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) throw error;
-      return data.session;
-    },
-  });
+  const [count, setCount] = useState(cartCount);
 
-  const isAdmin = !!session;
+  useEffect(() => {
+    // Fetch cart count from local storage on mount
+    const fetchCartCount = () => {
+      try {
+        const cartItems = localStorage.getItem('cartItems');
+        if (cartItems) {
+          const items = JSON.parse(cartItems);
+          setCount(items.length);
+        }
+      } catch (error) {
+        console.error("Error fetching cart count:", error);
+      }
+    };
 
-  // Hide navigation bar on the /products page on mobile
-  if (isMobile && isProductsPage) {
-    return null;
-  }
+    fetchCartCount();
+
+    // Add event listener for cart updates
+    const handleCartUpdate = () => {
+      fetchCartCount();
+    };
+
+    window.addEventListener('cartUpdated', handleCartUpdate);
+
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
+  }, []);
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
 
   return (
-    <div className={`bg-white ${isMobile ? 'py-3 px-4' : 'py-6 px-8'}`}>
-      {/* Traditional navigation bar */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="font-bold text-xl">Total-Service</div>
-        <div className="flex space-x-8">
-          {/* Hide navigation links on mobile for product detail pages */}
-          {(!isMobile || !isProductDetailPage) && (
-            <>
-              <Link to="/products" className="hover:text-gray-600">Accueil</Link>
-              <Link to="/products" className="hover:text-gray-600">Nos Produits</Link>
-              <Link to="/contact" className="hover:text-gray-600">Contact</Link>
-            </>
-          )}
+    <nav className="py-6 relative">
+      <div className="container mx-auto flex justify-between items-center px-4">
+        <Link to="/" className="text-xl font-serif italic">
+          La Maison
+        </Link>
+
+        {/* Desktop Menu */}
+        <div className="hidden md:flex items-center space-x-8">
+          <Link
+            to="/"
+            className={`font-medium ${
+              location.pathname === "/" ? "text-black" : "text-gray-600"
+            }`}
+          >
+            Accueil
+          </Link>
+          <Link
+            to="/products"
+            className={`font-medium ${
+              location.pathname === "/products" ? "text-black" : "text-gray-600"
+            }`}
+          >
+            Boutique
+          </Link>
+          <Link
+            to="/contact"
+            className={`font-medium ${
+              location.pathname === "/contact" ? "text-black" : "text-gray-600"
+            }`}
+          >
+            Contact
+          </Link>
+          <Link
+            to="/paiement"
+            className="relative"
+          >
+            <ShoppingBag size={20} />
+            {count > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                {count}
+              </span>
+            )}
+          </Link>
         </div>
-        <div className="flex items-center space-x-4">
-          {/* Hide settings icon on mobile for product detail pages */}
-          {isAdmin && (!isMobile || !isProductDetailPage) && (
-            <Link to="/products-set" title="Paramètres de la page produits">
-              <Settings className="h-5 w-5" />
-            </Link>
-          )}
-          <Link to="/account">
-            <User className="h-5 w-5" />
+
+        {/* Mobile Menu Button */}
+        <div className="md:hidden flex items-center gap-4">
+          <Link
+            to="/paiement"
+            className="relative"
+          >
+            <ShoppingBag size={20} />
+            {count > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                {count}
+              </span>
+            )}
           </Link>
-          <Link to="/cart">
-            <ShoppingBag className="h-5 w-5" />
-          </Link>
+          <button onClick={toggleMobileMenu}>
+            {isMobileMenuOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className="h-6 w-6" />
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Main black navbar with rounded corners - hidden on product detail pages */}
-      {!isProductDetailPage}
-    </div>
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden absolute top-full left-0 right-0 bg-white z-50 shadow-lg">
+          <div className="container mx-auto py-4 space-y-4 px-4">
+            <Link
+              to="/"
+              className={`block font-medium ${
+                location.pathname === "/" ? "text-black" : "text-gray-600"
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Accueil
+            </Link>
+            <Link
+              to="/products"
+              className={`block font-medium ${
+                location.pathname === "/products" ? "text-black" : "text-gray-600"
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Boutique
+            </Link>
+            <Link
+              to="/contact"
+              className={`block font-medium ${
+                location.pathname === "/contact" ? "text-black" : "text-gray-600"
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Contact
+            </Link>
+          </div>
+        </div>
+      )}
+    </nav>
   );
 };
 

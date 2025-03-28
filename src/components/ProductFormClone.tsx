@@ -10,7 +10,8 @@ import ColorSelector from "@/components/ColorSelector";
 import { Database } from "@/integrations/supabase/types";
 import { Toggle } from "@/components/ui/toggle";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ImageIcon, X } from "lucide-react";
+import { ImageIcon, X, Link as LinkIcon, Globe } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type CurrencyCode = Database['public']['Enums']['currency_code'];
 
@@ -56,6 +57,7 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
   const [optionImageFile, setOptionImageFile] = useState<File | null>(null);
   const [useInternalCart, setUseInternalCart] = useState(false);
   const [customUrl, setCustomUrl] = useState("");
+  const [urlType, setUrlType] = useState<'whatsapp' | 'custom'>('whatsapp');
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -206,13 +208,13 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
       let cartUrl = "";
       
       if (useInternalCart) {
-        // Si le panier interne est utilisé, on laisse cart_url vide ou avec une valeur spéciale
+        // Si le panier interne est utilisé, on utilise une valeur spéciale
         cartUrl = "#internal";
       } else {
         // Sinon on utilise soit l'URL WhatsApp, soit l'URL personnalisée
-        if (customUrl) {
+        if (urlType === 'custom' && customUrl) {
           cartUrl = customUrl;
-        } else {
+        } else if (urlType === 'whatsapp') {
           const cleanWhatsappNumber = whatsappNumber.replace(/\D/g, '');
           cartUrl = `https://wa.me/${cleanWhatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
         }
@@ -332,57 +334,56 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
       
       {!useInternalCart && (
         <div className="rounded-md border p-4 space-y-4">
-          <div className="flex items-center space-x-2 mb-2">
-            <Checkbox 
-              id="use-custom-url" 
-              checked={!!customUrl} 
-              onCheckedChange={(checked) => {
-                if (!checked) {
-                  setCustomUrl("");
-                }
-              }}
-            />
-            <Label htmlFor="use-custom-url" className="font-medium cursor-pointer">
-              Utiliser une URL personnalisée
-            </Label>
-          </div>
-          
-          {customUrl ? (
-            <div>
-              <Label htmlFor="custom-url">URL personnalisée</Label>
-              <Input
-                id="custom-url"
-                value={customUrl}
-                onChange={(e) => setCustomUrl(e.target.value)}
-                placeholder="https://example.com"
-                required={!!customUrl}
-              />
-            </div>
-          ) : (
-            <>
+          <Tabs defaultValue="whatsapp" value={urlType} onValueChange={(val) => setUrlType(val as 'whatsapp' | 'custom')}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="whatsapp" className="flex items-center gap-1">
+                <ImageIcon size={16} /> WhatsApp
+              </TabsTrigger>
+              <TabsTrigger value="custom" className="flex items-center gap-1">
+                <Globe size={16} /> URL personnalisée
+              </TabsTrigger>
+            </TabsList>
+            
+            {urlType === 'custom' ? (
               <div>
-                <Label htmlFor="whatsapp-number-clone">Numéro WhatsApp</Label>
-                <Input
-                  id="whatsapp-number-clone"
-                  value={whatsappNumber}
-                  onChange={(e) => setWhatsappNumber(e.target.value)}
-                  placeholder="Ex: 51180895"
-                  required={!useInternalCart && !customUrl}
-                />
+                <Label htmlFor="custom-url">URL personnalisée</Label>
+                <div className="flex items-center mt-1">
+                  <LinkIcon size={16} className="text-gray-400 mr-2" />
+                  <Input
+                    id="custom-url"
+                    value={customUrl}
+                    onChange={(e) => setCustomUrl(e.target.value)}
+                    placeholder="https://example.com"
+                    required={!useInternalCart && urlType === 'custom'}
+                  />
+                </div>
               </div>
+            ) : (
+              <>
+                <div>
+                  <Label htmlFor="whatsapp-number-clone">Numéro WhatsApp</Label>
+                  <Input
+                    id="whatsapp-number-clone"
+                    value={whatsappNumber}
+                    onChange={(e) => setWhatsappNumber(e.target.value)}
+                    placeholder="Ex: 51180895"
+                    required={!useInternalCart && urlType === 'whatsapp'}
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="whatsapp-message-clone">Message WhatsApp par défaut</Label>
-                <Input
-                  id="whatsapp-message-clone"
-                  value={whatsappMessage}
-                  onChange={(e) => setWhatsappMessage(e.target.value)}
-                  placeholder="Ex: Bonjour"
-                  required={!useInternalCart && !customUrl}
-                />
-              </div>
-            </>
-          )}
+                <div>
+                  <Label htmlFor="whatsapp-message-clone">Message WhatsApp par défaut</Label>
+                  <Input
+                    id="whatsapp-message-clone"
+                    value={whatsappMessage}
+                    onChange={(e) => setWhatsappMessage(e.target.value)}
+                    placeholder="Ex: Bonjour"
+                    required={!useInternalCart && urlType === 'whatsapp'}
+                  />
+                </div>
+              </>
+            )}
+          </Tabs>
         </div>
       )}
 

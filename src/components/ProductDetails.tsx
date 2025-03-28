@@ -1,8 +1,9 @@
 
 import { useState, useEffect } from "react";
 import ProductOptions from "./ProductOptions";
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, ShoppingBag } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
+import { useNavigate } from "react-router-dom";
 
 interface OptionValue {
   value: string;
@@ -20,6 +21,9 @@ interface ProductDetailsProps {
   onButtonClick?: () => void;
   options?: Record<string, any>;
   onOptionImageChange?: (images: string[]) => void;
+  useInternalCart?: boolean;
+  onAddToCart?: (productData: any, quantity: number, selectedOptions: Record<string, any>) => void;
+  productId?: string;
 }
 
 const ProductDetails = ({
@@ -33,11 +37,15 @@ const ProductDetails = ({
   onButtonClick,
   options = {},
   onOptionImageChange,
+  useInternalCart = false,
+  onAddToCart,
+  productId
 }: ProductDetailsProps) => {
   const displayCurrency = currency === 'XOF' || currency === 'XAF' ? 'CFA' : currency;
   const [quantity, setQuantity] = useState(1);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
   const [totalPrice, setTotalPrice] = useState(discountedPrice);
+  const navigate = useNavigate();
   
   // Initialize selectedOptions with the first option of each type
   useEffect(() => {
@@ -105,6 +113,14 @@ const ProductDetails = ({
       onButtonClick();
     }
     
+    if (useInternalCart) {
+      if (onAddToCart) {
+        onAddToCart({ id: productId, name, price: discountedPrice }, quantity, selectedOptions);
+      }
+      return;
+    }
+    
+    // For external URLs
     // Construct URL with selected options
     let finalUrl = cartUrl;
     const params = new URLSearchParams();
@@ -133,6 +149,10 @@ const ProductDetails = ({
     
     // Open the cart URL in a new tab
     window.open(finalUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const goToCart = () => {
+    navigate('/paiement');
   };
 
   const increaseQuantity = () => {
@@ -208,12 +228,24 @@ const ProductDetails = ({
       )}
       
       {/* Call to Action Button */}
-      <button 
-        onClick={handleButtonClick}
-        className="block w-full bg-orange-500 text-white py-3 px-6 rounded hover:bg-orange-600 transition-colors text-center mt-4"
-      >
-        {buttonText}
-      </button>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <button 
+          onClick={handleButtonClick}
+          className="block flex-1 bg-orange-500 text-white py-3 px-6 rounded hover:bg-orange-600 transition-colors text-center"
+        >
+          {buttonText}
+        </button>
+        
+        {useInternalCart && (
+          <button 
+            onClick={goToCart}
+            className="block flex-1 bg-gray-800 text-white py-3 px-6 rounded hover:bg-gray-900 transition-colors text-center flex items-center justify-center"
+          >
+            <ShoppingBag className="mr-2" size={18} />
+            Voir mon panier
+          </button>
+        )}
+      </div>
       
       <div className="space-y-4 pt-6">
         <div className="mt-6 text-gray-600 prose max-w-full overflow-hidden break-words">
