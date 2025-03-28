@@ -68,7 +68,7 @@ interface Product {
   is_visible: boolean;
   button_text: string;
   currency: CurrencyCode;
-  options?: Record<string, string[]>;
+  options?: Record<string, any>; // Changed from Record<string, string[]> to Record<string, any>
 }
 
 const ProductForm = () => {
