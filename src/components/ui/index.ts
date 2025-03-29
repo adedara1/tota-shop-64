@@ -12,3 +12,4 @@ export * from "./menubar";
 export * from "./popover";
 export * from "./sheet";
 export * from "./toggle";
+export * from "./carousel";

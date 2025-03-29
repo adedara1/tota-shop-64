@@ -17,7 +17,8 @@ import {
   ContextMenuTrigger,
   ContextMenuSeparator
 } from "@/components/ui";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ColorPicker, Trash } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Palette, Trash } from "lucide-react";
+import ColorSelector from "@/components/ColorSelector";
 
 interface Product {
   id: string;
@@ -160,7 +161,7 @@ const ProductEdit = () => {
       <ContextMenuTrigger className="w-full h-full">{children}</ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem onClick={() => handleColorChange(id)}>
-          <ColorPicker className="mr-2 h-4 w-4" />
+          <Palette className="mr-2 h-4 w-4" />
           Modifier la couleur
         </ContextMenuItem>
         <ContextMenuSeparator />
