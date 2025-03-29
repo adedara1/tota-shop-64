@@ -14,7 +14,11 @@ import { fr } from "date-fns/locale";
 import { Database } from "@/integrations/supabase/types";
 import ProductFormClone from "@/components/ProductFormClone";
 import { Toggle } from "@/components/ui/toggle";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
+
 type CurrencyCode = Database['public']['Enums']['currency_code'];
+
 const COLOR_PALETTES = {
   blue: ['#0000FF', '#79F8F8', '#007FFF', '#1E7FCB', '#74D0F1', '#A9EAFE', '#3A8EBA'],
   white: ['#FFFFFF', '#FEFEFE', '#EFEFEF', '#F0FFFF', '#F5F5DC', '#FEFEE2'],
@@ -27,44 +31,24 @@ const COLOR_PALETTES = {
   red: ['#FF0000', '#91283B', '#6D071A', '#842E1B', '#BB0B0B', '#E73E01', '#ED0000'],
   green: ['#00FF00', '#79F8F8', '#7BA05B', '#008E8E', '#048B9A', '#83A697', '#80D0D0']
 };
+
 const ALL_COLORS = Object.values(COLOR_PALETTES).flat();
-const CURRENCIES = [{
-  code: 'XOF' as CurrencyCode,
-  label: 'Franc CFA (XOF) - UEMOA'
-}, {
-  code: 'XAF' as CurrencyCode,
-  label: 'Franc CFA (XAF) - CEMAC'
-}, {
-  code: 'ZAR' as CurrencyCode,
-  label: 'Rand sud-africain (ZAR)'
-}, {
-  code: 'MAD' as CurrencyCode,
-  label: 'Dirham marocain (MAD)'
-}, {
-  code: 'EGP' as CurrencyCode,
-  label: 'Livre égyptienne (EGP)'
-}, {
-  code: 'NGN' as CurrencyCode,
-  label: 'Naira nigérian (NGN)'
-}, {
-  code: 'KES' as CurrencyCode,
-  label: 'Shilling kényan (KES)'
-}, {
-  code: 'TND' as CurrencyCode,
-  label: 'Dinar tunisien (TND)'
-}, {
-  code: 'UGX' as CurrencyCode,
-  label: 'Shilling ougandais (UGX)'
-}, {
-  code: 'GHS' as CurrencyCode,
-  label: 'Cedi ghanéen (GHS)'
-}, {
-  code: 'USD' as CurrencyCode,
-  label: 'Dollar américain (USD)'
-}, {
-  code: 'EUR' as CurrencyCode,
-  label: 'Euro (EUR)'
-}];
+
+const CURRENCIES = [
+  { code: 'XOF' as CurrencyCode, label: 'Franc CFA (XOF) - UEMOA' },
+  { code: 'XAF' as CurrencyCode, label: 'Franc CFA (XAF) - CEMAC' },
+  { code: 'ZAR' as CurrencyCode, label: 'Rand sud-africain (ZAR)' },
+  { code: 'MAD' as CurrencyCode, label: 'Dirham marocain (MAD)' },
+  { code: 'EGP' as CurrencyCode, label: 'Livre égyptienne (EGP)' },
+  { code: 'NGN' as CurrencyCode, label: 'Naira nigérian (NGN)' },
+  { code: 'KES' as CurrencyCode, label: 'Shilling kényan (KES)' },
+  { code: 'TND' as CurrencyCode, label: 'Dinar tunisien (TND)' },
+  { code: 'UGX' as CurrencyCode, label: 'Shilling ougandais (UGX)' },
+  { code: 'GHS' as CurrencyCode, label: 'Cedi ghanéen (GHS)' },
+  { code: 'USD' as CurrencyCode, label: 'Dollar américain (USD)' },
+  { code: 'EUR' as CurrencyCode, label: 'Euro (EUR)' }
+];
+
 interface Product {
   id: string;
   name: string;
@@ -79,11 +63,13 @@ interface Product {
   button_text: string;
   currency: CurrencyCode;
   options?: Record<string, string[]>;
+  hide_promo_bar?: boolean;
+  use_internal_cart?: boolean;
 }
+
 const ProductForm = () => {
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [description, setDescription] = useState("");
@@ -98,16 +84,35 @@ const ProductForm = () => {
   const [newOptionType, setNewOptionType] = useState("");
   const [newOptionValue, setNewOptionValue] = useState("");
   const [editingOptionType, setEditingOptionType] = useState("");
+
   const fetchProducts = async () => {
     try {
-      const {
-        data,
-        error
-      } = await supabase.from("products").select("*").order("created_at", {
-        ascending: false
-      });
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
+      
       if (error) throw error;
-      setProducts(data || []);
+      
+      const typedProducts: Product[] = data.map(product => ({
+        id: product.id,
+        name: product.name,
+        original_price: product.original_price,
+        discounted_price: product.discounted_price,
+        description: product.description,
+        cart_url: product.cart_url,
+        images: product.images,
+        theme_color: product.theme_color,
+        created_at: product.created_at,
+        is_visible: product.is_visible,
+        button_text: product.button_text,
+        currency: product.currency,
+        options: product.options as Record<string, string[]> | undefined,
+        hide_promo_bar: product.hide_promo_bar,
+        use_internal_cart: product.use_internal_cart
+      }));
+      
+      setProducts(typedProducts);
     } catch (error) {
       console.error("Error fetching products:", error);
       toast({
@@ -117,9 +122,11 @@ const ProductForm = () => {
       });
     }
   };
+
   useEffect(() => {
     fetchProducts();
   }, []);
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 4) {
@@ -132,6 +139,7 @@ const ProductForm = () => {
     }
     setImages(files);
   };
+
   useEffect(() => {
     if (editingProduct && editingProduct.options) {
       const types = Object.keys(editingProduct.options);
@@ -142,6 +150,7 @@ const ProductForm = () => {
       setOptionValues({});
     }
   }, [editingProduct]);
+
   const addOptionType = () => {
     if (newOptionType.trim() && !optionTypes.includes(newOptionType)) {
       setOptionTypes([...optionTypes, newOptionType]);
@@ -153,6 +162,7 @@ const ProductForm = () => {
       setEditingOptionType(newOptionType);
     }
   };
+
   const addOptionValue = () => {
     if (editingOptionType && newOptionValue.trim() && !optionValues[editingOptionType]?.includes(newOptionValue)) {
       setOptionValues({
@@ -162,6 +172,7 @@ const ProductForm = () => {
       setNewOptionValue("");
     }
   };
+
   const removeOptionType = (type: string) => {
     const newTypes = optionTypes.filter(t => t !== type);
     const newValues = {
@@ -174,6 +185,7 @@ const ProductForm = () => {
       setEditingOptionType("");
     }
   };
+
   const removeOptionValue = (type: string, value: string) => {
     if (optionValues[type]) {
       setOptionValues({
@@ -182,6 +194,7 @@ const ProductForm = () => {
       });
     }
   };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -220,7 +233,9 @@ const ProductForm = () => {
         is_visible: editingProduct ? editingProduct.is_visible : true,
         button_text: formData.get("button_text") as string || "Ajouter au panier",
         currency: formData.get("currency") as CurrencyCode || "XOF",
-        options: optionTypes.length > 0 ? optionValues : null
+        options: optionTypes.length > 0 ? optionValues : null,
+        hide_promo_bar: formData.get("hide_promo_bar") === "true",
+        use_internal_cart: formData.get("use_internal_cart") === "true"
       };
       console.log("Saving product data:", productData);
       if (editingProduct) {
@@ -262,6 +277,7 @@ const ProductForm = () => {
       setLoading(false);
     }
   };
+
   const toggleVisibility = async (id: string, currentVisibility: boolean) => {
     try {
       const {
@@ -284,12 +300,18 @@ const ProductForm = () => {
       });
     }
   };
+
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setDescription(product.description);
     setSelectedColor(product.theme_color || defaultColor);
     setIsSheetOpen(true);
   };
+
+  const handlePreview = (productId: string) => {
+    navigate(`/product/${productId}`);
+  };
+
   const handleDelete = async (id: string) => {
     try {
       const {
@@ -330,6 +352,7 @@ const ProductForm = () => {
       });
     }
   };
+
   const copyToClipboard = (id: string) => {
     const url = `https://digit-sarl.store/product/${id}`;
     navigator.clipboard.writeText(url);
@@ -338,6 +361,7 @@ const ProductForm = () => {
       description: "L'URL du produit a été copiée dans le presse-papier"
     });
   };
+
   const resetForm = () => {
     setImages([]);
     setDescription("");
@@ -351,7 +375,9 @@ const ProductForm = () => {
     const form = document.querySelector("form") as HTMLFormElement;
     if (form) form.reset();
   };
-  return <div className="min-h-screen bg-background">
+
+  return (
+    <div className="min-h-screen bg-background">
       <Navbar />
       <div className="py-12 px-4 overflow-auto">
         <div className="container mx-auto max-w-6xl">
@@ -359,9 +385,6 @@ const ProductForm = () => {
             <h1 className="text-3xl font-medium">Gestion des produits</h1>
             <div className="flex gap-4">
               <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                <SheetTrigger asChild>
-                  
-                </SheetTrigger>
                 <SheetContent className="overflow-y-auto w-full sm:max-w-xl">
                   <SheetHeader>
                     <SheetTitle>
@@ -498,10 +521,13 @@ const ProductForm = () => {
                     </SheetTitle>
                   </SheetHeader>
                   <div className="py-4">
-                    <ProductFormClone onSuccess={() => {
-                    setShowCloneForm(false);
-                    fetchProducts();
-                  }} onCancel={() => setShowCloneForm(false)} />
+                    <ProductFormClone 
+                      onSuccess={() => {
+                        setShowCloneForm(false);
+                        fetchProducts();
+                      }} 
+                      onCancel={() => setShowCloneForm(false)} 
+                    />
                   </div>
                 </SheetContent>
               </Sheet>
@@ -521,38 +547,71 @@ const ProductForm = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map(product => <tr key={product.id} className="border-b hover:bg-gray-50">
+                  {products.map(product => (
+                    <tr key={product.id} className="border-b hover:bg-gray-50">
                       <td className="px-6 py-4">{product.name}</td>
                       <td className="px-6 py-4">{product.original_price} {product.currency}</td>
                       <td className="px-6 py-4">{product.discounted_price} {product.currency}</td>
                       <td className="px-6 py-4">
                         {format(new Date(product.created_at), "d MMMM yyyy", {
-                      locale: fr
-                    })}
+                          locale: fr
+                        })}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2">
-                          <Button variant="outline" size="icon" onClick={() => toggleVisibility(product.id, product.is_visible)} title={product.is_visible ? "Masquer" : "Afficher"}>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={() => toggleVisibility(product.id, product.is_visible)} 
+                            title={product.is_visible ? "Masquer" : "Afficher"}
+                          >
                             {product.is_visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                           </Button>
-                          <Button variant="outline" size="icon" onClick={() => copyToClipboard(product.id)} title="Copier l'URL">
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={() => copyToClipboard(product.id)} 
+                            title="Copier l'URL"
+                          >
                             <Copy className="h-4 w-4" />
                           </Button>
-                          <Button variant="outline" size="icon" onClick={() => handleEdit(product)} title="Modifier">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="destructive" size="icon" onClick={() => handleDelete(product.id)} title="Supprimer">
+                          
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="icon" title="Options">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={() => handleEdit(product)}>
+                                Modifier
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handlePreview(product.id)}>
+                                Aperçu
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          
+                          <Button 
+                            variant="destructive" 
+                            size="icon" 
+                            onClick={() => handleDelete(product.id)} 
+                            title="Supprimer"
+                          >
                             <Trash className="h-4 w-4" />
                           </Button>
                         </div>
                       </td>
-                    </tr>)}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default ProductForm;
