@@ -1,330 +1,261 @@
-
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import Navbar from "@/components/Navbar";
-import PromoBar from "@/components/PromoBar";
-import { Input } from "@/components/ui/input";
-import { Search, Star } from "lucide-react";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { useState, useEffect } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
-import Footer from "@/components/Footer";
-import { defaultSettings, ProductsPageSettings } from "@/models/products-page-settings";
+import { toast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsAuthenticated } from "react-auth-kit";
 
-// Workaround interface for raw Supabase response
-interface RawSettingsResponse {
-  id?: string;
-  hero_banner_image?: string;
-  hero_banner_title?: string;
-  hero_banner_description?: string;
-  section_titles?: Record<string, string>;
-  items_per_page?: number;
-  show_ratings?: boolean;
-  show_search?: boolean;
-  show_categories?: boolean;
-  show_filters?: boolean;
-  background_color?: string;
-  categories?: string[];
-  created_at?: string;
-  updated_at?: string;
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import PromoBar from "@/components/PromoBar";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import ProductCard from "@/components/ProductCard";
+import ProductFormClone from "@/components/ProductFormClone";
+import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
+import EditProductDropdown from "@/components/EditProductDropdown";
+
+interface Product {
+  id: string;
+  name: string;
+  original_price: number;
+  discounted_price: number;
+  description: string;
+  cart_url: string;
+  images: string[];
+  theme_color: string;
+  button_text: string;
+  currency: Database['public']['Enums']['currency_code'];
+  options?: Record<string, any> | null;
+  use_internal_cart?: boolean;
+  hide_promo_bar?: boolean;
+}
+
+interface ProductsPageSettings {
+  id: string;
+  background_color: string;
+  hero_banner_image: string;
+  hero_banner_title: string;
+  hero_banner_description: string;
+  section_titles: Record<string, string>;
+  categories: string[];
+  show_search: boolean;
+  show_categories: boolean;
+  show_ratings: boolean;
+  show_filters: boolean;
+  items_per_page: number;
 }
 
 const Products = () => {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<ProductsPageSettings | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState("Tout");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [settings, setSettings] = useState<ProductsPageSettings>(defaultSettings);
-  
-  // Fetch page settings - use a fetch function that doesn't rely on the database schema
-  const { data: pageSettings } = useQuery({
-    queryKey: ["products-page-settings"],
-    queryFn: async () => {
-      try {
-        // Use raw query without type checking
-        const { data, error } = await supabase
-          .from('products_page_settings')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+  const [showEdit, setShowEdit] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const isAuthenticated = useIsAuthenticated();
+  const isMobile = useIsMobile();
+  const { toast } = useToast();
 
-        if (error) {
-          console.error("Error fetching page settings:", error);
-          return defaultSettings;
-        }
-
-        // Map raw response to our type
-        const rawData = data as RawSettingsResponse;
-        const mappedData: ProductsPageSettings = {
-          id: rawData.id,
-          hero_banner_image: rawData.hero_banner_image || defaultSettings.hero_banner_image,
-          hero_banner_title: rawData.hero_banner_title || defaultSettings.hero_banner_title,
-          hero_banner_description: rawData.hero_banner_description || defaultSettings.hero_banner_description,
-          section_titles: rawData.section_titles || defaultSettings.section_titles,
-          items_per_page: rawData.items_per_page || defaultSettings.items_per_page,
-          show_ratings: rawData.show_ratings !== undefined ? rawData.show_ratings : defaultSettings.show_ratings,
-          show_search: rawData.show_search !== undefined ? rawData.show_search : defaultSettings.show_search,
-          show_categories: rawData.show_categories !== undefined ? rawData.show_categories : defaultSettings.show_categories,
-          show_filters: rawData.show_filters !== undefined ? rawData.show_filters : defaultSettings.show_filters,
-          background_color: rawData.background_color || defaultSettings.background_color,
-          categories: rawData.categories || defaultSettings.categories,
-          created_at: rawData.created_at,
-          updated_at: rawData.updated_at
-        };
-        
-        return mappedData;
-      } catch (error) {
-        console.error("Error fetching settings:", error);
-        return defaultSettings;
-      }
-    },
-  });
+  const itemsPerPage = settings?.items_per_page || 8;
 
   useEffect(() => {
-    if (pageSettings) {
-      setSettings(pageSettings);
-    }
-  }, [pageSettings]);
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        let query = supabase.from("products").select("*").eq("is_visible", true);
 
-  // Fetch products
-  const {
-    data: products,
-    isLoading
-  } = useQuery({
-    queryKey: ["products", searchQuery, selectedCategory],
-    queryFn: async () => {
-      let query = supabase.from("products").select("*").eq('is_visible', true).order("created_at", {
-        ascending: false
-      });
-      
-      if (searchQuery) {
-        query = query.ilike("name", `%${searchQuery}%`);
+        if (selectedCategory !== "Tout") {
+          query = query.like("categories", `%${selectedCategory}%`);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+
+        setProducts(data as Product[]);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        toast({
+          title: "Erreur",
+          description: "Erreur lors du chargement des produits",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
-      
-      if (selectedCategory && selectedCategory !== "all" && selectedCategory !== "Tout") {
-        query = query.ilike("category", `%${selectedCategory}%`);
+    };
+
+    fetchProducts();
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("products_page_settings")
+          .select("*")
+          .eq("id", "default")
+          .single();
+
+        if (error) throw error;
+
+        setSettings(data as ProductsPageSettings);
+      } catch (error) {
+        console.error("Error fetching products page settings:", error);
+        toast({
+          title: "Erreur",
+          description: "Erreur lors du chargement des paramètres de la page produits",
+          variant: "destructive",
+        });
       }
-      
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    }
-  });
+    };
 
-  // Filter products based on search and category
-  const filteredProducts = products || [];
+    fetchSettings();
+  }, []);
 
-  // Pagination logic
-  const productsPerPage = settings.items_per_page;
-  const indexOfLastProduct = currentPage * productsPerPage;
-  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
-  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
-
-  // Generate page numbers for pagination
-  const pageNumbers = [];
-  for (let i = 1; i <= totalPages; i++) {
-    pageNumbers.push(i);
-  }
-  
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo(0, 0);
-  };
-  
-  const handleCategoryChange = (category: string) => {
+  const handleCategoryClick = (category: string) => {
     setSelectedCategory(category);
     setCurrentPage(1);
   };
 
-  // Function to render star ratings
-  const renderStars = (rating: number) => {
-    const stars = [];
-    for (let i = 0; i < 5; i++) {
-      stars.push(
-        <Star 
-          key={i} 
-          size={12} 
-          className={i < Math.floor(rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} 
-        />
-      );
-    }
-    return stars;
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white">
-        <PromoBar />
-        <Navbar />
-        <div className="container mx-auto py-12 px-4">
-          <div className="text-center">Chargement...</div>
-        </div>
-      </div>
-    );
-  }
+  const handleCreateSuccess = () => {
+    setShowEdit(false);
+    setSelectedProductId(null);
+    // Refresh products after creating a new one
+    window.location.reload();
+  };
+
+  const handleEdit = (id: string) => {
+    setShowEdit(true);
+    setSelectedProductId(id);
+  };
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const displayedProducts = products.slice(startIndex, endIndex);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: settings.background_color || "#fdf7f7" }}>
+    <div className="min-h-screen" style={{ backgroundColor: settings?.background_color || "#f1eee9" }}>
       <PromoBar />
       <Navbar />
-      
-      {/* Hero Banner */}
-      <div className="relative w-full h-[400px] overflow-hidden">
-        <img 
-          src={settings.hero_banner_image} 
-          alt={settings.hero_banner_title} 
-          className="w-full h-full object-cover"
-        />
-      </div>
-      
-      <div className="container mx-auto py-8 px-4">
-        {/* Search and Filter */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          {settings.show_search && (
-            <div className="relative w-full md:w-auto">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <Input
-                type="text"
-                placeholder="Rechercher..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 rounded-full border-gray-300 w-full md:w-[300px]"
-              />
-            </div>
-          )}
-          
-          {settings.show_categories && (
-            <Tabs defaultValue={settings.categories[0]} className="w-full md:w-auto">
-              <TabsList className="bg-transparent border border-gray-200 rounded-full p-1">
-                {settings.categories.map((category) => (
-                  <TabsTrigger
-                    key={category}
-                    value={category}
-                    onClick={() => handleCategoryChange(category)}
-                    className="rounded-full px-4 py-1 data-[state=active]:bg-black data-[state=active]:text-white"
-                  >
-                    {category}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          )}
-        </div>
 
-        {/* New Arrivals Section */}
-        <div className="mb-12">
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-[#fdf7f7] px-6 text-lg font-medium text-gray-900 flex items-center" style={{ backgroundColor: settings.background_color }}>
-                <span className="text-2xl font-serif italic mr-2">A</span>
-                {settings.section_titles.new_arrivals}
-              </span>
-            </div>
+      <main className="container mx-auto py-4 md:py-8 px-4">
+        <section
+          className="relative py-12 md:py-24 text-center text-white"
+          style={{
+            backgroundImage: `url(${settings?.hero_banner_image})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        >
+          <div className="absolute inset-0 bg-black opacity-40"></div>
+          <div className="relative z-10">
+            <h1 className="text-3xl md:text-5xl font-bold mb-4">
+              {settings?.hero_banner_title}
+            </h1>
+            <p className="text-lg md:text-xl">{settings?.hero_banner_description}</p>
           </div>
+        </section>
 
-          {/* Products Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {currentProducts.map((product) => (
-              <Link key={product.id} to={`/product/${product.id}`}>
-                <Card className="rounded-lg overflow-hidden border border-gray-200 transition-all duration-300 hover:shadow-md hover:-translate-y-1">
-                  <div className="relative">
-                    {product.discounted_price < product.original_price && (
-                      <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                        Sale
-                      </div>
-                    )}
-                    <div className="h-48 overflow-hidden bg-gray-100">
-                      <img
-                        src={product.images && product.images.length > 0 ? product.images[0] : "/placeholder.svg"}
-                        alt={product.name}
-                        className="w-full h-full object-contain transition-transform duration-300 hover:scale-105"
-                      />
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-serif text-sm uppercase tracking-wider text-center mb-2">{product.name}</h3>
-                    {settings.show_ratings && (
-                      <div className="flex justify-center mb-2">
-                        {renderStars(4.5)}
-                      </div>
-                    )}
-                    <div className="flex justify-center gap-2 items-center">
-                      {product.discounted_price < product.original_price ? (
-                        <>
-                          <span className="text-gray-400 line-through text-sm">{product.original_price}</span>
-                          <span className="font-medium text-red-600">{product.discounted_price} {product.currency}</span>
-                        </>
-                      ) : (
-                        <span className="font-medium">{product.original_price} {product.currency}</span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+        {settings?.show_categories && (
+          <div className="flex justify-center space-x-4 py-6">
+            {settings?.categories.map((category) => (
+              <Button
+                key={category}
+                variant={selectedCategory === category ? "default" : "outline"}
+                onClick={() => handleCategoryClick(category)}
+              >
+                {category}
+              </Button>
             ))}
           </div>
-        </div>
+        )}
 
-        {/* Fall & Winter Fragrances Section */}
-        {filteredProducts.length > productsPerPage && (
-          <div className="mb-12">
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center">
-                <span className="bg-[#fdf7f7] px-6 text-lg font-medium text-gray-900 flex items-center" style={{ backgroundColor: settings.background_color }}>
-                  <span className="text-2xl font-serif italic mr-2">A</span>
-                  {settings.section_titles.seasonal}
-                </span>
-              </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+          {products.map((product) => (
+            <div 
+              key={product.id} 
+              className="group relative bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow"
+            >
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                name={product.name}
+                originalPrice={product.original_price}
+                discountedPrice={product.discounted_price}
+                description={product.description}
+                cartUrl={product.cart_url}
+                images={product.images}
+                themeColor={product.theme_color}
+                buttonText={product.button_text}
+                currency={product.currency}
+                options={product.options || {}}
+                useInternalCart={product.use_internal_cart}
+                hidePromoBar={product.hide_promo_bar}
+              />
+              
+              {isAuthenticated && (
+                <div className="absolute top-2 right-2 z-10">
+                  <EditProductDropdown 
+                    productId={product.id} 
+                    onEdit={() => handleEdit(product.id)} 
+                  />
+                </div>
+              )}
+              
             </div>
-          </div>
-        )}
+          ))}
+        </div>
         
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <Pagination className="my-8">
-            <PaginationContent>
-              {currentPage > 1 && (
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    className="cursor-pointer"
-                  />
-                </PaginationItem>
-              )}
-              
-              {pageNumbers.map((page) => (
-                <PaginationItem key={page}>
-                  <PaginationLink
-                    isActive={currentPage === page}
-                    onClick={() => handlePageChange(page)}
-                    className="cursor-pointer"
-                  >
-                    {page}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
-              
-              {currentPage < totalPages && (
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    className="cursor-pointer"
-                  />
-                </PaginationItem>
-              )}
-            </PaginationContent>
-          </Pagination>
-        )}
-      </div>
+        <div className="flex justify-center mt-8">
+          {Array.from({ length: Math.ceil(products.length / itemsPerPage) }, (_, i) => i + 1).map(
+            (page) => (
+              <Button
+                key={page}
+                variant={currentPage === page ? "default" : "outline"}
+                onClick={() => handlePageChange(page)}
+              >
+                {page}
+              </Button>
+            )
+          )}
+        </div>
+      </main>
+      
+      <Sheet open={showEdit} onOpenChange={setShowEdit}>
+        <SheetTrigger asChild>
+          <Button variant="outline">Modifier</Button>
+        </SheetTrigger>
+        <SheetContent side="right" className="w-full sm:w-[600px]">
+          <SheetHeader>
+            <SheetTitle>Modifier le produit</SheetTitle>
+            <SheetDescription>
+              Effectuez les modifications ici. Cliquez sur Enregistrer lorsque vous
+              avez terminé.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4">
+            <ProductFormClone
+              productId={selectedProductId}
+              onSuccess={handleCreateSuccess}
+              onCancel={() => setShowEdit(false)}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
       
       <Footer />
     </div>

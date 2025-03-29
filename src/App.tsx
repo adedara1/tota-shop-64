@@ -10,6 +10,7 @@ import Products from "./pages/Products";
 import NotFound from "./pages/NotFound";
 import ProductForm from "./pages/ProductForm";
 import ProductDetail from "./pages/ProductDetail";
+import ProductPreview from "./pages/ProductPreview";
 import Payment from "./pages/Payment";
 import Contact from "./pages/Contact";
 import Auth from "./pages/Auth";
@@ -100,6 +101,14 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <ProductForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/product-preview/:id"
+              element={
+                <ProtectedRoute>
+                  <ProductPreview />
                 </ProtectedRoute>
               }
             />

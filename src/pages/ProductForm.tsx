@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -42,7 +41,7 @@ const ProductForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState<ProductData>({
+  const [product, setProduct] = useState<ProductData>({
     name: "",
     description: "",
     original_price: 0,
@@ -64,46 +63,47 @@ const ProductForm = () => {
   const [featuredImageIndex, setFeaturedImageIndex] = useState(0);
   const [isEditing, setIsEditing] = useState(!id);
 
-  // Fetch product data if we're editing an existing product
-  useEffect(() => {
-    const fetchProduct = async () => {
-      if (id) {
-        try {
-          const { data, error } = await supabase
-            .from("products")
-            .select("*")
-            .eq("id", id)
-            .single();
+  const fetchProduct = async (id: string) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
 
-          if (error) throw error;
-          
-          setFormData({
-            id: data.id,
-            name: data.name,
-            description: data.description,
-            original_price: data.original_price,
-            discounted_price: data.discounted_price,
-            currency: data.currency,
-            images: data.images || [],
-            cart_url: data.cart_url,
-            button_text: data.button_text,
-            theme_color: data.theme_color || "#f1eee9",
-            options: data.options || {},
-            use_internal_cart: data.use_internal_cart || false,
-            hide_promo_bar: data.hide_promo_bar || false
-          });
-        } catch (error) {
-          console.error("Error fetching product:", error);
-          toast({
-            title: "Erreur",
-            description: "Impossible de charger le produit",
-            variant: "destructive",
-          });
-        }
+      if (error) throw error;
+      if (!data) {
+        toast({
+          title: "Erreur",
+          description: "Produit non trouvé",
+          variant: "destructive",
+        });
+        return;
       }
-    };
 
-    fetchProduct();
+      const options = data.options as Record<string, any> | null;
+      
+      setProduct({
+        ...data,
+        options
+      });
+    } catch (error) {
+      console.error("Error fetching product:", error);
+      toast({
+        title: "Erreur",
+        description: "Échec du chargement du produit",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (id) {
+      fetchProduct(id);
+    }
   }, [id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,16 +113,14 @@ const ProductForm = () => {
     try {
       let result;
       if (id) {
-        // Update existing product
         result = await supabase
           .from("products")
-          .update(formData)
+          .update(product)
           .eq("id", id);
       } else {
-        // Insert new product
         result = await supabase
           .from("products")
-          .insert(formData);
+          .insert(product);
       }
 
       if (result.error) throw result.error;
@@ -135,7 +133,6 @@ const ProductForm = () => {
       });
 
       if (!id) {
-        // If this was a new product, navigate to the products list
         navigate("/products");
       }
     } catch (error) {
@@ -154,26 +151,26 @@ const ProductForm = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setProduct((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSwitchChange = (name: string, checked: boolean) => {
-    setFormData((prev) => ({ ...prev, [name]: checked }));
+    setProduct((prev) => ({ ...prev, [name]: checked }));
   };
 
   const handleNumberInputChange = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: parseFloat(value) || 0 }));
+    setProduct((prev) => ({ ...prev, [name]: parseFloat(value) || 0 }));
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setProduct((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleEditorChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, description: value }));
+    setProduct((prev) => ({ ...prev, description: value }));
   };
 
   const addOption = () => {
@@ -186,7 +183,7 @@ const ProductForm = () => {
       return;
     }
 
-    setFormData((prev) => {
+    setProduct((prev) => {
       const updatedOptions = { ...prev.options };
       if (!updatedOptions[addingOptionType]) {
         updatedOptions[addingOptionType] = [];
@@ -194,13 +191,11 @@ const ProductForm = () => {
       
       if (addingOptionValue.trim()) {
         if (addingImageUrl.trim()) {
-          // Add option with image
           updatedOptions[addingOptionType].push({
             value: addingOptionValue,
             image: addingImageUrl
           });
         } else {
-          // Add simple option
           updatedOptions[addingOptionType].push(addingOptionValue);
         }
       }
@@ -208,20 +203,18 @@ const ProductForm = () => {
       return { ...prev, options: updatedOptions };
     });
 
-    // Reset input fields
     setAddingOptionValue("");
     setAddingImageUrl("");
   };
 
   const removeOption = (optionType: string, index: number) => {
-    setFormData((prev) => {
+    setProduct((prev) => {
       const updatedOptions = { ...prev.options };
       if (updatedOptions[optionType]) {
         updatedOptions[optionType] = updatedOptions[optionType].filter(
           (_, i) => i !== index
         );
         
-        // Remove the option type if there are no more values
         if (updatedOptions[optionType].length === 0) {
           delete updatedOptions[optionType];
         }
@@ -231,7 +224,7 @@ const ProductForm = () => {
   };
 
   const removeOptionType = (optionType: string) => {
-    setFormData((prev) => {
+    setProduct((prev) => {
       const updatedOptions = { ...prev.options };
       delete updatedOptions[optionType];
       return { ...prev, options: updatedOptions };
@@ -241,7 +234,7 @@ const ProductForm = () => {
   const addImage = (url: string) => {
     if (!url.trim()) return;
     
-    setFormData((prev) => ({
+    setProduct((prev) => ({
       ...prev,
       images: [...prev.images, url]
     }));
@@ -250,7 +243,7 @@ const ProductForm = () => {
   };
 
   const removeImage = (index: number) => {
-    setFormData((prev) => ({
+    setProduct((prev) => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index)
     }));
@@ -268,7 +261,6 @@ const ProductForm = () => {
     }
   };
 
-  // Toggle editing mode
   const toggleEditing = () => {
     setIsEditing(!isEditing);
   };
@@ -312,7 +304,7 @@ const ProductForm = () => {
       {!isEditing && id ? (
         <div className="bg-gray-50 p-6 rounded-lg">
           <div className="text-center">
-            <h2 className="text-xl font-medium">{formData.name}</h2>
+            <h2 className="text-xl font-medium">{product.name}</h2>
             <p className="text-gray-500 mt-2">
               Mode lecture seule. Cliquez sur le bouton "Modifier" pour apporter des modifications.
             </p>
@@ -340,7 +332,7 @@ const ProductForm = () => {
                     <Input
                       id="name"
                       name="name"
-                      value={formData.name}
+                      value={product.name}
                       onChange={handleInputChange}
                       placeholder="Nom du produit"
                     />
@@ -352,7 +344,7 @@ const ProductForm = () => {
                       id="theme_color"
                       name="theme_color"
                       type="color"
-                      value={formData.theme_color}
+                      value={product.theme_color}
                       onChange={handleInputChange}
                       className="h-10"
                     />
@@ -366,7 +358,7 @@ const ProductForm = () => {
                       id="original_price"
                       name="original_price"
                       type="number"
-                      value={formData.original_price}
+                      value={product.original_price}
                       onChange={handleNumberInputChange}
                     />
                   </div>
@@ -377,7 +369,7 @@ const ProductForm = () => {
                       id="discounted_price"
                       name="discounted_price"
                       type="number"
-                      value={formData.discounted_price}
+                      value={product.discounted_price}
                       onChange={handleNumberInputChange}
                     />
                   </div>
@@ -385,7 +377,7 @@ const ProductForm = () => {
                   <div>
                     <Label htmlFor="currency">Devise</Label>
                     <Select 
-                      value={formData.currency}
+                      value={product.currency}
                       onValueChange={(value) => handleSelectChange("currency", value)}
                     >
                       <SelectTrigger>
@@ -404,7 +396,7 @@ const ProductForm = () => {
                 <div>
                   <Label htmlFor="description">Description</Label>
                   <RichTextEditor 
-                    value={formData.description} 
+                    value={product.description} 
                     onChange={handleEditorChange} 
                   />
                 </div>
@@ -412,7 +404,7 @@ const ProductForm = () => {
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id="hide_promo_bar"
-                    checked={formData.hide_promo_bar}
+                    checked={product.hide_promo_bar}
                     onCheckedChange={(checked) => handleSwitchChange("hide_promo_bar", checked as boolean)}
                   />
                   <Label htmlFor="hide_promo_bar">Masquer la barre de promotion</Label>
@@ -441,7 +433,7 @@ const ProductForm = () => {
                     </div>
                     
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                      {formData.images.map((url, index) => (
+                      {product.images.map((url, index) => (
                         <div 
                           key={index} 
                           className={`relative group border rounded-md overflow-hidden ${
@@ -508,7 +500,7 @@ const ProductForm = () => {
                     </div>
                     
                     <div className="space-y-6">
-                      {Object.entries(formData.options || {}).map(([optionType, values]) => (
+                      {Object.entries(product.options || {}).map(([optionType, values]) => (
                         <div key={optionType} className="border p-4 rounded-md">
                           <div className="flex justify-between items-center mb-2">
                             <h3 className="font-medium">{optionType}</h3>
@@ -546,7 +538,7 @@ const ProductForm = () => {
                         </div>
                       ))}
                       
-                      {Object.keys(formData.options || {}).length === 0 && (
+                      {Object.keys(product.options || {}).length === 0 && (
                         <div className="text-center py-4 text-gray-500">
                           Aucune option ajoutée
                         </div>
@@ -563,7 +555,7 @@ const ProductForm = () => {
                     <Input
                       id="cart_url"
                       name="cart_url"
-                      value={formData.cart_url}
+                      value={product.cart_url}
                       onChange={handleInputChange}
                       placeholder="https://exemple.com/panier"
                     />
@@ -577,7 +569,7 @@ const ProductForm = () => {
                     <Input
                       id="button_text"
                       name="button_text"
-                      value={formData.button_text}
+                      value={product.button_text}
                       onChange={handleInputChange}
                       placeholder="Ajouter au panier"
                     />
@@ -586,13 +578,13 @@ const ProductForm = () => {
                   <div className="flex items-center space-x-2">
                     <Switch 
                       id="use_internal_cart"
-                      checked={formData.use_internal_cart}
+                      checked={product.use_internal_cart}
                       onCheckedChange={(checked) => handleSwitchChange("use_internal_cart", checked)}
                     />
                     <Label htmlFor="use_internal_cart">Utiliser le panier interne</Label>
                   </div>
                   
-                  {formData.use_internal_cart && (
+                  {product.use_internal_cart && (
                     <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-md">
                       <p className="text-sm text-yellow-800">
                         Les clients seront redirigés vers la page de paiement intégrée.
@@ -610,10 +602,10 @@ const ProductForm = () => {
               <CardContent className="pt-6">
                 <h3 className="font-medium mb-4">Aperçu du produit</h3>
                 
-                {formData.images.length > 0 ? (
+                {product.images.length > 0 ? (
                   <img
-                    src={formData.images[0]}
-                    alt={formData.name}
+                    src={product.images[0]}
+                    alt={product.name}
                     className="w-full h-40 object-cover rounded-md mb-3"
                   />
                 ) : (
@@ -622,22 +614,22 @@ const ProductForm = () => {
                   </div>
                 )}
                 
-                <h4 className="font-bold">{formData.name || "Nom du produit"}</h4>
+                <h4 className="font-bold">{product.name || "Nom du produit"}</h4>
                 
                 <div className="flex gap-2 mt-1">
                   <span className="line-through text-gray-400">
-                    {formData.original_price} {formData.currency}
+                    {product.original_price} {product.currency}
                   </span>
                   <span className="font-medium">
-                    {formData.discounted_price} {formData.currency}
+                    {product.discounted_price} {product.currency}
                   </span>
                 </div>
                 
-                {Object.keys(formData.options || {}).length > 0 && (
+                {Object.keys(product.options || {}).length > 0 && (
                   <div className="mt-3">
                     <h5 className="text-sm font-medium mb-1">Options:</h5>
                     <div className="text-sm text-gray-600">
-                      {Object.entries(formData.options || {}).map(([type, values]) => (
+                      {Object.entries(product.options || {}).map(([type, values]) => (
                         <div key={type} className="mb-1">
                           <span className="font-medium">{type}:</span>{" "}
                           {values.map(v => typeof v === 'object' ? v.value : v).join(", ")}
@@ -672,23 +664,23 @@ const ProductForm = () => {
                     <div className="flex items-center">
                       <div
                         className="w-4 h-4 rounded-full mr-2"
-                        style={{ backgroundColor: formData.theme_color }}
+                        style={{ backgroundColor: product.theme_color }}
                       ></div>
-                      <span>{formData.theme_color}</span>
+                      <span>{product.theme_color}</span>
                     </div>
                   </div>
                   
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Mode panier:</span>
                     <span>
-                      {formData.use_internal_cart ? "Interne" : "Externe"}
+                      {product.use_internal_cart ? "Interne" : "Externe"}
                     </span>
                   </div>
 
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Barre promo:</span>
                     <span>
-                      {formData.hide_promo_bar ? "Masquée" : "Visible"}
+                      {product.hide_promo_bar ? "Masquée" : "Visible"}
                     </span>
                   </div>
                 </div>
