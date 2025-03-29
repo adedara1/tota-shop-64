@@ -72,6 +72,33 @@ const ProductOptions = ({
           </Toggle>
         ))}
       </div>
+      
+      {/* Option images displayed as circular buttons */}
+      {normalizedOptions.some(opt => opt.image) && (
+        <div className="flex flex-wrap gap-3 mt-3">
+          {normalizedOptions
+            .filter(opt => opt.image)
+            .map((option, idx) => (
+              <button
+                key={`img-${idx}-${option.value}`}
+                onClick={() => handleSelect(option)}
+                className={cn(
+                  "w-14 h-14 rounded-full overflow-hidden border-2 transition-all",
+                  selected === option.value 
+                    ? "border-black scale-110" 
+                    : "border-gray-200 hover:border-gray-400"
+                )}
+                title={option.value}
+              >
+                <img 
+                  src={option.image} 
+                  alt={option.value}
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            ))}
+        </div>
+      )}
     </div>
   );
 };

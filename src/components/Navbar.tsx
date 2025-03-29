@@ -45,7 +45,7 @@ const Navbar = ({ cartCount = 0 }: NavbarProps) => {
   };
 
   return (
-    <nav className="py-6 relative">
+    <nav className="py-6 relative bg-white">
       <div className="container mx-auto flex justify-between items-center px-4">
         <Link to="/products" className="text-xl font-serif italic">
           Total-Service
