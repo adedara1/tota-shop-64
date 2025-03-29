@@ -44,7 +44,9 @@ export const initSupabase = async () => {
         const { error: insertError } = await supabase
           .from('products_page_settings')
           .insert({
+            id: 'default',
             background_color: '#f1eee9',
+            hero_banner_image: '',
             hero_banner_title: 'Bienvenue sur Total-Service',
             hero_banner_description: 'Découvrez nos nouveautés et best-sellers',
             section_titles: {
