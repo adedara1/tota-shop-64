@@ -25,7 +25,6 @@ interface Product {
   currency: Database['public']['Enums']['currency_code'];
   options?: Record<string, any> | null;
   use_internal_cart?: boolean;
-  hide_promo_bar?: boolean;
 }
 
 const ProductDetail = () => {
@@ -214,8 +213,8 @@ const ProductDetail = () => {
     : 0;
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color || "#000000" }}>
-      {!product.hide_promo_bar && <PromoBar />}
+    <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: "#000000" }}>
+      <PromoBar />
       <Navbar cartCount={cartCount} />
       <main className="container mx-auto py-4 md:py-12 px-4 max-w-[100vw]">
         <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-8 lg:gap-12`}>
