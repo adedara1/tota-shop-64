@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +57,7 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
   const [useInternalCart, setUseInternalCart] = useState(false);
   const [customUrl, setCustomUrl] = useState("");
   const [urlType, setUrlType] = useState<'whatsapp' | 'custom'>('whatsapp');
+  const [hidePromoBar, setHidePromoBar] = useState(false);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -208,10 +208,8 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
       let cartUrl = "";
       
       if (useInternalCart) {
-        // Si le panier interne est utilisé, on utilise une valeur spéciale
         cartUrl = "#internal";
       } else {
-        // Sinon on utilise soit l'URL WhatsApp, soit l'URL personnalisée
         if (urlType === 'custom' && customUrl) {
           cartUrl = customUrl;
         } else if (urlType === 'whatsapp') {
@@ -232,7 +230,8 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
         button_text: formData.get("button_text") as string || "Contactez-nous sur WhatsApp",
         currency: formData.get("currency") as CurrencyCode || "XOF",
         options: optionTypes.length > 0 ? optionValues : null,
-        use_internal_cart: useInternalCart
+        use_internal_cart: useInternalCart,
+        hide_promo_bar: hidePromoBar
       };
 
       console.log("Saving product data:", productData);
@@ -329,6 +328,19 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
         />
         <Label htmlFor="use-internal-cart" className="font-medium cursor-pointer">
           Utiliser le panier interne du site
+        </Label>
+      </div>
+      
+      <div className="flex items-center space-x-2 my-4">
+        <Checkbox 
+          id="hide-promo-bar" 
+          checked={hidePromoBar} 
+          onCheckedChange={(checked) => {
+            setHidePromoBar(checked === true);
+          }}
+        />
+        <Label htmlFor="hide-promo-bar" className="font-medium cursor-pointer">
+          Masquer la barre d'annonce "Livraison GRATUITE"
         </Label>
       </div>
       

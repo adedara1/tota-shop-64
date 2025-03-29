@@ -64,14 +64,29 @@ const ProductOptions = ({
             )}
           >
             {option.value}
-            {option.image && (
-              <span className="ml-2">
-                <ImageIcon size={16} />
-              </span>
-            )}
           </Toggle>
         ))}
       </div>
+      
+      {/* Option Images displayed as circular buttons */}
+      {normalizedOptions.some(opt => opt.image) && (
+        <div className="mt-4 flex flex-wrap gap-3">
+          {normalizedOptions.filter(opt => opt.image).map((option) => (
+            <button
+              key={`img-${option.value}`}
+              onClick={() => handleSelect(option)}
+              className={cn(
+                "w-12 h-12 rounded-full bg-cover bg-center border-2 transition-all",
+                selected === option.value 
+                  ? "border-black scale-110" 
+                  : "border-gray-300 hover:border-gray-400"
+              )}
+              style={{ backgroundImage: option.image ? `url(${option.image})` : 'none' }}
+              title={option.value}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

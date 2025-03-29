@@ -25,6 +25,7 @@ interface Product {
   currency: Database['public']['Enums']['currency_code'];
   options?: Record<string, any> | null;
   use_internal_cart?: boolean;
+  hide_promo_bar?: boolean;
 }
 
 const ProductDetail = () => {
@@ -175,8 +176,10 @@ const ProductDetail = () => {
   if (loading) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: "#000000" }}>
-        <PromoBar />
-        <Navbar cartCount={cartCount} />
+        {!product?.hide_promo_bar && <PromoBar />}
+        <div className="bg-white">
+          <Navbar cartCount={cartCount} />
+        </div>
         <div className="container mx-auto py-12 px-4">
           <div className="text-center text-white">Chargement...</div>
         </div>
@@ -189,7 +192,9 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: "#000000" }}>
         <PromoBar />
-        <Navbar cartCount={cartCount} />
+        <div className="bg-white">
+          <Navbar cartCount={cartCount} />
+        </div>
         <div className="container mx-auto py-12 px-4 max-w-[100vw]">
           <div className="text-center text-white">
             <h2 className="text-2xl font-medium mb-4">Produit non trouvé</h2>
@@ -213,9 +218,11 @@ const ProductDetail = () => {
     : 0;
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: "#000000" }}>
-      <PromoBar />
-      <Navbar cartCount={cartCount} />
+    <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color || "#000000" }}>
+      {!product.hide_promo_bar && <PromoBar />}
+      <div className="bg-white">
+        <Navbar cartCount={cartCount} />
+      </div>
       <main className="container mx-auto py-4 md:py-12 px-4 max-w-[100vw]">
         <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-8 lg:gap-12`}>
           <ProductGallery images={displayImages} />
