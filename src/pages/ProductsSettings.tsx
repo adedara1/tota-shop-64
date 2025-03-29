@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,7 +29,6 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { defaultSettings, ProductsPageSettings } from "@/models/products-page-settings";
 
-// We use this workaround since the table may not exist in type definitions
 interface RawSettingsResponse {
   id?: string;
   hero_banner_image?: string;
@@ -74,7 +72,6 @@ const ProductsSettings = () => {
         .rpc('table_exists', { table_name: 'products_page_settings' });
       
       if (error || !data) {
-        // Try a simpler approach
         const { count, error: countError } = await supabase
           .from('products_page_settings')
           .select('*', { count: 'exact', head: true });
@@ -99,9 +96,11 @@ const ProductsSettings = () => {
       const { data, error } = await supabase
         .from('products_page_settings')
         .insert({
+          id: 'default',
           background_color: '#f1eee9',
           hero_banner_title: 'Notre Collection',
           hero_banner_description: 'Découvrez nos nouveautés et best-sellers',
+          hero_banner_image: '',
           section_titles: {
             new_arrivals: 'Nouveautés',
             best_sellers: 'Meilleures ventes',
@@ -153,7 +152,6 @@ const ProductsSettings = () => {
     initialize();
   }, []);
 
-  // Fetch real products for preview
   useEffect(() => {
     const fetchProducts = async () => {
       setIsLoadingProducts(true);
@@ -189,7 +187,6 @@ const ProductsSettings = () => {
           return defaultSettings;
         }
         
-        // Use raw Supabase query to be more flexible
         const { data, error } = await supabase
           .from('products_page_settings')
           .select('*')
@@ -206,7 +203,6 @@ const ProductsSettings = () => {
           return defaultSettings;
         }
 
-        // Map raw response to our type
         const rawData = data as RawSettingsResponse;
         const mappedData: ProductsPageSettings = {
           id: rawData.id,
@@ -263,9 +259,14 @@ const ProductsSettings = () => {
           .update(dataToSave)
           .eq("id", settings.id);
       } else {
+        const dataToInsert = {
+          ...dataToSave,
+          id: 'default',
+        };
+        
         response = await supabase
           .from('products_page_settings')
-          .insert([dataToSave]);
+          .insert([dataToInsert]);
       }
 
       if (response.error) {

@@ -216,7 +216,7 @@ const ProductDetail = () => {
   return (
     <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color || "#000000" }}>
       {!product.hide_promo_bar && <PromoBar />}
-      <Navbar cartCount={cartCount} />
+      <Navbar cartCount={cartCount} className="bg-white" />
       <main className="container mx-auto py-4 md:py-12 px-4 max-w-[100vw]">
         <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-8 lg:gap-12`}>
           <ProductGallery images={displayImages} />
