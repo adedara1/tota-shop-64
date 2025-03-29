@@ -165,7 +165,6 @@ export type Database = {
           currency: Database["public"]["Enums"]["currency_code"]
           description: string
           discounted_price: number
-          hide_promo_bar: boolean | null
           id: string
           images: string[]
           is_visible: boolean
@@ -184,7 +183,6 @@ export type Database = {
           currency?: Database["public"]["Enums"]["currency_code"]
           description: string
           discounted_price: number
-          hide_promo_bar?: boolean | null
           id?: string
           images: string[]
           is_visible?: boolean
@@ -203,7 +201,6 @@ export type Database = {
           currency?: Database["public"]["Enums"]["currency_code"]
           description?: string
           discounted_price?: number
-          hide_promo_bar?: boolean | null
           id?: string
           images?: string[]
           is_visible?: boolean

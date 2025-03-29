@@ -1,696 +1,558 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "@/components/ui/checkbox";
-import RichTextEditor from "@/components/RichTextEditor";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import Navbar from "@/components/Navbar";
+import RichTextEditor from "@/components/RichTextEditor";
+import ColorSelector from "@/components/ColorSelector";
+import { Copy, Edit, Eye, EyeOff, Plus, Trash } from "lucide-react";
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Database } from "@/integrations/supabase/types";
-import { Undo2, Plus, X, Edit, Eye } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-
-type Currency = Database['public']['Enums']['currency_code'];
-
-interface ProductData {
-  id?: string;
+import ProductFormClone from "@/components/ProductFormClone";
+import { Toggle } from "@/components/ui/toggle";
+type CurrencyCode = Database['public']['Enums']['currency_code'];
+const COLOR_PALETTES = {
+  blue: ['#0000FF', '#79F8F8', '#007FFF', '#1E7FCB', '#74D0F1', '#A9EAFE', '#3A8EBA'],
+  white: ['#FFFFFF', '#FEFEFE', '#EFEFEF', '#F0FFFF', '#F5F5DC', '#FEFEE2'],
+  brown: ['#5B3C11', '#88421D', '#A76726', '#F0C300', '#9D3E0C', '#8B6C42', '#C8AD7F'],
+  gray: ['#606060', '#5A5E6B', '#CECECE', '#EFEFEF', '#766F64', '#3D2B1F', '#856D4D'],
+  yellow: ['#FFFF00', '#F0C300', '#FFCB60', '#F0E36B', '#FFF48D', '#E8D630', '#E2BC74'],
+  black: ['#000000', '#2C030B', '#3A020D', '#0B1616', '#120D16', '#130E0A'],
+  orange: ['#ED7F10', '#E67E30', '#FFCB60', '#F1E2BE', '#FFE4C4', '#F4661B', '#DF6D14'],
+  pink: ['#FD6C9E', '#FFE4C4', '#DE3163', '#FEC3AC', '#FDE9E0', '#FEE7F0', '#C72C48'],
+  red: ['#FF0000', '#91283B', '#6D071A', '#842E1B', '#BB0B0B', '#E73E01', '#ED0000'],
+  green: ['#00FF00', '#79F8F8', '#7BA05B', '#008E8E', '#048B9A', '#83A697', '#80D0D0']
+};
+const ALL_COLORS = Object.values(COLOR_PALETTES).flat();
+const CURRENCIES = [{
+  code: 'XOF' as CurrencyCode,
+  label: 'Franc CFA (XOF) - UEMOA'
+}, {
+  code: 'XAF' as CurrencyCode,
+  label: 'Franc CFA (XAF) - CEMAC'
+}, {
+  code: 'ZAR' as CurrencyCode,
+  label: 'Rand sud-africain (ZAR)'
+}, {
+  code: 'MAD' as CurrencyCode,
+  label: 'Dirham marocain (MAD)'
+}, {
+  code: 'EGP' as CurrencyCode,
+  label: 'Livre égyptienne (EGP)'
+}, {
+  code: 'NGN' as CurrencyCode,
+  label: 'Naira nigérian (NGN)'
+}, {
+  code: 'KES' as CurrencyCode,
+  label: 'Shilling kényan (KES)'
+}, {
+  code: 'TND' as CurrencyCode,
+  label: 'Dinar tunisien (TND)'
+}, {
+  code: 'UGX' as CurrencyCode,
+  label: 'Shilling ougandais (UGX)'
+}, {
+  code: 'GHS' as CurrencyCode,
+  label: 'Cedi ghanéen (GHS)'
+}, {
+  code: 'USD' as CurrencyCode,
+  label: 'Dollar américain (USD)'
+}, {
+  code: 'EUR' as CurrencyCode,
+  label: 'Euro (EUR)'
+}];
+interface Product {
+  id: string;
   name: string;
-  description: string;
   original_price: number;
   discounted_price: number;
-  currency: Currency;
-  images: string[];
+  description: string;
   cart_url: string;
-  button_text: string;
+  images: string[];
   theme_color: string;
-  options?: Record<string, any>;
-  use_internal_cart: boolean;
-  hide_promo_bar?: boolean;
+  created_at: string;
+  is_visible: boolean;
+  button_text: string;
+  currency: CurrencyCode;
+  options?: Record<string, string[]>;
 }
-
 const ProductForm = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [product, setProduct] = useState<ProductData>({
-    name: "",
-    description: "",
-    original_price: 0,
-    discounted_price: 0,
-    currency: "XOF",
-    images: [],
-    cart_url: "",
-    button_text: "Ajouter au panier",
-    theme_color: "#f1eee9",
-    options: {},
-    use_internal_cart: false,
-    hide_promo_bar: false
-  });
-  const [colorOptions, setColorOptions] = useState<Record<string, string[]>>({});
-  const [activeTab, setActiveTab] = useState("general");
-  const [addingOptionType, setAddingOptionType] = useState("");
-  const [addingOptionValue, setAddingOptionValue] = useState("");
-  const [addingImageUrl, setAddingImageUrl] = useState("");
-  const [featuredImageIndex, setFeaturedImageIndex] = useState(0);
-  const [isEditing, setIsEditing] = useState(!id);
-
-  const fetchProduct = async (id: string) => {
-    setIsLoading(true);
+  const {
+    toast
+  } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [images, setImages] = useState<File[]>([]);
+  const [description, setDescription] = useState("");
+  const defaultColor = "#f1eee9";
+  const [selectedColor, setSelectedColor] = useState(defaultColor);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [showCloneForm, setShowCloneForm] = useState(false);
+  const [optionTypes, setOptionTypes] = useState<string[]>([]);
+  const [optionValues, setOptionValues] = useState<Record<string, string[]>>({});
+  const [newOptionType, setNewOptionType] = useState("");
+  const [newOptionValue, setNewOptionValue] = useState("");
+  const [editingOptionType, setEditingOptionType] = useState("");
+  const fetchProducts = async () => {
     try {
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
-
+      const {
+        data,
+        error
+      } = await supabase.from("products").select("*").order("created_at", {
+        ascending: false
+      });
       if (error) throw error;
-      if (!data) {
-        toast({
-          title: "Erreur",
-          description: "Produit non trouvé",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const options = data.options as Record<string, any> | null;
-      
-      setProduct({
-        ...data,
-        options
-      });
+      setProducts(data || []);
     } catch (error) {
-      console.error("Error fetching product:", error);
+      console.error("Error fetching products:", error);
       toast({
         title: "Erreur",
-        description: "Échec du chargement du produit",
-        variant: "destructive",
+        description: "Impossible de charger les produits",
+        variant: "destructive"
       });
-    } finally {
-      setIsLoading(false);
     }
   };
-
   useEffect(() => {
-    if (id) {
-      fetchProduct(id);
-    }
-  }, [id]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      let result;
-      if (id) {
-        result = await supabase
-          .from("products")
-          .update(product)
-          .eq("id", id);
-      } else {
-        result = await supabase
-          .from("products")
-          .insert(product);
-      }
-
-      if (result.error) throw result.error;
-      
-      toast({
-        title: "Succès",
-        description: id 
-          ? "Produit mis à jour avec succès" 
-          : "Produit créé avec succès",
-      });
-
-      if (!id) {
-        navigate("/products");
-      }
-    } catch (error) {
-      console.error("Error saving product:", error);
+    fetchProducts();
+  }, []);
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 4) {
       toast({
         title: "Erreur",
-        description: "Impossible de sauvegarder le produit",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setProduct((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSwitchChange = (name: string, checked: boolean) => {
-    setProduct((prev) => ({ ...prev, [name]: checked }));
-  };
-
-  const handleNumberInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const { name, value } = e.target;
-    setProduct((prev) => ({ ...prev, [name]: parseFloat(value) || 0 }));
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setProduct((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleEditorChange = (value: string) => {
-    setProduct((prev) => ({ ...prev, description: value }));
-  };
-
-  const addOption = () => {
-    if (!addingOptionType.trim()) {
-      toast({
-        title: "Champ requis",
-        description: "Veuillez saisir un type d'option",
-        variant: "destructive",
+        description: "Vous ne pouvez télécharger que 4 images maximum",
+        variant: "destructive"
       });
       return;
     }
-
-    setProduct((prev) => {
-      const updatedOptions = { ...prev.options };
-      if (!updatedOptions[addingOptionType]) {
-        updatedOptions[addingOptionType] = [];
-      }
-      
-      if (addingOptionValue.trim()) {
-        if (addingImageUrl.trim()) {
-          updatedOptions[addingOptionType].push({
-            value: addingOptionValue,
-            image: addingImageUrl
-          });
-        } else {
-          updatedOptions[addingOptionType].push(addingOptionValue);
-        }
-      }
-      
-      return { ...prev, options: updatedOptions };
-    });
-
-    setAddingOptionValue("");
-    setAddingImageUrl("");
+    setImages(files);
   };
-
-  const removeOption = (optionType: string, index: number) => {
-    setProduct((prev) => {
-      const updatedOptions = { ...prev.options };
-      if (updatedOptions[optionType]) {
-        updatedOptions[optionType] = updatedOptions[optionType].filter(
-          (_, i) => i !== index
-        );
-        
-        if (updatedOptions[optionType].length === 0) {
-          delete updatedOptions[optionType];
-        }
-      }
-      return { ...prev, options: updatedOptions };
-    });
-  };
-
-  const removeOptionType = (optionType: string) => {
-    setProduct((prev) => {
-      const updatedOptions = { ...prev.options };
-      delete updatedOptions[optionType];
-      return { ...prev, options: updatedOptions };
-    });
-  };
-
-  const addImage = (url: string) => {
-    if (!url.trim()) return;
-    
-    setProduct((prev) => ({
-      ...prev,
-      images: [...prev.images, url]
-    }));
-    
-    setAddingImageUrl("");
-  };
-
-  const removeImage = (index: number) => {
-    setProduct((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }));
-  };
-
-  const handlePreviewClick = () => {
-    if (id) {
-      window.open(`/product/${id}`, '_blank');
+  useEffect(() => {
+    if (editingProduct && editingProduct.options) {
+      const types = Object.keys(editingProduct.options);
+      setOptionTypes(types);
+      setOptionValues(editingProduct.options);
     } else {
-      toast({
-        title: "Enregistrement requis",
-        description: "Veuillez d'abord enregistrer ce produit pour pouvoir le prévisualiser.",
-        variant: "destructive",
+      setOptionTypes([]);
+      setOptionValues({});
+    }
+  }, [editingProduct]);
+  const addOptionType = () => {
+    if (newOptionType.trim() && !optionTypes.includes(newOptionType)) {
+      setOptionTypes([...optionTypes, newOptionType]);
+      setOptionValues({
+        ...optionValues,
+        [newOptionType]: []
+      });
+      setNewOptionType("");
+      setEditingOptionType(newOptionType);
+    }
+  };
+  const addOptionValue = () => {
+    if (editingOptionType && newOptionValue.trim() && !optionValues[editingOptionType]?.includes(newOptionValue)) {
+      setOptionValues({
+        ...optionValues,
+        [editingOptionType]: [...(optionValues[editingOptionType] || []), newOptionValue]
+      });
+      setNewOptionValue("");
+    }
+  };
+  const removeOptionType = (type: string) => {
+    const newTypes = optionTypes.filter(t => t !== type);
+    const newValues = {
+      ...optionValues
+    };
+    delete newValues[type];
+    setOptionTypes(newTypes);
+    setOptionValues(newValues);
+    if (editingOptionType === type) {
+      setEditingOptionType("");
+    }
+  };
+  const removeOptionValue = (type: string, value: string) => {
+    if (optionValues[type]) {
+      setOptionValues({
+        ...optionValues,
+        [type]: optionValues[type].filter(v => v !== value)
       });
     }
   };
-
-  const toggleEditing = () => {
-    setIsEditing(!isEditing);
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const formData = new FormData(e.currentTarget);
+      const imageUrls: string[] = [];
+      if (images.length > 0) {
+        for (const image of images) {
+          const fileName = `${crypto.randomUUID()}-${image.name}`;
+          console.log("Uploading image:", fileName);
+          const {
+            data: uploadData,
+            error: uploadError
+          } = await supabase.storage.from("products").upload(fileName, image);
+          if (uploadError) {
+            console.error("Error uploading image:", uploadError);
+            throw uploadError;
+          }
+          const {
+            data: {
+              publicUrl
+            }
+          } = supabase.storage.from("products").getPublicUrl(fileName);
+          console.log("Image uploaded successfully:", publicUrl);
+          imageUrls.push(publicUrl);
+        }
+      }
+      const productData = {
+        name: formData.get("name") as string,
+        original_price: parseInt(formData.get("original_price") as string),
+        discounted_price: parseInt(formData.get("discounted_price") as string),
+        description: description,
+        cart_url: formData.get("cart_url") as string,
+        theme_color: selectedColor,
+        images: imageUrls.length > 0 ? imageUrls : editingProduct?.images || [],
+        is_visible: editingProduct ? editingProduct.is_visible : true,
+        button_text: formData.get("button_text") as string || "Ajouter au panier",
+        currency: formData.get("currency") as CurrencyCode || "XOF",
+        options: optionTypes.length > 0 ? optionValues : null
+      };
+      console.log("Saving product data:", productData);
+      if (editingProduct) {
+        const {
+          error: updateError
+        } = await supabase.from("products").update(productData).eq("id", editingProduct.id);
+        if (updateError) {
+          console.error("Error updating product:", updateError);
+          throw updateError;
+        }
+        toast({
+          title: "Succès",
+          description: "Produit mis à jour avec succès"
+        });
+      } else {
+        const {
+          error: insertError
+        } = await supabase.from("products").insert(productData);
+        if (insertError) {
+          console.error("Error creating product:", insertError);
+          throw insertError;
+        }
+        toast({
+          title: "Succès",
+          description: "Produit créé avec succès"
+        });
+      }
+      resetForm();
+      setIsSheetOpen(false);
+      fetchProducts();
+    } catch (error) {
+      console.error("Error creating/updating product:", error);
+      toast({
+        title: "Erreur",
+        description: "Échec de l'opération",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
+  const toggleVisibility = async (id: string, currentVisibility: boolean) => {
+    try {
+      const {
+        error
+      } = await supabase.from("products").update({
+        is_visible: !currentVisibility
+      }).eq("id", id);
+      if (error) throw error;
+      toast({
+        title: "Succès",
+        description: `Produit ${!currentVisibility ? 'visible' : 'masqué'} avec succès`
+      });
+      fetchProducts();
+    } catch (error) {
+      console.error("Error toggling visibility:", error);
+      toast({
+        title: "Erreur",
+        description: "Échec de la modification",
+        variant: "destructive"
+      });
+    }
+  };
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setDescription(product.description);
+    setSelectedColor(product.theme_color || defaultColor);
+    setIsSheetOpen(true);
+  };
+  const handleDelete = async (id: string) => {
+    try {
+      const {
+        data: {
+          session
+        }
+      } = await supabase.auth.getSession();
+      if (!session) {
+        console.log("No active session found");
+        toast({
+          title: "Erreur",
+          description: "Vous devez être connecté pour supprimer un produit",
+          variant: "destructive"
+        });
+        return;
+      }
+      console.log("Starting deletion process for product:", id);
+      console.log("User ID:", session.user.id);
+      const {
+        error
+      } = await supabase.from("products").delete().eq("id", id);
+      if (error) {
+        console.error("Supabase deletion error:", error);
+        throw error;
+      }
+      console.log("Product successfully deleted");
+      toast({
+        title: "Succès",
+        description: "Produit supprimé avec succès"
+      });
+      await fetchProducts();
+    } catch (error) {
+      console.error("Error in handleDelete:", error);
+      toast({
+        title: "Erreur",
+        description: "Échec de la suppression",
+        variant: "destructive"
+      });
+    }
+  };
+  const copyToClipboard = (id: string) => {
+    const url = `https://digit-sarl.store/product/${id}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Copié !",
+      description: "L'URL du produit a été copiée dans le presse-papier"
+    });
+  };
+  const resetForm = () => {
+    setImages([]);
+    setDescription("");
+    setSelectedColor(defaultColor);
+    setEditingProduct(null);
+    setOptionTypes([]);
+    setOptionValues({});
+    setNewOptionType("");
+    setNewOptionValue("");
+    setEditingOptionType("");
+    const form = document.querySelector("form") as HTMLFormElement;
+    if (form) form.reset();
+  };
+  return <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="py-12 px-4 overflow-auto">
+        <div className="container mx-auto max-w-6xl">
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-medium">Gestion des produits</h1>
+            <div className="flex gap-4">
+              <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                <SheetTrigger asChild>
+                  
+                </SheetTrigger>
+                <SheetContent className="overflow-y-auto w-full sm:max-w-xl">
+                  <SheetHeader>
+                    <SheetTitle>
+                      {editingProduct ? "Modifier le produit" : "Créer un nouveau produit"}
+                    </SheetTitle>
+                  </SheetHeader>
+                  <div className="py-4">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                      <div>
+                        <Label htmlFor="images">Images du produit (Max 4)</Label>
+                        <Input id="images" type="file" accept="image/*" multiple onChange={handleImageChange} />
+                      </div>
 
-  return (
-    <div className="container mx-auto py-6 px-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">
-          {id ? "Modifier le produit" : "Nouveau produit"}
-        </h1>
-        <div className="flex gap-2">
-          {id && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={toggleEditing}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Modifier
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handlePreviewClick}>
-                  <Eye className="h-4 w-4 mr-2" />
-                  Aperçu
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          <Button 
-            variant="default" 
-            onClick={handleSubmit} 
-            disabled={isLoading}
-          >
-            {isLoading ? "Enregistrement..." : "Enregistrer"}
-          </Button>
+                      <div>
+                        <Label htmlFor="name">Nom du produit</Label>
+                        <Input id="name" name="name" required defaultValue={editingProduct?.name} />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="currency">Devise</Label>
+                        <select id="currency" name="currency" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm" defaultValue={editingProduct?.currency || "XOF"} required>
+                          {CURRENCIES.map(currency => <option key={currency.code} value={currency.code}>
+                              {currency.label}
+                            </option>)}
+                        </select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="original_price">Prix original</Label>
+                        <Input id="original_price" name="original_price" type="number" required defaultValue={editingProduct?.original_price} />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="discounted_price">Prix réduit</Label>
+                        <Input id="discounted_price" name="discounted_price" type="number" required defaultValue={editingProduct?.discounted_price} />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="button_text">Texte du bouton</Label>
+                        <Input id="button_text" name="button_text" required defaultValue={editingProduct?.button_text || "Ajouter au panier"} placeholder="Ajouter au panier" />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="description">Description</Label>
+                        <div className="prose max-w-none">
+                          <RichTextEditor value={description} onChange={setDescription} />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Couleur du thème</Label>
+                        <ColorSelector selectedColor={selectedColor} onColorSelect={setSelectedColor} />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="cart_url">URL du panier</Label>
+                        <Input id="cart_url" name="cart_url" type="url" required defaultValue={editingProduct?.cart_url} />
+                      </div>
+
+                      <div className="space-y-4">
+                        <Label>Options du produit</Label>
+                        
+                        <div className="flex items-center gap-2">
+                          <Input placeholder="Nom de l'option (ex: Taille, Couleur)" value={newOptionType} onChange={e => setNewOptionType(e.target.value)} />
+                          <Button type="button" onClick={addOptionType} variant="outline">
+                            Ajouter
+                          </Button>
+                        </div>
+                        
+                        {optionTypes.length > 0 && <div className="border rounded-lg p-4">
+                            <div className="flex gap-2 mb-4 flex-wrap">
+                              {optionTypes.map(type => <Toggle key={type} pressed={editingOptionType === type} onPressedChange={() => setEditingOptionType(type)} className={`
+                                    rounded-full px-3 py-1 text-sm 
+                                    ${editingOptionType === type ? 'bg-black text-white' : 'bg-white border border-gray-300'}
+                                  `}>
+                                  <span>{type}</span>
+                                  <button type="button" onClick={e => {
+                              e.stopPropagation();
+                              removeOptionType(type);
+                            }} className="ml-2 text-xs">
+                                    ✕
+                                  </button>
+                                </Toggle>)}
+                            </div>
+                            
+                            {editingOptionType && <div className="space-y-3">
+                                <h4 className="text-sm font-medium">Valeurs pour "{editingOptionType}"</h4>
+                                
+                                <div className="flex items-center gap-2">
+                                  <Input placeholder="Valeur de l'option (ex: S, M, L)" value={newOptionValue} onChange={e => setNewOptionValue(e.target.value)} />
+                                  <Button type="button" onClick={addOptionValue} variant="outline" size="sm">
+                                    Ajouter
+                                  </Button>
+                                </div>
+                                
+                                <div className="flex flex-wrap gap-2">
+                                  {optionValues[editingOptionType]?.map(value => <div key={value} className="bg-gray-100 rounded-full px-3 py-1 text-sm flex items-center">
+                                      {value}
+                                      <button type="button" onClick={() => removeOptionValue(editingOptionType, value)} className="ml-2">
+                                        ✕
+                                      </button>
+                                    </div>)}
+                                </div>
+                              </div>}
+                          </div>}
+                      </div>
+
+                      <div className="flex gap-4">
+                        <Button type="submit" disabled={loading} className="flex-1">
+                          {loading ? "En cours..." : editingProduct ? "Modifier" : "Créer"}
+                        </Button>
+                        <SheetClose asChild>
+                          <Button variant="outline" onClick={resetForm} className="flex-1">
+                            Annuler
+                          </Button>
+                        </SheetClose>
+                      </div>
+                    </form>
+                  </div>
+                </SheetContent>
+              </Sheet>
+
+              <Sheet open={showCloneForm} onOpenChange={setShowCloneForm}>
+                <SheetTrigger asChild>
+                  <Button variant="default" className="bg-green-500 hover:bg-green-600">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Créer un produit
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="overflow-y-auto w-full sm:max-w-xl">
+                  <SheetHeader>
+                    <SheetTitle>
+                      Créer un nouveau produit
+                    </SheetTitle>
+                  </SheetHeader>
+                  <div className="py-4">
+                    <ProductFormClone onSuccess={() => {
+                    setShowCloneForm(false);
+                    fetchProducts();
+                  }} onCancel={() => setShowCloneForm(false)} />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="px-6 py-3 text-left">Nom</th>
+                    <th className="px-6 py-3 text-left">Prix original</th>
+                    <th className="px-6 py-3 text-left">Prix réduit</th>
+                    <th className="px-6 py-3 text-left">Date de création</th>
+                    <th className="px-6 py-3 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map(product => <tr key={product.id} className="border-b hover:bg-gray-50">
+                      <td className="px-6 py-4">{product.name}</td>
+                      <td className="px-6 py-4">{product.original_price} {product.currency}</td>
+                      <td className="px-6 py-4">{product.discounted_price} {product.currency}</td>
+                      <td className="px-6 py-4">
+                        {format(new Date(product.created_at), "d MMMM yyyy", {
+                      locale: fr
+                    })}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="icon" onClick={() => toggleVisibility(product.id, product.is_visible)} title={product.is_visible ? "Masquer" : "Afficher"}>
+                            {product.is_visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                          </Button>
+                          <Button variant="outline" size="icon" onClick={() => copyToClipboard(product.id)} title="Copier l'URL">
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="icon" onClick={() => handleEdit(product)} title="Modifier">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="destructive" size="icon" onClick={() => handleDelete(product.id)} title="Supprimer">
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>)}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
-
-      {!isEditing && id ? (
-        <div className="bg-gray-50 p-6 rounded-lg">
-          <div className="text-center">
-            <h2 className="text-xl font-medium">{product.name}</h2>
-            <p className="text-gray-500 mt-2">
-              Mode lecture seule. Cliquez sur le bouton "Modifier" pour apporter des modifications.
-            </p>
-            <Button onClick={toggleEditing} className="mt-4">
-              <Edit className="h-4 w-4 mr-2" />
-              Modifier
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-12 lg:col-span-8">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="mb-4">
-                <TabsTrigger value="general">Général</TabsTrigger>
-                <TabsTrigger value="images">Images</TabsTrigger>
-                <TabsTrigger value="options">Options</TabsTrigger>
-                <TabsTrigger value="checkout">Panier & Paiement</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="general" className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="name">Nom du produit</Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      value={product.name}
-                      onChange={handleInputChange}
-                      placeholder="Nom du produit"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="theme_color">Couleur du thème</Label>
-                    <Input
-                      id="theme_color"
-                      name="theme_color"
-                      type="color"
-                      value={product.theme_color}
-                      onChange={handleInputChange}
-                      className="h-10"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="original_price">Prix original</Label>
-                    <Input
-                      id="original_price"
-                      name="original_price"
-                      type="number"
-                      value={product.original_price}
-                      onChange={handleNumberInputChange}
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="discounted_price">Prix réduit</Label>
-                    <Input
-                      id="discounted_price"
-                      name="discounted_price"
-                      type="number"
-                      value={product.discounted_price}
-                      onChange={handleNumberInputChange}
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="currency">Devise</Label>
-                    <Select 
-                      value={product.currency}
-                      onValueChange={(value) => handleSelectChange("currency", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner une devise" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="XOF">XOF (CFA)</SelectItem>
-                        <SelectItem value="XAF">XAF (CFA)</SelectItem>
-                        <SelectItem value="USD">USD ($)</SelectItem>
-                        <SelectItem value="EUR">EUR (€)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <RichTextEditor 
-                    value={product.description} 
-                    onChange={handleEditorChange} 
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="hide_promo_bar"
-                    checked={product.hide_promo_bar}
-                    onCheckedChange={(checked) => handleSwitchChange("hide_promo_bar", checked as boolean)}
-                  />
-                  <Label htmlFor="hide_promo_bar">Masquer la barre de promotion</Label>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="images" className="space-y-4">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="mb-4">
-                      <Label htmlFor="add_image">Ajouter une image</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="add_image"
-                          value={addingImageUrl}
-                          onChange={(e) => setAddingImageUrl(e.target.value)}
-                          placeholder="URL de l'image"
-                        />
-                        <Button type="button" onClick={() => addImage(addingImageUrl)}>
-                          Ajouter
-                        </Button>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Note: Ajoutez d'abord des images à la bibliothèque média, puis utilisez leurs URLs ici.
-                      </p>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                      {product.images.map((url, index) => (
-                        <div 
-                          key={index} 
-                          className={`relative group border rounded-md overflow-hidden ${
-                            index === 0 ? "border-blue-500" : "border-gray-200"
-                          }`}
-                        >
-                          <img
-                            src={url}
-                            alt={`Product ${index}`}
-                            className="w-full h-32 object-cover"
-                          />
-                          <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              className="rounded-full"
-                              onClick={() => removeImage(index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          {index === 0 && (
-                            <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
-                              Principal
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="options" className="space-y-4">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="mb-6">
-                      <Label>Ajouter une option</Label>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-                        <Input
-                          placeholder="Type d'option (ex: Couleur)"
-                          value={addingOptionType}
-                          onChange={(e) => setAddingOptionType(e.target.value)}
-                        />
-                        <Input
-                          placeholder="Valeur (ex: Rouge)"
-                          value={addingOptionValue}
-                          onChange={(e) => setAddingOptionValue(e.target.value)}
-                        />
-                        <Input
-                          placeholder="URL de l'image (optionnel)"
-                          value={addingImageUrl}
-                          onChange={(e) => setAddingImageUrl(e.target.value)}
-                        />
-                      </div>
-                      <Button 
-                        type="button" 
-                        onClick={addOption}
-                        className="mt-2"
-                      >
-                        <Plus className="h-4 w-4 mr-2" /> 
-                        Ajouter une option
-                      </Button>
-                    </div>
-                    
-                    <div className="space-y-6">
-                      {Object.entries(product.options || {}).map(([optionType, values]) => (
-                        <div key={optionType} className="border p-4 rounded-md">
-                          <div className="flex justify-between items-center mb-2">
-                            <h3 className="font-medium">{optionType}</h3>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => removeOptionType(optionType)}
-                            >
-                              Supprimer
-                            </Button>
-                          </div>
-                          <div className="space-y-2">
-                            {values.map((option, index) => (
-                              <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                                <div className="flex items-center">
-                                  {typeof option === 'object' && option.image && (
-                                    <img 
-                                      src={option.image} 
-                                      alt={option.value}
-                                      className="w-8 h-8 rounded-full mr-2 object-cover"
-                                    />
-                                  )}
-                                  <span>{typeof option === 'object' ? option.value : option}</span>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => removeOption(optionType, index)}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                      
-                      {Object.keys(product.options || {}).length === 0 && (
-                        <div className="text-center py-4 text-gray-500">
-                          Aucune option ajoutée
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="checkout" className="space-y-4">
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <Label htmlFor="cart_url">URL du panier</Label>
-                    <Input
-                      id="cart_url"
-                      name="cart_url"
-                      value={product.cart_url}
-                      onChange={handleInputChange}
-                      placeholder="https://exemple.com/panier"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      L'URL vers laquelle les clients seront redirigés pour finaliser leur achat.
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="button_text">Texte du bouton</Label>
-                    <Input
-                      id="button_text"
-                      name="button_text"
-                      value={product.button_text}
-                      onChange={handleInputChange}
-                      placeholder="Ajouter au panier"
-                    />
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="use_internal_cart"
-                      checked={product.use_internal_cart}
-                      onCheckedChange={(checked) => handleSwitchChange("use_internal_cart", checked)}
-                    />
-                    <Label htmlFor="use_internal_cart">Utiliser le panier interne</Label>
-                  </div>
-                  
-                  {product.use_internal_cart && (
-                    <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-md">
-                      <p className="text-sm text-yellow-800">
-                        Les clients seront redirigés vers la page de paiement intégrée.
-                        L'URL du panier externe sera ignorée.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-          
-          <div className="col-span-12 lg:col-span-4">
-            <Card className="sticky top-6">
-              <CardContent className="pt-6">
-                <h3 className="font-medium mb-4">Aperçu du produit</h3>
-                
-                {product.images.length > 0 ? (
-                  <img
-                    src={product.images[0]}
-                    alt={product.name}
-                    className="w-full h-40 object-cover rounded-md mb-3"
-                  />
-                ) : (
-                  <div className="w-full h-40 bg-gray-100 flex items-center justify-center rounded-md mb-3">
-                    <p className="text-gray-400">Aucune image</p>
-                  </div>
-                )}
-                
-                <h4 className="font-bold">{product.name || "Nom du produit"}</h4>
-                
-                <div className="flex gap-2 mt-1">
-                  <span className="line-through text-gray-400">
-                    {product.original_price} {product.currency}
-                  </span>
-                  <span className="font-medium">
-                    {product.discounted_price} {product.currency}
-                  </span>
-                </div>
-                
-                {Object.keys(product.options || {}).length > 0 && (
-                  <div className="mt-3">
-                    <h5 className="text-sm font-medium mb-1">Options:</h5>
-                    <div className="text-sm text-gray-600">
-                      {Object.entries(product.options || {}).map(([type, values]) => (
-                        <div key={type} className="mb-1">
-                          <span className="font-medium">{type}:</span>{" "}
-                          {values.map(v => typeof v === 'object' ? v.value : v).join(", ")}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                <div className="mt-3">
-                  <Button 
-                    className="w-full" 
-                    variant="secondary"
-                    onClick={handlePreviewClick}
-                    disabled={!id}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Voir l'aperçu complet
-                  </Button>
-                </div>
-                
-                <Separator className="my-4" />
-                
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">ID:</span>
-                    <span className="font-mono">{id || "Nouveau produit"}</span>
-                  </div>
-                  
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Couleur du thème:</span>
-                    <div className="flex items-center">
-                      <div
-                        className="w-4 h-4 rounded-full mr-2"
-                        style={{ backgroundColor: product.theme_color }}
-                      ></div>
-                      <span>{product.theme_color}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Mode panier:</span>
-                    <span>
-                      {product.use_internal_cart ? "Interne" : "Externe"}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Barre promo:</span>
-                    <span>
-                      {product.hide_promo_bar ? "Masquée" : "Visible"}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+    </div>;
 };
-
 export default ProductForm;
