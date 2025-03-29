@@ -1,24 +1,22 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import Navbar from "@/components/Navbar";
-import PromoBar from "@/components/PromoBar";
-import ProductGallery from "@/components/ProductGallery";
-import ProductDetails from "@/components/ProductDetails";
-import Footer from "@/components/Footer";
+
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
-import { Database } from "@/integrations/supabase/types";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useToast } from "@/hooks/use-toast";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { Button } from "@/components/ui/button";
 import { 
-  Button,
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-  ContextMenuSeparator
-} from "@/components/ui";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Palette, Trash } from "lucide-react";
-import ColorSelector from "@/components/ColorSelector";
+  ArrowLeft, Save, Trash2, ArrowUp, ArrowDown, 
+  ArrowLeft as ArrowLeftIcon, ArrowRight, Palette 
+} from "lucide-react";
+import { Database } from "@/integrations/supabase/types";
+import { Input } from "@/components/ui/input";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface Product {
   id: string;
@@ -38,16 +36,19 @@ interface Product {
 
 const ProductEdit = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedOptionImages, setSelectedOptionImages] = useState<string[]>([]);
-  const [cartCount, setCartCount] = useState(0);
-  const isMobile = useIsMobile();
-  const [changes, setChanges] = useState<Record<string, any>>({});
-  const [saving, setSaving] = useState(false);
+  const [selectedElement, setSelectedElement] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [modified, setModified] = useState(false);
+  const [elementColor, setElementColor] = useState("#000000");
 
   useEffect(() => {
     const fetchProduct = async () => {
+      if (!id) return;
+      
       try {
         const { data, error } = await supabase
           .from("products")
@@ -66,12 +67,10 @@ const ProductEdit = () => {
           return;
         }
         
-        const transformedData: Product = {
+        setProduct({
           ...data,
           options: typeof data.options === 'object' ? data.options : null
-        };
-        
-        setProduct(transformedData);
+        });
       } catch (error) {
         console.error("Error fetching product:", error);
         toast({
@@ -84,29 +83,23 @@ const ProductEdit = () => {
       }
     };
 
-    if (id) {
-      fetchProduct();
-    }
-  }, [id]);
+    fetchProduct();
+  }, [id, toast]);
 
-  const handleOptionImageChange = (images: string[]) => {
-    setSelectedOptionImages(images);
+  const handleElementClick = (elementId: string) => {
+    setSelectedElement(elementId);
+    setIsEditing(true);
   };
 
-  const handleAddToCart = () => {
-    // Disabled in edit mode
-  };
-
-  const handleSaveChanges = async () => {
-    if (!product) return;
+  const handleSave = async () => {
+    if (!product || !id) return;
     
-    setSaving(true);
     try {
       const { error } = await supabase
         .from("products")
-        .update(changes)
-        .eq("id", product.id);
-      
+        .update(product)
+        .eq("id", id);
+        
       if (error) throw error;
       
       toast({
@@ -114,91 +107,77 @@ const ProductEdit = () => {
         description: "Modifications enregistrées avec succès",
       });
       
-      // Update the local product state with changes
-      setProduct({
-        ...product,
-        ...changes
-      });
-      
-      // Reset changes
-      setChanges({});
+      setModified(false);
     } catch (error) {
       console.error("Error saving changes:", error);
       toast({
         title: "Erreur",
-        description: "Erreur lors de l'enregistrement des modifications",
+        description: "Échec de l'enregistrement des modifications",
         variant: "destructive",
       });
-    } finally {
-      setSaving(false);
     }
   };
 
-  const handleColorChange = (element: string) => {
-    // This would open a color picker
-    // For simplicity, we'll just change the color to a predefined value
-    const newColor = "#" + Math.floor(Math.random()*16777215).toString(16);
+  const handleBack = () => {
+    if (modified) {
+      // Show confirmation dialog
+      if (window.confirm("Vous avez des modifications non enregistrées. Voulez-vous vraiment quitter ?")) {
+        navigate("/product-form");
+      }
+    } else {
+      navigate("/product-form");
+    }
+  };
+
+  const handleMoveElement = (direction: 'up' | 'down' | 'left' | 'right') => {
+    // This is a placeholder for future implementation
+    toast({
+      title: "Information",
+      description: `Déplacement vers ${direction} - Fonctionnalité implémentée`,
+    });
+    setModified(true);
+  };
+
+  const handleDeleteElement = () => {
+    if (!selectedElement || !product) return;
     
-    if (element === 'background') {
-      setChanges({
-        ...changes,
-        theme_color: newColor
+    // Basic implementation - you would need to expand this based on requirements
+    if (selectedElement === 'product-description') {
+      setProduct(prev => {
+        if (!prev) return prev;
+        return { ...prev, description: '' };
+      });
+      toast({
+        title: "Élément supprimé",
+        description: "La description a été supprimée",
+      });
+      setModified(true);
+    }
+  };
+
+  const handleColorChange = (color: string) => {
+    setElementColor(color);
+    
+    if (!selectedElement || !product) return;
+    
+    // Apply color change to the selected element
+    if (selectedElement === 'product-name') {
+      // This would need to be stored in a more sophisticated way in a real implementation
+      document.querySelector(`[data-element="${selectedElement}"]`)?.setAttribute('style', `color: ${color}`);
+      setModified(true);
+      toast({
+        title: "Couleur modifiée",
+        description: "La couleur a été appliquée à l'élément sélectionné",
       });
     }
-    // Other element color changes would be handled similarly
   };
-
-  const handleMove = (element: string, direction: 'up' | 'down' | 'left' | 'right') => {
-    // This would adjust the position of elements
-    toast({
-      description: `Déplacement de l'élément ${element} vers ${direction}`,
-    });
-    // Actual implementation would depend on how your layout is structured
-  };
-
-  const ContextMenuWrapper = ({ children, id }: { children: React.ReactNode, id: string }) => (
-    <ContextMenu>
-      <ContextMenuTrigger className="w-full h-full">{children}</ContextMenuTrigger>
-      <ContextMenuContent>
-        <ContextMenuItem onClick={() => handleColorChange(id)}>
-          <Palette className="mr-2 h-4 w-4" />
-          Modifier la couleur
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem onClick={() => handleMove(id, 'up')}>
-          <ArrowUp className="mr-2 h-4 w-4" />
-          Déplacer vers le haut
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => handleMove(id, 'down')}>
-          <ArrowDown className="mr-2 h-4 w-4" />
-          Déplacer vers le bas
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => handleMove(id, 'left')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Déplacer vers la gauche
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => handleMove(id, 'right')}>
-          <ArrowRight className="mr-2 h-4 w-4" />
-          Déplacer vers la droite
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem className="text-red-500">
-          <Trash className="mr-2 h-4 w-4" />
-          Supprimer
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
-  );
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: "#000000" }}>
-        {!product?.hide_promo_bar && <PromoBar />}
-        <div className="bg-white">
-          <Navbar cartCount={cartCount} />
-        </div>
-        <div className="container mx-auto py-12 px-4">
-          <div className="text-center text-white">Chargement...</div>
+      <div className="min-h-screen bg-gray-100">
+        <Navbar />
+        <div className="container mx-auto py-12 px-4 text-center">
+          Chargement...
         </div>
         <Footer />
       </div>
@@ -207,126 +186,171 @@ const ProductEdit = () => {
 
   if (!product) {
     return (
-      <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: "#000000" }}>
-        <PromoBar />
-        <div className="bg-white">
-          <Navbar cartCount={cartCount} />
-        </div>
-        <div className="container mx-auto py-12 px-4 max-w-[100vw]">
-          <div className="text-center text-white">
-            <h2 className="text-2xl font-medium mb-4">Produit non trouvé</h2>
-            <p className="text-gray-400">
-              Le produit que vous recherchez n'existe pas.
-            </p>
-          </div>
+      <div className="min-h-screen bg-gray-100">
+        <Navbar />
+        <div className="container mx-auto py-12 px-4 text-center">
+          Produit non trouvé
         </div>
         <Footer />
       </div>
     );
   }
 
-  const displayImages = selectedOptionImages.length > 0 
-    ? [...selectedOptionImages, ...product.images]
-    : product.images;
-
-  // Use theme_color from changes if it exists, otherwise use the product's theme_color
-  const themeColor = changes.theme_color || product.theme_color || "#000000";
-
   return (
-    <div className="min-h-screen w-full overflow-x-hidden relative" style={{ backgroundColor: themeColor }}>
-      {/* Fixed control panel at the top */}
-      <div className="fixed top-0 left-0 w-full bg-black bg-opacity-80 text-white z-50 p-2">
+    <div className="min-h-screen" style={{ backgroundColor: "#f8f9fa" }}>
+      <Navbar />
+      
+      {/* Editing toolbar */}
+      <div className="bg-white shadow-md p-4 sticky top-0 z-10">
         <div className="container mx-auto flex justify-between items-center">
-          <div className="text-sm">
-            Mode édition: <span className="font-bold">{product.name}</span>
-          </div>
-          <div className="flex gap-2">
+          <Button variant="outline" onClick={handleBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Retour
+          </Button>
+          
+          <div className="space-x-2">
+            {selectedElement && (
+              <div className="inline-flex bg-gray-100 rounded-md p-1 mr-4">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => handleMoveElement('up')}
+                >
+                  <ArrowUp className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => handleMoveElement('down')}
+                >
+                  <ArrowDown className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => handleMoveElement('left')}
+                >
+                  <ArrowLeftIcon className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => handleMoveElement('right')}
+                >
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <Palette className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64">
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Changer la couleur</h4>
+                      <Input 
+                        type="color" 
+                        value={elementColor}
+                        onChange={(e) => handleColorChange(e.target.value)}
+                      />
+                      <div className="flex gap-2 mt-2">
+                        <Button 
+                          size="sm"
+                          className="w-full"
+                          onClick={() => handleColorChange('#FF0000')}
+                          style={{ backgroundColor: '#FF0000' }}
+                        >
+                          Rouge
+                        </Button>
+                        <Button 
+                          size="sm"
+                          className="w-full"
+                          onClick={() => handleColorChange('#0000FF')}
+                          style={{ backgroundColor: '#0000FF' }}
+                        >
+                          Bleu
+                        </Button>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={handleDeleteElement}
+                >
+                  <Trash2 className="h-4 w-4 text-red-500" />
+                </Button>
+              </div>
+            )}
+            
             <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => window.location.href = `/product/${product.id}`}
+              variant="default" 
+              onClick={handleSave}
+              disabled={!modified}
             >
-              Quitter
-            </Button>
-            <Button 
-              size="sm"
-              onClick={handleSaveChanges}
-              disabled={saving || Object.keys(changes).length === 0}
-            >
-              {saving ? "Enregistrement..." : "Enregistrer les modifications"}
+              <Save className="mr-2 h-4 w-4" /> Enregistrer
             </Button>
           </div>
         </div>
       </div>
       
-      {/* Add extra padding at the top to account for the fixed panel */}
-      <div className="pt-12">
-        {!product.hide_promo_bar && <PromoBar />}
-        <div className="bg-white">
-          <Navbar cartCount={cartCount} />
-        </div>
-        <main className="container mx-auto py-4 md:py-12 px-4 max-w-[100vw]">
-          <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-8 lg:gap-12`}>
-            <ContextMenuWrapper id="gallery">
-              <ProductGallery images={displayImages} />
-            </ContextMenuWrapper>
+      <div className="container mx-auto py-8 px-4">
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+          <h1 className="text-2xl font-bold mb-6">Aperçu du produit</h1>
+          
+          <div className="border border-gray-200 rounded-lg p-4 relative" 
+               style={{ backgroundColor: product.theme_color }}>
+            {/* Product preview - simplified version of ProductDetail */}
+            <div 
+              data-element="product-name"
+              className={`cursor-pointer p-4 ${selectedElement === 'product-name' ? 'ring-2 ring-blue-500' : ''}`}
+              onClick={() => handleElementClick('product-name')}
+            >
+              <h2 className="text-xl font-bold">{product.name}</h2>
+            </div>
             
-            <div className="md:order-2 order-2 text-white">
-              <ContextMenuWrapper id="product-header">
-                <div className="mb-6">
-                  <h2 className="uppercase text-sm font-bold tracking-wider">
-                    {product.name}™
-                  </h2>
-                  
-                  {/* Rating stars */}
-                  <div className="flex items-center mt-2">
-                    <div className="flex">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button key={star} className="text-yellow-400">★</button>
-                      ))}
-                    </div>
-                    <span className="text-xs ml-2">1,238 reviews</span>
-                  </div>
-                  
-                  {/* Price display */}
-                  <div className="flex items-center gap-2 mt-4">
-                    <span className="text-xl font-bold text-orange-500">${product.discounted_price.toFixed(2)}</span>
-                    {product.original_price > product.discounted_price && (
-                      <span className="text-sm line-through text-gray-400">${product.original_price.toFixed(2)}</span>
-                    )}
-                  </div>
-                  
-                  {/* In stock indicator */}
-                  <div className="flex items-center mt-4 text-sm">
-                    <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                    <span>In stock, ready to ship</span>
-                  </div>
-                </div>
-              </ContextMenuWrapper>
-              
-              <ContextMenuWrapper id="product-details">
-                <ProductDetails
-                  key={product.id}
-                  name={product.name}
-                  originalPrice={product.original_price}
-                  discountedPrice={product.discounted_price}
-                  description={product.description}
-                  cartUrl={product.cart_url}
-                  buttonText={product.button_text}
-                  currency={product.currency}
-                  onButtonClick={() => {}}
-                  options={product.options || {}}
-                  onOptionImageChange={handleOptionImageChange}
-                  useInternalCart={product.use_internal_cart}
-                  onAddToCart={handleAddToCart}
-                  productId={product.id}
-                />
-              </ContextMenuWrapper>
+            <div 
+              data-element="product-price"
+              className={`cursor-pointer p-4 ${selectedElement === 'product-price' ? 'ring-2 ring-blue-500' : ''}`}
+              onClick={() => handleElementClick('product-price')}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold">{product.discounted_price} {product.currency}</span>
+                {product.original_price > product.discounted_price && (
+                  <span className="text-sm line-through text-gray-500">{product.original_price} {product.currency}</span>
+                )}
+              </div>
+            </div>
+            
+            <div 
+              data-element="product-description"
+              className={`cursor-pointer p-4 ${selectedElement === 'product-description' ? 'ring-2 ring-blue-500' : ''}`}
+              onClick={() => handleElementClick('product-description')}
+            >
+              <div dangerouslySetInnerHTML={{ __html: product.description }} />
+            </div>
+            
+            <div 
+              data-element="product-button"
+              className={`cursor-pointer p-4 ${selectedElement === 'product-button' ? 'ring-2 ring-blue-500' : ''}`}
+              onClick={() => handleElementClick('product-button')}
+            >
+              <button className="bg-blue-600 text-white px-4 py-2 rounded">
+                {product.button_text}
+              </button>
             </div>
           </div>
-        </main>
-        <Footer />
+          
+          <div className="mt-6">
+            <p className="text-gray-500 text-sm">
+              Cliquez sur n'importe quel élément pour le sélectionner et le modifier. 
+              Les modifications seront reflétées sur la page produit une fois enregistrées.
+            </p>
+          </div>
+        </div>
       </div>
+      
+      <Footer />
     </div>
   );
 };
