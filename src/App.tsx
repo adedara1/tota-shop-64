@@ -1,10 +1,9 @@
-
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Products from "./pages/Products";
 import NotFound from "./pages/NotFound";
@@ -20,12 +19,13 @@ import Popo from "./pages/Popo";
 import PopoSettings from "./pages/PopoSettings";
 import Formulaire from "./pages/Formulaire";
 import ProductsSettings from "./pages/ProductsSettings";
+import ProductEdit from "./pages/ProductEdit";
 import { initSupabase } from "./utils/supabaseInit";
 import { useToast } from "./hooks/use-toast";
 
 const queryClient = new QueryClient();
 
-const App = () => {
+function App() {
   const [isInitializing, setIsInitializing] = useState(true);
   const { toast } = useToast();
 
@@ -60,7 +60,7 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <Router>
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route
@@ -112,7 +112,15 @@ const App = () => {
               }
             />
             <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/paiement" element={<Payment />} />
+            <Route path="/edit/product/:id" element={<ProductEdit />} />
+            <Route
+              path="/paiement"
+              element={
+                <ProtectedRoute>
+                  <Payment />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="*"
               element={
@@ -122,10 +130,10 @@ const App = () => {
               }
             />
           </Routes>
-        </BrowserRouter>
+        </Router>
       </TooltipProvider>
     </QueryClientProvider>
   );
-};
+}
 
 export default App;
