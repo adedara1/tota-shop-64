@@ -10,7 +10,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Star } from "lucide-react";
 
 interface Product {
   id: string;
@@ -26,7 +25,7 @@ interface Product {
   options?: Record<string, any> | null;
   use_internal_cart?: boolean;
   hide_promo_bar?: boolean;
-  // New customization fields
+  // Customization fields
   option_title_color?: string;
   option_value_color?: string;
   product_name_color?: string;
@@ -52,8 +51,8 @@ const ProductDetail = () => {
   const [cartCount, setCartCount] = useState(0);
   const isMobile = useIsMobile();
 
+  // Load cart count from localStorage
   useEffect(() => {
-    // Fetch cart count from local storage
     const fetchCartCount = () => {
       try {
         const cartItems = localStorage.getItem('cartItems');
@@ -76,9 +75,12 @@ const ProductDetail = () => {
     };
   }, []);
 
+  // Fetch product data
   useEffect(() => {
     const fetchProduct = async () => {
       try {
+        if (!id) return;
+        
         const { data, error } = await supabase
           .from("products")
           .select("*")
@@ -103,6 +105,7 @@ const ProductDetail = () => {
         
         setProduct(transformedData);
 
+        // Track product view
         const { error: statsError } = await supabase.rpc('increment_product_view', {
           product_id_param: id
         });
@@ -145,7 +148,7 @@ const ProductDetail = () => {
 
   const handleAddToCart = async (productData: any, quantity: number, selectedOptions: Record<string, any>) => {
     try {
-      // Save to cart_items table if using internal cart
+      // Handle internal cart
       if (product?.use_internal_cart) {
         const cartItem = {
           product_id: product.id,
@@ -162,10 +165,10 @@ const ProductDetail = () => {
         cartItems.push(cartItem);
         localStorage.setItem('cartItems', JSON.stringify(cartItems));
 
-        // Dispatch event for cart updates
+        // Dispatch cart update event
         window.dispatchEvent(new Event('cartUpdated'));
 
-        // Also save to Supabase for persistence
+        // Also save to Supabase
         const { error } = await supabase
           .from('cart_items')
           .insert(cartItem);
@@ -224,14 +227,10 @@ const ProductDetail = () => {
     );
   }
 
+  // Combine selected option images with product images
   const displayImages = selectedOptionImages.length > 0 
     ? [...selectedOptionImages, ...product.images]
     : product.images;
-
-  // Calculate discount percentage
-  const discountPercentage = product.original_price > 0 
-    ? Math.round(((product.original_price - product.discounted_price) / product.original_price) * 100) 
-    : 0;
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color || "#000000" }}>

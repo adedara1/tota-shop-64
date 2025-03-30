@@ -33,10 +33,10 @@ const ProductGallery = ({ images }: ProductGalleryProps) => {
   }
 
   return (
-    <div className="relative flex flex-col md:flex-row gap-4">
-      {/* Thumbnails on the left side - visible on both mobile and desktop */}
+    <div className="relative flex flex-row gap-4">
+      {/* Thumbnails on the left side - both on mobile and desktop */}
       {images.length > 1 && (
-        <div className="flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-y-auto md:max-h-[500px] pb-2 md:pb-0 md:pr-2 w-full md:w-[100px]">
+        <div className="flex flex-col gap-2 overflow-y-auto max-h-[500px] pb-0 pr-2 w-[100px]">
           {images.map((image, index) => (
             <button
               key={index}

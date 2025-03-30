@@ -25,6 +25,7 @@ const ProductOptions = ({
 }: ProductOptionsProps) => {
   const [selectedValue, setSelectedValue] = useState<string | null>(null);
   
+  // Update the selected value when the selectedOption prop changes
   useEffect(() => {
     if (selectedOption) {
       setSelectedValue(selectedOption);
@@ -41,6 +42,14 @@ const ProductOptions = ({
     const value = typeof option === 'object' ? option.value : option;
     setSelectedValue(value);
     onSelect(option);
+    
+    // Debug
+    console.log(`Selected option in ProductOptions:`, { 
+      option, 
+      title, 
+      value,
+      selectedValue: value
+    });
   };
   
   // Get unique values for rendering
