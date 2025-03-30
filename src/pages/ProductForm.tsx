@@ -375,7 +375,10 @@ const ProductForm = () => {
             <div className="flex gap-4">
               <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetTrigger asChild>
-                  
+                  <Button variant="default">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nouveau produit
+                  </Button>
                 </SheetTrigger>
                 <SheetContent className="overflow-y-auto w-full sm:max-w-xl">
                   <SheetHeader>

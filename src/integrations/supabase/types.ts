@@ -165,14 +165,29 @@ export type Database = {
           currency: Database["public"]["Enums"]["currency_code"]
           description: string
           discounted_price: number
+          discounted_price_color: string | null
           hide_promo_bar: boolean | null
           id: string
           images: string[]
           is_visible: boolean
           name: string
+          option_title_color: string | null
+          option_value_color: string | null
           options: Json | null
           original_price: number
+          original_price_color: string | null
+          product_name_color: string | null
+          product_trademark_color: string | null
+          quantity_text_color: string | null
+          review_count: number | null
           secondary_button: Json | null
+          show_product_trademark: boolean | null
+          show_star_reviews: boolean | null
+          show_stock_status: boolean | null
+          star_count: number | null
+          star_reviews_color: string | null
+          stock_status_color: string | null
+          stock_status_text: string | null
           theme_color: string
           updated_at: string
           use_internal_cart: boolean | null
@@ -184,14 +199,29 @@ export type Database = {
           currency?: Database["public"]["Enums"]["currency_code"]
           description: string
           discounted_price: number
+          discounted_price_color?: string | null
           hide_promo_bar?: boolean | null
           id?: string
           images: string[]
           is_visible?: boolean
           name: string
+          option_title_color?: string | null
+          option_value_color?: string | null
           options?: Json | null
           original_price: number
+          original_price_color?: string | null
+          product_name_color?: string | null
+          product_trademark_color?: string | null
+          quantity_text_color?: string | null
+          review_count?: number | null
           secondary_button?: Json | null
+          show_product_trademark?: boolean | null
+          show_star_reviews?: boolean | null
+          show_stock_status?: boolean | null
+          star_count?: number | null
+          star_reviews_color?: string | null
+          stock_status_color?: string | null
+          stock_status_text?: string | null
           theme_color?: string
           updated_at?: string
           use_internal_cart?: boolean | null
@@ -203,14 +233,29 @@ export type Database = {
           currency?: Database["public"]["Enums"]["currency_code"]
           description?: string
           discounted_price?: number
+          discounted_price_color?: string | null
           hide_promo_bar?: boolean | null
           id?: string
           images?: string[]
           is_visible?: boolean
           name?: string
+          option_title_color?: string | null
+          option_value_color?: string | null
           options?: Json | null
           original_price?: number
+          original_price_color?: string | null
+          product_name_color?: string | null
+          product_trademark_color?: string | null
+          quantity_text_color?: string | null
+          review_count?: number | null
           secondary_button?: Json | null
+          show_product_trademark?: boolean | null
+          show_star_reviews?: boolean | null
+          show_stock_status?: boolean | null
+          star_count?: number | null
+          star_reviews_color?: string | null
+          stock_status_color?: string | null
+          stock_status_text?: string | null
           theme_color?: string
           updated_at?: string
           use_internal_cart?: boolean | null
