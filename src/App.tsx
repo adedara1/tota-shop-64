@@ -112,14 +112,7 @@ function App() {
               }
             />
             <Route path="/product/:id" element={<ProductDetail />} />
-            <Route 
-              path="/edit/product/:id" 
-              element={
-                <ProtectedRoute>
-                  <ProductEdit />
-                </ProtectedRoute>
-              } 
-            />
+            <Route path="/edit/product/:id" element={<ProductEdit />} />
             <Route
               path="/paiement"
               element={

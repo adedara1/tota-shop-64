@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +9,6 @@ import Navbar from "@/components/Navbar";
 import RichTextEditor from "@/components/RichTextEditor";
 import ColorSelector from "@/components/ColorSelector";
 import { Copy, Edit, Eye, EyeOff, Plus, Trash } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import {
   Sheet,
   SheetClose,
@@ -79,7 +79,6 @@ interface Product {
 
 const ProductForm = () => {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [description, setDescription] = useState("");
@@ -692,8 +691,10 @@ const ProductForm = () => {
                               <DropdownMenuItem onClick={() => handleEdit(product)}>
                                 Modifier
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigate(`/edit/product/${product.id}`)}>
-                                Aperçu
+                              <DropdownMenuItem asChild>
+                                <a href={`/edit/product/${product.id}`} target="_blank" rel="noopener noreferrer">
+                                  Aperçu
+                                </a>
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
