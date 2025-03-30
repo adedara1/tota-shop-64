@@ -99,7 +99,9 @@ const ProductsSettings = () => {
       const { data, error } = await supabase
         .from('products_page_settings')
         .insert({
+          id: 'default',
           background_color: '#f1eee9',
+          hero_banner_image: '',
           hero_banner_title: 'Notre Collection',
           hero_banner_description: 'Découvrez nos nouveautés et best-sellers',
           section_titles: {
@@ -265,7 +267,11 @@ const ProductsSettings = () => {
       } else {
         response = await supabase
           .from('products_page_settings')
-          .insert([dataToSave]);
+          .insert([{
+            ...dataToSave,
+            id: 'default',
+            hero_banner_image: dataToSave.hero_banner_image || ''
+          }]);
       }
 
       if (response.error) {
