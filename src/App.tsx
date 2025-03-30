@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -9,6 +10,7 @@ import Products from "./pages/Products";
 import NotFound from "./pages/NotFound";
 import ProductForm from "./pages/ProductForm";
 import ProductDetail from "./pages/ProductDetail";
+import ProductEdit from "./pages/ProductEdit";
 import Payment from "./pages/Payment";
 import Contact from "./pages/Contact";
 import Auth from "./pages/Auth";
@@ -19,7 +21,6 @@ import Popo from "./pages/Popo";
 import PopoSettings from "./pages/PopoSettings";
 import Formulaire from "./pages/Formulaire";
 import ProductsSettings from "./pages/ProductsSettings";
-import ProductEdit from "./pages/ProductEdit";
 import { initSupabase } from "./utils/supabaseInit";
 import { useToast } from "./hooks/use-toast";
 
@@ -112,7 +113,14 @@ function App() {
               }
             />
             <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/edit/product/:id" element={<ProductEdit />} />
+            <Route 
+              path="/edit/product/:id" 
+              element={
+                <ProtectedRoute>
+                  <ProductEdit />
+                </ProtectedRoute>
+              } 
+            />
             <Route
               path="/paiement"
               element={

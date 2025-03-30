@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,7 +73,8 @@ interface Product {
   is_visible: boolean;
   button_text: string;
   currency: CurrencyCode;
-  options?: Record<string, string[]>;
+  options?: Record<string, string[]> | null;
+  use_internal_cart?: boolean;
 }
 
 const ProductForm = () => {
@@ -102,7 +102,7 @@ const ProductForm = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setProducts(data || []);
+      setProducts(data as Product[] || []);
     } catch (error) {
       console.error("Error fetching products:", error);
       toast({
@@ -227,7 +227,8 @@ const ProductForm = () => {
         is_visible: editingProduct ? editingProduct.is_visible : true,
         button_text: formData.get("button_text") as string || "Ajouter au panier",
         currency: formData.get("currency") as CurrencyCode || "XOF",
-        options: optionTypes.length > 0 ? optionValues : null
+        options: optionTypes.length > 0 ? optionValues : null,
+        use_internal_cart: formData.get("use_internal_cart") === "on"
       };
 
       console.log("Saving product data:", productData);
@@ -692,7 +693,7 @@ const ProductForm = () => {
                                 Modifier
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
-                                <a href={`/edit/product/${product.id}`} target="_blank" rel="noopener noreferrer">
+                                <a href={`/edit/product/${product.id}`}>
                                   Aperçu
                                 </a>
                               </DropdownMenuItem>

@@ -1,9 +1,9 @@
+
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import PromoBar from "@/components/PromoBar";
 import ProductGallery from "@/components/ProductGallery";
-import ProductDetails from "@/components/ProductDetails";
 import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -11,14 +11,23 @@ import { Database } from "@/integrations/supabase/types";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   Button,
+  Input,
+  Label,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
-  ContextMenuSeparator
+  ContextMenuSeparator,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetClose
 } from "@/components/ui";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Palette, Trash } from "lucide-react";
-import ColorSelector from "@/components/ColorSelector";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Palette, Trash, Save, X } from "lucide-react";
 
 interface Product {
   id: string;
@@ -36,8 +45,24 @@ interface Product {
   hide_promo_bar?: boolean;
 }
 
+interface ElementStyle {
+  color?: string;
+  backgroundColor?: string;
+  fontSize?: string;
+  fontWeight?: string;
+  textAlign?: string;
+}
+
+interface ElementState {
+  id: string;
+  type: 'text' | 'button' | 'price' | 'image' | 'header' | 'description';
+  content: string;
+  style: ElementStyle;
+}
+
 const ProductEdit = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedOptionImages, setSelectedOptionImages] = useState<string[]>([]);
@@ -45,6 +70,9 @@ const ProductEdit = () => {
   const isMobile = useIsMobile();
   const [changes, setChanges] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
+  const [selectedElement, setSelectedElement] = useState<string | null>(null);
+  const [editingElement, setEditingElement] = useState<ElementState | null>(null);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -134,18 +162,33 @@ const ProductEdit = () => {
     }
   };
 
-  const handleColorChange = (element: string) => {
-    // This would open a color picker
-    // For simplicity, we'll just change the color to a predefined value
-    const newColor = "#" + Math.floor(Math.random()*16777215).toString(16);
-    
-    if (element === 'background') {
+  const handleColorChange = (color: string) => {
+    if (selectedElement === 'theme') {
       setChanges({
         ...changes,
-        theme_color: newColor
+        theme_color: color
+      });
+    } else if (editingElement) {
+      setEditingElement({
+        ...editingElement,
+        style: {
+          ...editingElement.style,
+          color: color
+        }
       });
     }
-    // Other element color changes would be handled similarly
+  };
+
+  const handleBackgroundColorChange = (color: string) => {
+    if (editingElement) {
+      setEditingElement({
+        ...editingElement,
+        style: {
+          ...editingElement.style,
+          backgroundColor: color
+        }
+      });
+    }
   };
 
   const handleMove = (element: string, direction: 'up' | 'down' | 'left' | 'right') => {
@@ -156,39 +199,59 @@ const ProductEdit = () => {
     // Actual implementation would depend on how your layout is structured
   };
 
-  const ContextMenuWrapper = ({ children, id }: { children: React.ReactNode, id: string }) => (
-    <ContextMenu>
-      <ContextMenuTrigger className="w-full h-full">{children}</ContextMenuTrigger>
-      <ContextMenuContent>
-        <ContextMenuItem onClick={() => handleColorChange(id)}>
-          <Palette className="mr-2 h-4 w-4" />
-          Modifier la couleur
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem onClick={() => handleMove(id, 'up')}>
-          <ArrowUp className="mr-2 h-4 w-4" />
-          Déplacer vers le haut
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => handleMove(id, 'down')}>
-          <ArrowDown className="mr-2 h-4 w-4" />
-          Déplacer vers le bas
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => handleMove(id, 'left')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Déplacer vers la gauche
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => handleMove(id, 'right')}>
-          <ArrowRight className="mr-2 h-4 w-4" />
-          Déplacer vers la droite
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem className="text-red-500">
-          <Trash className="mr-2 h-4 w-4" />
-          Supprimer
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
-  );
+  const handleElementClick = (elementId: string, elementType: ElementState['type'], content: string, currentStyle?: ElementStyle) => {
+    setSelectedElement(elementId);
+    setEditingElement({
+      id: elementId,
+      type: elementType,
+      content: content,
+      style: currentStyle || {}
+    });
+    setIsEditorOpen(true);
+  };
+
+  const handleUpdateElement = () => {
+    if (!editingElement || !product) return;
+    
+    // Update the appropriate product field based on the element ID
+    const newChanges = { ...changes };
+    
+    switch (editingElement.id) {
+      case 'product-name':
+        newChanges.name = editingElement.content;
+        break;
+      case 'product-description':
+        newChanges.description = editingElement.content;
+        break;
+      case 'product-button':
+        newChanges.button_text = editingElement.content;
+        break;
+      case 'product-price':
+        // Handle price updates if needed
+        break;
+      case 'theme':
+        // Theme handled separately
+        break;
+    }
+    
+    // For now we're just updating content, but we could store styles in a JSON field too
+    setChanges(newChanges);
+    setIsEditorOpen(false);
+    
+    toast({
+      description: "Élément mis à jour. N'oubliez pas d'enregistrer les changements.",
+    });
+  };
+
+  const handleGoBack = () => {
+    if (Object.keys(changes).length > 0) {
+      if (window.confirm("Vous avez des modifications non enregistrées. Voulez-vous vraiment quitter?")) {
+        navigate("/product-form");
+      }
+    } else {
+      navigate("/product-form");
+    }
+  };
 
   if (loading) {
     return (
@@ -244,9 +307,9 @@ const ProductEdit = () => {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => window.location.href = `/product/${product.id}`}
+              onClick={handleGoBack}
             >
-              Quitter
+              Retour
             </Button>
             <Button 
               size="sm"
@@ -259,6 +322,162 @@ const ProductEdit = () => {
         </div>
       </div>
       
+      {/* Element editor sheet */}
+      <Sheet open={isEditorOpen} onOpenChange={setIsEditorOpen}>
+        <SheetContent className="w-[400px] sm:w-[540px]">
+          <SheetHeader>
+            <SheetTitle>Modifier l'élément</SheetTitle>
+          </SheetHeader>
+          {editingElement && (
+            <div className="py-6 space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="elementContent">Contenu</Label>
+                {editingElement.type === 'description' ? (
+                  <textarea 
+                    id="elementContent"
+                    className="w-full min-h-[200px] p-2 border rounded-md"
+                    value={editingElement.content}
+                    onChange={(e) => setEditingElement({
+                      ...editingElement,
+                      content: e.target.value
+                    })}
+                  />
+                ) : (
+                  <Input 
+                    id="elementContent"
+                    value={editingElement.content}
+                    onChange={(e) => setEditingElement({
+                      ...editingElement,
+                      content: e.target.value
+                    })}
+                  />
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Couleur du texte</Label>
+                <div className="grid grid-cols-5 gap-2">
+                  {['#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF', 
+                   '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080'].map(color => (
+                    <button
+                      key={color}
+                      className="w-8 h-8 rounded-full border"
+                      style={{ backgroundColor: color }}
+                      onClick={() => handleColorChange(color)}
+                    />
+                  ))}
+                </div>
+                <Input 
+                  type="color" 
+                  value={editingElement.style.color || '#000000'} 
+                  onChange={(e) => handleColorChange(e.target.value)}
+                />
+              </div>
+              
+              {editingElement.type === 'button' && (
+                <div className="space-y-2">
+                  <Label>Couleur de fond</Label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {['#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF', 
+                     '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080'].map(color => (
+                      <button
+                        key={color}
+                        className="w-8 h-8 rounded-full border"
+                        style={{ backgroundColor: color }}
+                        onClick={() => handleBackgroundColorChange(color)}
+                      />
+                    ))}
+                  </div>
+                  <Input 
+                    type="color" 
+                    value={editingElement.style.backgroundColor || '#000000'} 
+                    onChange={(e) => handleBackgroundColorChange(e.target.value)}
+                  />
+                </div>
+              )}
+              
+              <div className="space-y-2">
+                <Label>Taille du texte</Label>
+                <div className="flex gap-2">
+                  {['12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px'].map(size => (
+                    <button
+                      key={size}
+                      className={`px-3 py-1 border rounded ${editingElement.style.fontSize === size ? 'bg-black text-white' : ''}`}
+                      onClick={() => setEditingElement({
+                        ...editingElement,
+                        style: { ...editingElement.style, fontSize: size }
+                      })}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Alignement</Label>
+                <div className="flex gap-2">
+                  {['left', 'center', 'right'].map(align => (
+                    <button
+                      key={align}
+                      className={`px-3 py-1 border rounded ${editingElement.style.textAlign === align ? 'bg-black text-white' : ''}`}
+                      onClick={() => setEditingElement({
+                        ...editingElement,
+                        style: { ...editingElement.style, textAlign: align }
+                      })}
+                    >
+                      {align}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setIsEditorOpen(false)}>
+                  Annuler
+                </Button>
+                <Button onClick={handleUpdateElement}>
+                  Appliquer
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+      
+      {/* Theme color selector */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button 
+            className="fixed bottom-6 right-6 rounded-full h-12 w-12 z-50 flex items-center justify-center"
+            size="icon"
+          >
+            <Palette className="h-6 w-6" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-64">
+          <div className="space-y-2">
+            <h3 className="font-medium">Couleur du thème</h3>
+            <div className="grid grid-cols-5 gap-2">
+              {['#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF', 
+               '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080'].map(color => (
+                <button
+                  key={color}
+                  className="w-8 h-8 rounded-full border"
+                  style={{ backgroundColor: color }}
+                  onClick={() => handleColorChange(color)}
+                />
+              ))}
+            </div>
+            <Input 
+              type="color" 
+              value={themeColor} 
+              onChange={(e) => handleColorChange(e.target.value)} 
+            />
+          </div>
+        </PopoverContent>
+      </Popover>
+      
       {/* Add extra padding at the top to account for the fixed panel */}
       <div className="pt-12">
         {!product.hide_promo_bar && <PromoBar />}
@@ -267,61 +486,66 @@ const ProductEdit = () => {
         </div>
         <main className="container mx-auto py-4 md:py-12 px-4 max-w-[100vw]">
           <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-8 lg:gap-12`}>
-            <ContextMenuWrapper id="gallery">
+            <div 
+              className="cursor-pointer"
+              onClick={() => handleElementClick('gallery', 'image', 'Product Gallery')}
+            >
               <ProductGallery images={displayImages} />
-            </ContextMenuWrapper>
+            </div>
             
             <div className="md:order-2 order-2 text-white">
-              <ContextMenuWrapper id="product-header">
-                <div className="mb-6">
-                  <h2 className="uppercase text-sm font-bold tracking-wider">
-                    {product.name}™
-                  </h2>
-                  
-                  {/* Rating stars */}
-                  <div className="flex items-center mt-2">
-                    <div className="flex">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button key={star} className="text-yellow-400">★</button>
-                      ))}
-                    </div>
-                    <span className="text-xs ml-2">1,238 reviews</span>
+              <div 
+                className="mb-6 cursor-pointer"
+                onClick={() => handleElementClick('product-name', 'header', product.name || '')}
+              >
+                <h2 className="uppercase text-sm font-bold tracking-wider">
+                  {changes.name || product.name}™
+                </h2>
+                
+                {/* Rating stars */}
+                <div className="flex items-center mt-2">
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button key={star} className="text-yellow-400">★</button>
+                    ))}
                   </div>
-                  
-                  {/* Price display */}
-                  <div className="flex items-center gap-2 mt-4">
-                    <span className="text-xl font-bold text-orange-500">${product.discounted_price.toFixed(2)}</span>
-                    {product.original_price > product.discounted_price && (
-                      <span className="text-sm line-through text-gray-400">${product.original_price.toFixed(2)}</span>
-                    )}
-                  </div>
-                  
-                  {/* In stock indicator */}
-                  <div className="flex items-center mt-4 text-sm">
-                    <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                    <span>In stock, ready to ship</span>
-                  </div>
+                  <span className="text-xs ml-2">1,238 reviews</span>
                 </div>
-              </ContextMenuWrapper>
+              </div>
               
-              <ContextMenuWrapper id="product-details">
-                <ProductDetails
-                  key={product.id}
-                  name={product.name}
-                  originalPrice={product.original_price}
-                  discountedPrice={product.discounted_price}
-                  description={product.description}
-                  cartUrl={product.cart_url}
-                  buttonText={product.button_text}
-                  currency={product.currency}
-                  onButtonClick={() => {}}
-                  options={product.options || {}}
-                  onOptionImageChange={handleOptionImageChange}
-                  useInternalCart={product.use_internal_cart}
-                  onAddToCart={handleAddToCart}
-                  productId={product.id}
-                />
-              </ContextMenuWrapper>
+              {/* Price display */}
+              <div 
+                className="flex items-center gap-2 mt-4 cursor-pointer"
+                onClick={() => handleElementClick('product-price', 'price', `${product.discounted_price}`)}
+              >
+                <span className="text-xl font-bold text-orange-500">${product.discounted_price.toFixed(2)}</span>
+                {product.original_price > product.discounted_price && (
+                  <span className="text-sm line-through text-gray-400">${product.original_price.toFixed(2)}</span>
+                )}
+              </div>
+              
+              {/* In stock indicator */}
+              <div className="flex items-center mt-4 text-sm">
+                <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                <span>In stock, ready to ship</span>
+              </div>
+              
+              {/* Product description */}
+              <div 
+                className="mt-8 cursor-pointer"
+                onClick={() => handleElementClick('product-description', 'description', product.description || '')}
+                dangerouslySetInnerHTML={{ __html: changes.description || product.description }}
+              />
+              
+              {/* Add to cart button */}
+              <div 
+                className="mt-8 cursor-pointer"
+                onClick={() => handleElementClick('product-button', 'button', product.button_text || 'Ajouter au panier')}
+              >
+                <Button className="w-full">
+                  {changes.button_text || product.button_text}
+                </Button>
+              </div>
             </div>
           </div>
         </main>
