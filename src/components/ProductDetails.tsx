@@ -75,6 +75,7 @@ const ProductDetails = ({
   const [quantity, setQuantity] = useState(1);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
   const [totalPrice, setTotalPrice] = useState(discountedPrice);
+  const [cartItemsCount, setCartItemsCount] = useState(0);
   const navigate = useNavigate();
   
   const discountPercentage = originalPrice > 0 
@@ -109,6 +110,28 @@ const ProductDetails = ({
   useEffect(() => {
     setTotalPrice(discountedPrice * quantity);
   }, [discountedPrice, quantity]);
+  
+  useEffect(() => {
+    const checkCartItems = () => {
+      try {
+        const items = localStorage.getItem('cartItems');
+        if (items) {
+          const parsedItems = JSON.parse(items);
+          setCartItemsCount(parsedItems.length);
+        }
+      } catch (error) {
+        console.error("Error checking cart items:", error);
+      }
+    };
+    
+    checkCartItems();
+    
+    window.addEventListener('cartUpdated', checkCartItems);
+    
+    return () => {
+      window.removeEventListener('cartUpdated', checkCartItems);
+    };
+  }, []);
   
   const handleOptionSelect = (optionType: string, selectedValue: string | OptionValue) => {
     const newSelectedOptions = { ...selectedOptions };
@@ -288,7 +311,7 @@ const ProductDetails = ({
           {buttonText}
         </button>
         
-        {useInternalCart && (
+        {useInternalCart && cartItemsCount > 0 && (
           <button 
             onClick={goToCart}
             className="block flex-1 bg-gray-800 text-white py-3 px-6 rounded hover:bg-gray-900 transition-colors text-center flex items-center justify-center"

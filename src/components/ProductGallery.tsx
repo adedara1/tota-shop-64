@@ -65,7 +65,7 @@ const ProductGallery = ({ images }: ProductGalleryProps) => {
       </div>
       
       {images.length > 1 && (
-        <div className="flex mt-4 gap-2 overflow-x-auto pb-2">
+        <div className="flex mt-4 gap-2 overflow-x-auto pb-2 justify-start">
           {images.map((image, index) => (
             <button
               key={index}
