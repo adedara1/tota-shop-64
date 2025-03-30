@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCart } from "@/hooks/use-cart";
 
 interface Product {
   id: string;
@@ -51,32 +52,8 @@ const ProductDetail = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedOptionImages, setSelectedOptionImages] = useState<string[]>([]);
-  const [cartCount, setCartCount] = useState(0);
   const isMobile = useIsMobile();
-
-  // Load cart count from localStorage
-  useEffect(() => {
-    const fetchCartCount = () => {
-      try {
-        const cartItems = localStorage.getItem('cartItems');
-        if (cartItems) {
-          const items = JSON.parse(cartItems);
-          setCartCount(items.length);
-        }
-      } catch (error) {
-        console.error("Error fetching cart count:", error);
-      }
-    };
-
-    fetchCartCount();
-
-    // Add event listener for cart updates
-    window.addEventListener('cartUpdated', fetchCartCount);
-
-    return () => {
-      window.removeEventListener('cartUpdated', fetchCartCount);
-    };
-  }, []);
+  const { addToCart } = useCart();
 
   // Fetch product data
   useEffect(() => {
@@ -151,49 +128,16 @@ const ProductDetail = () => {
   };
 
   const handleAddToCart = async (productData: any, quantity: number, selectedOptions: Record<string, any>) => {
-    try {
-      // Handle internal cart
-      if (product?.use_internal_cart) {
-        const cartItem = {
-          product_id: product.id,
-          name: product.name,
-          price: product.discounted_price,
-          quantity: quantity,
-          options: selectedOptions,
-          image: product.images && product.images.length > 0 ? product.images[0] : null
-        };
-
-        // Save to local storage
-        const cartItemsStr = localStorage.getItem('cartItems');
-        let cartItems = cartItemsStr ? JSON.parse(cartItemsStr) : [];
-        cartItems.push(cartItem);
-        localStorage.setItem('cartItems', JSON.stringify(cartItems));
-
-        // Dispatch cart update event
-        window.dispatchEvent(new Event('cartUpdated'));
-
-        // Also save to Supabase
-        const { error } = await supabase
-          .from('cart_items')
-          .insert(cartItem);
-
-        if (error) {
-          console.error("Error saving to cart:", error);
-        }
-
-        toast({
-          title: "Produit ajouté",
-          description: "Le produit a été ajouté à votre panier",
-        });
-      }
-    } catch (error) {
-      console.error("Error adding to cart:", error);
-      toast({
-        title: "Erreur",
-        description: "Erreur lors de l'ajout au panier",
-        variant: "destructive",
-      });
-    }
+    if (!product) return;
+    
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.discounted_price,
+      quantity: quantity,
+      options: selectedOptions,
+      image: product.images && product.images.length > 0 ? product.images[0] : null
+    });
   };
 
   if (loading) {
@@ -201,7 +145,7 @@ const ProductDetail = () => {
       <div className="min-h-screen" style={{ backgroundColor: "#000000" }}>
         {!product?.hide_promo_bar && <PromoBar />}
         <div className="bg-white">
-          <Navbar cartCount={cartCount} />
+          <Navbar />
         </div>
         <div className="container mx-auto py-12 px-4">
           <div className="text-center text-white">Chargement...</div>
@@ -216,7 +160,7 @@ const ProductDetail = () => {
       <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: "#000000" }}>
         <PromoBar />
         <div className="bg-white">
-          <Navbar cartCount={cartCount} />
+          <Navbar />
         </div>
         <div className="container mx-auto py-12 px-4 max-w-[100vw]">
           <div className="text-center text-white">
@@ -238,7 +182,7 @@ const ProductDetail = () => {
     <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color || "#000000" }}>
       {!product.hide_promo_bar && <PromoBar />}
       <div className="bg-white">
-        <Navbar cartCount={cartCount} />
+        <Navbar />
       </div>
       <main className="container mx-auto py-4 md:py-12 px-4 max-w-[100vw]">
         <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-8 lg:gap-12`}>
