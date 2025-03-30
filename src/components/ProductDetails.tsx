@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import ProductOptions from "./ProductOptions";
 import { Plus, Minus, ShoppingBag, Star } from "lucide-react";
@@ -118,9 +119,12 @@ const ProductDetails = ({
         if (items) {
           const parsedItems = JSON.parse(items);
           setCartItemsCount(parsedItems.length);
+        } else {
+          setCartItemsCount(0);
         }
       } catch (error) {
         console.error("Error checking cart items:", error);
+        setCartItemsCount(0);
       }
     };
     
