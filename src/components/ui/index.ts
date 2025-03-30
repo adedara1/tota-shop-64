@@ -15,3 +15,5 @@ export * from "./toggle";
 export * from "./carousel";
 export * from "./checkbox";
 export * from "./switch";
+export * from "./badge";
+

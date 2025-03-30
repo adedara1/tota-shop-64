@@ -1,9 +1,9 @@
-
 import { useState, useEffect } from "react";
 import ProductOptions from "./ProductOptions";
 import { Plus, Minus, ShoppingBag, Star } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
 import { useNavigate } from "react-router-dom";
+import { Badge } from "./ui/badge";
 
 interface OptionValue {
   value: string;
@@ -24,14 +24,12 @@ interface ProductDetailsProps {
   useInternalCart?: boolean;
   onAddToCart?: (productData: any, quantity: number, selectedOptions: Record<string, any>) => void;
   productId?: string;
-  // New props for customization
   optionTitleColor?: string;
   optionValueColor?: string;
   productNameColor?: string;
   originalPriceColor?: string;
   discountedPriceColor?: string;
   quantityTextColor?: string;
-  // Display toggles
   showProductTrademark?: boolean;
   productTrademarkColor?: string;
   showStarReviews?: boolean;
@@ -57,7 +55,6 @@ const ProductDetails = ({
   useInternalCart = false,
   onAddToCart,
   productId,
-  // New props with defaults
   optionTitleColor = "#000000",
   optionValueColor = "#000000",
   productNameColor = "#000000",
@@ -80,14 +77,16 @@ const ProductDetails = ({
   const [totalPrice, setTotalPrice] = useState(discountedPrice);
   const navigate = useNavigate();
   
-  // Initialize selectedOptions with the first option of each type
+  const discountPercentage = originalPrice > 0 
+    ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100) 
+    : 0;
+  
   useEffect(() => {
     const initialOptions: Record<string, any> = {};
     const optionImages: string[] = [];
     
     Object.entries(options).forEach(([optionType, values]) => {
       if (values && values.length > 0) {
-        // Check if value is an object with image property
         const firstOption = values[0];
         if (typeof firstOption === 'object' && firstOption !== null) {
           initialOptions[optionType] = firstOption;
@@ -102,13 +101,11 @@ const ProductDetails = ({
     
     setSelectedOptions(initialOptions);
     
-    // Update gallery with option images
     if (optionImages.length > 0 && onOptionImageChange) {
       onOptionImageChange(optionImages);
     }
   }, [options, onOptionImageChange]);
   
-  // Update total price when quantity changes
   useEffect(() => {
     setTotalPrice(discountedPrice * quantity);
   }, [discountedPrice, quantity]);
@@ -116,7 +113,6 @@ const ProductDetails = ({
   const handleOptionSelect = (optionType: string, selectedValue: string | OptionValue) => {
     const newSelectedOptions = { ...selectedOptions };
     
-    // Make sure we store the option as an object
     if (typeof selectedValue === 'string') {
       newSelectedOptions[optionType] = { value: selectedValue };
     } else {
@@ -125,7 +121,6 @@ const ProductDetails = ({
     
     setSelectedOptions(newSelectedOptions);
     
-    // Update image gallery if option has an image
     if (onOptionImageChange) {
       const selectedImages = Object.values(newSelectedOptions)
         .filter(opt => typeof opt === 'object' && opt.image)
@@ -149,34 +144,26 @@ const ProductDetails = ({
       return;
     }
     
-    // For external URLs
-    // Construct URL with selected options
     let finalUrl = cartUrl;
     const params = new URLSearchParams();
     
-    // Add quantity
     params.append('quantity', quantity.toString());
     
-    // Add selected options
     Object.entries(selectedOptions).forEach(([key, value]) => {
       const optValue = typeof value === 'object' ? value.value : value;
       params.append(key, optValue);
     });
     
-    // Add price (total price based on quantity)
     params.append('price', totalPrice.toString());
     
-    // Add product name
     params.append('product', name);
     
-    // Append parameters to URL
     if (params.toString()) {
       finalUrl += (finalUrl.includes('?') ? '&' : '?') + params.toString();
     }
     
     console.log("Checkout URL:", finalUrl);
     
-    // Open the cart URL in a new tab
     window.open(finalUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -224,6 +211,11 @@ const ProductDetails = ({
           <span className="text-3xl" style={{ color: discountedPriceColor }}>{totalPrice}</span>
           <span className="text-3xl ml-1" style={{ color: discountedPriceColor }}>{displayCurrency}</span>
         </div>
+        {discountPercentage > 0 && (
+          <Badge variant="destructive" className="bg-orange-500 hover:bg-orange-600 ml-2">
+            {discountPercentage}% OFF
+          </Badge>
+        )}
       </div>
       
       {showStockStatus && (
@@ -233,7 +225,6 @@ const ProductDetails = ({
         </div>
       )}
       
-      {/* Quantity Selector */}
       <div className="mb-6">
         <h3 className="text-sm font-medium mb-3" style={{ color: quantityTextColor }}>Quantité</h3>
         <div className="flex items-center">
@@ -255,7 +246,6 @@ const ProductDetails = ({
         </div>
       </div>
       
-      {/* Product Options */}
       {Object.entries(options).map(([optionTitle, optionValues]) => (
         <ProductOptions
           key={optionTitle}
@@ -274,7 +264,6 @@ const ProductDetails = ({
         />
       ))}
       
-      {/* Selected Options Summary */}
       {Object.keys(selectedOptions).length > 0 && (
         <div className="bg-white/80 p-3 rounded-md">
           <h3 className="text-sm font-medium mb-2" style={{ color: optionTitleColor }}>Options sélectionnées:</h3>
@@ -291,7 +280,6 @@ const ProductDetails = ({
         </div>
       )}
       
-      {/* Call to Action Button */}
       <div className="flex flex-col sm:flex-row gap-3">
         <button 
           onClick={handleButtonClick}
