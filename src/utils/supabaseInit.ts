@@ -44,9 +44,11 @@ export const initSupabase = async () => {
         const { error: insertError } = await supabase
           .from('products_page_settings')
           .insert({
+            id: crypto.randomUUID(), // Add required ID field
             background_color: '#f1eee9',
             hero_banner_title: 'Bienvenue sur Total-Service',
             hero_banner_description: 'Découvrez nos nouveautés et best-sellers',
+            hero_banner_image: '', // Add required hero_banner_image field
             section_titles: {
               new_arrivals: 'Nouveautés',
               best_sellers: 'Meilleures ventes',

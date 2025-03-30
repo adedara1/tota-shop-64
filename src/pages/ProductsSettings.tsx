@@ -99,9 +99,11 @@ const ProductsSettings = () => {
       const { data, error } = await supabase
         .from('products_page_settings')
         .insert({
+          id: crypto.randomUUID(), // Add required ID field
           background_color: '#f1eee9',
           hero_banner_title: 'Notre Collection',
           hero_banner_description: 'Découvrez nos nouveautés et best-sellers',
+          hero_banner_image: '', // Add required hero_banner_image field
           section_titles: {
             new_arrivals: 'Nouveautés',
             best_sellers: 'Meilleures ventes',
@@ -263,9 +265,16 @@ const ProductsSettings = () => {
           .update(dataToSave)
           .eq("id", settings.id);
       } else {
+        // Add an ID and empty hero_banner_image if not present
+        const dataWithRequiredFields = {
+          ...dataToSave,
+          id: dataToSave.id || crypto.randomUUID(),
+          hero_banner_image: dataToSave.hero_banner_image || '',
+        };
+        
         response = await supabase
           .from('products_page_settings')
-          .insert([dataToSave]);
+          .insert([dataWithRequiredFields]);
       }
 
       if (response.error) {

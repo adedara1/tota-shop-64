@@ -1,125 +1,114 @@
 
-import { useState, useEffect, createContext, useContext, ReactNode } from "react";
-import { toast } from "@/hooks/use-toast";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { toast } from "./use-toast";
 
-interface CartItem {
+type CartItem = {
   id: string;
   name: string;
   price: number;
   quantity: number;
-  image?: string | null;
   options?: Record<string, any>;
-}
+  image?: string | null;
+};
 
-interface CartContextType {
+type CartContextType = {
   items: CartItem[];
   addToCart: (item: CartItem) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
+  totalItems: number;
+  totalPrice: number;
   updateQuantity: (id: string, quantity: number) => void;
-  getTotal: () => number;
-  getItemCount: () => number;
-}
+};
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
-
-  // Load cart from localStorage on init
+  
+  // Load cart from localStorage on component mount
   useEffect(() => {
-    try {
-      const savedCart = localStorage.getItem('cartItems');
-      if (savedCart) {
+    const savedCart = localStorage.getItem("cart");
+    if (savedCart) {
+      try {
         setItems(JSON.parse(savedCart));
+      } catch (error) {
+        console.error("Failed to parse cart from localStorage:", error);
+        localStorage.removeItem("cart");
       }
-    } catch (error) {
-      console.error("Error loading cart:", error);
     }
   }, []);
+  
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("cart", JSON.stringify(items));
+  }, [items]);
 
-  // Save cart to localStorage when updated
-  const saveCart = (cartItems: CartItem[]) => {
-    try {
-      localStorage.setItem('cartItems', JSON.stringify(cartItems));
-      window.dispatchEvent(new Event('cartUpdated'));
-    } catch (error) {
-      console.error("Error saving cart:", error);
-    }
-  };
-
-  const addToCart = (item: CartItem) => {
-    setItems(prev => {
-      const existingItem = prev.find(i => 
-        i.id === item.id && 
-        JSON.stringify(i.options) === JSON.stringify(item.options)
+  const addToCart = (newItem: CartItem) => {
+    setItems(prevItems => {
+      // Check if item already exists in cart
+      const existingItemIndex = prevItems.findIndex(item => 
+        item.id === newItem.id && 
+        JSON.stringify(item.options) === JSON.stringify(newItem.options)
       );
-
-      let newItems;
       
-      if (existingItem) {
-        newItems = prev.map(i => 
-          i.id === item.id && JSON.stringify(i.options) === JSON.stringify(item.options)
-            ? { ...i, quantity: i.quantity + item.quantity }
-            : i
-        );
+      if (existingItemIndex !== -1) {
+        // Update the quantity if item exists
+        const updatedItems = [...prevItems];
+        updatedItems[existingItemIndex].quantity += newItem.quantity;
+        return updatedItems;
       } else {
-        newItems = [...prev, item];
+        // Add new item to cart
+        return [...prevItems, newItem];
       }
-      
-      saveCart(newItems);
-      return newItems;
     });
-
+    
     toast({
-      title: "Produit ajouté au panier",
-      description: `${item.quantity} × ${item.name} ajouté au panier`,
+      title: "Ajouté au panier",
+      description: `${newItem.quantity} × ${newItem.name} ajouté au panier`,
     });
   };
 
   const removeFromCart = (id: string) => {
-    setItems(prev => {
-      const newItems = prev.filter(i => i.id !== id);
-      saveCart(newItems);
-      return newItems;
-    });
+    setItems(items => items.filter(item => item.id !== id));
   };
 
   const clearCart = () => {
     setItems([]);
-    saveCart([]);
   };
-
+  
   const updateQuantity = (id: string, quantity: number) => {
-    if (quantity < 1) return;
-
-    setItems(prev => {
-      const newItems = prev.map(i => 
-        i.id === id ? { ...i, quantity } : i
-      );
-      saveCart(newItems);
-      return newItems;
-    });
+    if (quantity <= 0) {
+      removeFromCart(id);
+      return;
+    }
+    
+    setItems(items => 
+      items.map(item => 
+        item.id === id ? { ...item, quantity } : item
+      )
+    );
   };
 
-  const getTotal = () => {
-    return items.reduce((total, item) => total + (item.price * item.quantity), 0);
-  };
-
-  const getItemCount = () => {
-    return items.reduce((count, item) => count + item.quantity, 0);
-  };
+  const totalItems = items.reduce((total, item) => total + item.quantity, 0);
+  
+  const totalPrice = items.reduce(
+    (total, item) => total + item.price * item.quantity, 
+    0
+  );
 
   return (
-    <CartContext.Provider value={{
-      items,
-      addToCart,
-      removeFromCart,
-      clearCart,
-      updateQuantity,
-      getTotal,
-      getItemCount
-    }}>
+    <CartContext.Provider 
+      value={{ 
+        items, 
+        addToCart, 
+        removeFromCart, 
+        clearCart, 
+        totalItems, 
+        totalPrice,
+        updateQuantity
+      }}
+    >
       {children}
     </CartContext.Provider>
   );
