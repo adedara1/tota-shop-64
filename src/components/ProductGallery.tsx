@@ -9,6 +9,7 @@ interface ProductGalleryProps {
 
 const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
+  const allImages = [...images];
 
   // Reset active index when images change
   useEffect(() => {
@@ -16,11 +17,11 @@ const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
   }, [images]);
 
   const nextSlide = () => {
-    setActiveIndex(current => current === images.length - 1 ? 0 : current + 1);
+    setActiveIndex(current => current === allImages.length - 1 ? 0 : current + 1);
   };
 
   const prevSlide = () => {
-    setActiveIndex(current => current === 0 ? images.length - 1 : current - 1);
+    setActiveIndex(current => current === 0 ? allImages.length - 1 : current - 1);
   };
 
   const goToSlide = (index: number) => {
@@ -36,9 +37,9 @@ const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
   return (
     <div className="relative flex flex-row gap-4">
       {/* Thumbnails on the left side - both on mobile and desktop */}
-      {images.length > 1 && (
+      {allImages.length > 1 && (
         <div className="flex flex-col gap-2 overflow-y-auto max-h-[500px] pb-0 pr-2 w-[100px]">
-          {images.map((image, index) => (
+          {allImages.map((image, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}
@@ -59,7 +60,7 @@ const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
       {/* Main image */}
       <div className="relative h-[500px] overflow-hidden rounded-lg flex-grow">
         <img 
-          src={images[activeIndex]} 
+          src={allImages[activeIndex]} 
           alt={`Product image ${activeIndex + 1}`} 
           className="w-full max-w-xl object-cover" 
           style={{
@@ -69,7 +70,7 @@ const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
           }} 
         />
         
-        {images.length > 1 && (
+        {allImages.length > 1 && (
           <>
             <button 
               onClick={prevSlide} 

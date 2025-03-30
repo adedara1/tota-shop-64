@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ImageIcon, X, Link as LinkIcon, Globe, Star } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ColorInput from "@/components/ColorInput";
+import SimilarProductsSelector from "@/components/SimilarProductsSelector";
 
 type CurrencyCode = Database['public']['Enums']['currency_code'];
 
@@ -77,6 +78,9 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
   const [customUrl, setCustomUrl] = useState("");
   const [urlType, setUrlType] = useState<'whatsapp' | 'custom'>('whatsapp');
   const [hidePromoBar, setHidePromoBar] = useState(false);
+  const [showSimilarProducts, setShowSimilarProducts] = useState(false);
+  const [similarProducts, setSimilarProducts] = useState<string[]>([]);
+  const [showSimilarProductsSelector, setShowSimilarProductsSelector] = useState(false);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -247,7 +251,7 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
         images: imageUrls,
         is_visible: true,
         button_text: formData.get("button_text") as string || "Contactez-nous sur WhatsApp",
-        currency: formData.get("currency") as CurrencyCode || "XOF",
+        currency: formData.get("currency") as Database['public']['Enums']['currency_code'] || "XOF",
         options: optionTypes.length > 0 ? optionValues : null,
         use_internal_cart: useInternalCart,
         hide_promo_bar: hidePromoBar,
@@ -265,7 +269,9 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
         star_count: starCount,
         show_stock_status: showStockStatus,
         stock_status_text: stockStatusText,
-        stock_status_color: stockStatusColor
+        stock_status_color: stockStatusColor,
+        show_similar_products: showSimilarProducts,
+        similar_products: similarProducts
       };
 
       console.log("Saving product data:", productData);
@@ -295,6 +301,10 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSimilarProductsSelect = (selected: string[]) => {
+    setSimilarProducts(selected);
   };
 
   return (
@@ -736,6 +746,41 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
           </div>
         )}
       </div>
+
+      <div className="flex items-center space-x-2 my-4">
+        <Checkbox 
+          id="show-similar-products" 
+          checked={showSimilarProducts} 
+          onCheckedChange={(checked) => {
+            setShowSimilarProducts(checked === true);
+          }}
+        />
+        <Label htmlFor="show-similar-products" className="font-medium cursor-pointer">
+          Afficher des produits similaires
+        </Label>
+      </div>
+      
+      {showSimilarProducts && (
+        <div className="ml-6 space-y-4 border-l-2 border-gray-200 pl-4">
+          <div className="flex flex-col gap-3">
+            <Label>Produits similaires sélectionnés: {similarProducts.length}</Label>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setShowSimilarProductsSelector(true)}
+            >
+              Sélectionner des produits similaires
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      <SimilarProductsSelector
+        open={showSimilarProductsSelector}
+        onOpenChange={setShowSimilarProductsSelector}
+        onSave={handleSimilarProductsSelect}
+        initialSelectedProducts={similarProducts}
+      />
 
       <div className="flex gap-4">
         <Button type="submit" disabled={loading} className="flex-1">

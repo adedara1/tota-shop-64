@@ -157,6 +157,7 @@ const ProductDetails = ({
     }
     
     console.log(`Selected ${optionType}:`, selectedValue);
+    console.log("All selected options:", newSelectedOptions);
   };
   
   const handleButtonClick = () => {

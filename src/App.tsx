@@ -1,147 +1,36 @@
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import ProductDetail from './pages/ProductDetail';
+import ProductsPage from './pages/ProductsPage';
+import Home from './pages/Home';
+import Paiement from './pages/Paiement';
+import Dashboard from './pages/Dashboard';
+import { Toaster } from "@/hooks/use-toast"
+import {
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query'
+import { CartProvider } from "@/hooks/use-cart";
 
-import { useEffect, useState } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import ProtectedRoute from "./components/ProtectedRoute";
-import Products from "./pages/Products";
-import NotFound from "./pages/NotFound";
-import ProductForm from "./pages/ProductForm";
-import ProductDetail from "./pages/ProductDetail";
-import ProductEdit from "./pages/ProductEdit";
-import Payment from "./pages/Payment";
-import Contact from "./pages/Contact";
-import Auth from "./pages/Auth";
-import Home from "./pages/Home";
-import Stats from "./pages/Stats";
-import ButtonStats from "./pages/ButtonStats";
-import Popo from "./pages/Popo";
-import PopoSettings from "./pages/PopoSettings";
-import Formulaire from "./pages/Formulaire";
-import ProductsSettings from "./pages/ProductsSettings";
-import { initSupabase } from "./utils/supabaseInit";
-import { useToast } from "./hooks/use-toast";
-
-const queryClient = new QueryClient();
-
-function App() {
-  const [isInitializing, setIsInitializing] = useState(true);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    // Initialize Supabase functions and tables
-    const initialize = async () => {
-      try {
-        setIsInitializing(true);
-        const success = await initSupabase();
-        if (success) {
-          console.log("Supabase initialized successfully");
-        } else {
-          console.error("Failed to initialize Supabase");
-          toast({
-            title: "Erreur d'initialisation",
-            description: "Des problèmes d'initialisation ont été rencontrés. Certaines fonctionnalités pourraient être limitées.",
-            variant: "destructive",
-          });
-        }
-      } catch (error) {
-        console.error("Error initializing Supabase:", error);
-      } finally {
-        setIsInitializing(false);
-      }
-    };
-    
-    initialize();
-  }, []);
+const App = () => {
+  const queryClient = new QueryClient()
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+    <Router>
+      <CartProvider>
         <Toaster />
-        <Sonner />
-        <Router>
+        <QueryClientProvider client={queryClient}>
           <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route
-              path="/"
-              element={<Navigate to="/home" replace />}
-            />
-            <Route 
-              path="/home" 
-              element={
-                <ProtectedRoute>
-                  <Home />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/products" element={<Products />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/popo" element={<Popo />} />
-            <Route path="/formulaire" element={<Formulaire />} />
-            <Route
-              path="/products-set"
-              element={
-                <ProtectedRoute>
-                  <ProductsSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/popo-setting"
-              element={
-                <ProtectedRoute>
-                  <PopoSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/product-form"
-              element={
-                <ProtectedRoute>
-                  <ProductForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/stats"
-              element={
-                <ProtectedRoute>
-                  <Stats />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/" element={<Home />} />
             <Route path="/product/:id" element={<ProductDetail />} />
-            <Route 
-              path="/edit/product/:id" 
-              element={
-                <ProtectedRoute>
-                  <ProductEdit />
-                </ProtectedRoute>
-              } 
-            />
-            <Route
-              path="/paiement"
-              element={
-                <ProtectedRoute>
-                  <Payment />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="*"
-              element={
-                <ProtectedRoute>
-                  <NotFound />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/paiement" element={<Paiement />} />
+            <Route path="/dashboard" element={<Dashboard />} />
           </Routes>
-        </Router>
-      </TooltipProvider>
-    </QueryClientProvider>
+        </QueryClientProvider>
+      </CartProvider>
+    </Router>
   );
-}
+};
 
 export default App;
