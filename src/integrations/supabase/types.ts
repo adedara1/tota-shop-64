@@ -182,10 +182,8 @@ export type Database = {
           review_count: number | null
           secondary_button: Json | null
           show_product_trademark: boolean | null
-          show_similar_products: boolean | null
           show_star_reviews: boolean | null
           show_stock_status: boolean | null
-          similar_products: string[] | null
           star_count: number | null
           star_reviews_color: string | null
           stock_status_color: string | null
@@ -218,10 +216,8 @@ export type Database = {
           review_count?: number | null
           secondary_button?: Json | null
           show_product_trademark?: boolean | null
-          show_similar_products?: boolean | null
           show_star_reviews?: boolean | null
           show_stock_status?: boolean | null
-          similar_products?: string[] | null
           star_count?: number | null
           star_reviews_color?: string | null
           stock_status_color?: string | null
@@ -254,10 +250,8 @@ export type Database = {
           review_count?: number | null
           secondary_button?: Json | null
           show_product_trademark?: boolean | null
-          show_similar_products?: boolean | null
           show_star_reviews?: boolean | null
           show_stock_status?: boolean | null
-          similar_products?: string[] | null
           star_count?: number | null
           star_reviews_color?: string | null
           stock_status_color?: string | null
