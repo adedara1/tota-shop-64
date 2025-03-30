@@ -28,14 +28,14 @@ const ProductOptions = ({
   useEffect(() => {
     if (selectedOption) {
       setSelectedValue(selectedOption);
-    } else if (options.length > 0) {
-      // Default to first option
+    } else if (options.length > 0 && !selectedValue) {
+      // Default to first option only if selectedValue is not set
       const firstOption = options[0];
       const value = typeof firstOption === 'object' ? firstOption.value : firstOption;
       setSelectedValue(value);
       onSelect(firstOption);
     }
-  }, [selectedOption, options, onSelect]);
+  }, [selectedOption, options, onSelect, selectedValue]);
   
   const handleSelect = (option: string | OptionValue) => {
     const value = typeof option === 'object' ? option.value : option;

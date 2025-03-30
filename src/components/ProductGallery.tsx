@@ -33,8 +33,30 @@ const ProductGallery = ({ images }: ProductGalleryProps) => {
   }
 
   return (
-    <div className="relative">
-      <div className="relative h-[500px] overflow-hidden rounded-lg">
+    <div className="relative flex flex-col md:flex-row gap-4">
+      {/* Thumbnails on the left side */}
+      {images.length > 1 && (
+        <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-y-auto md:max-h-[500px] pb-2 md:pb-0 md:pr-2 md:w-[100px]">
+          {images.map((image, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              className={`relative h-16 w-16 flex-shrink-0 rounded-md overflow-hidden border-2 ${
+                index === activeIndex ? 'border-black' : 'border-transparent'
+              }`}
+            >
+              <img 
+                src={image} 
+                alt={`Thumbnail ${index + 1}`} 
+                className="h-full w-full object-cover"
+              />
+            </button>
+          ))}
+        </div>
+      )}
+      
+      {/* Main image */}
+      <div className="relative h-[500px] overflow-hidden rounded-lg flex-grow">
         <img 
           src={images[activeIndex]} 
           alt={`Product image ${activeIndex + 1}`} 
@@ -65,27 +87,6 @@ const ProductGallery = ({ images }: ProductGalleryProps) => {
           </>
         )}
       </div>
-      
-      {/* Thumbnails */}
-      {images.length > 1 && (
-        <div className="flex mt-4 space-x-2 overflow-x-auto pb-2">
-          {images.map((image, index) => (
-            <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className={`relative h-16 w-16 rounded-md overflow-hidden border-2 ${
-                index === activeIndex ? 'border-black' : 'border-transparent'
-              }`}
-            >
-              <img 
-                src={image} 
-                alt={`Thumbnail ${index + 1}`} 
-                className="h-full w-full object-cover"
-              />
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 };
