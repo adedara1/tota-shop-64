@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -122,7 +121,7 @@ const SimilarProductsSelector = ({
   selectedProductIds,
   onSelectionChange
 }: SimilarProductsSelectorProps) => {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -280,9 +279,9 @@ const ProductForm = ({ initialProduct }: ProductFormProps) => {
     }
   }, [initialProduct, form]);
 
-  const { data: existingProduct, isLoading } = useQuery(
-    ["product", id],
-    async () => {
+  const { data: existingProduct, isLoading } = useQuery({
+    queryKey: ["product", id],
+    queryFn: async () => {
       if (!id) return null;
       const { data, error } = await supabase
         .from("products")
@@ -292,11 +291,9 @@ const ProductForm = ({ initialProduct }: ProductFormProps) => {
       if (error) throw error;
       return data as Product;
     },
-    {
-      enabled: isEditing,
-      initialData: initialProduct || undefined,
-    }
-  );
+    enabled: isEditing,
+    initialData: initialProduct || undefined,
+  });
 
   useEffect(() => {
     if (existingProduct) {
@@ -378,7 +375,9 @@ const ProductForm = ({ initialProduct }: ProductFormProps) => {
         } avec succès.`,
       });
 
-      queryClient.invalidateQueries(["products"]);
+      queryClient.invalidateQueries({
+        queryKey: ["products"]
+      });
       navigate("/products");
     } catch (error: any) {
       console.error("Error during product upsert:", error);
@@ -394,33 +393,33 @@ const ProductForm = ({ initialProduct }: ProductFormProps) => {
     }
   };
 
-  const { mutate: deleteProduct } = useMutation(
-    async (productId: string) => {
+  const { mutate: deleteProduct } = useMutation({
+    mutationFn: async (productId: string) => {
       const { error } = await supabase
         .from("products")
         .delete()
         .eq("id", productId);
       if (error) throw error;
     },
-    {
-      onSuccess: () => {
-        toast({
-          title: "Produit supprimé",
-          description: "Le produit a été supprimé avec succès.",
-        });
-        queryClient.invalidateQueries(["products"]);
-        navigate("/products");
-      },
-      onError: (error: any) => {
-        toast({
-          title: "Erreur",
-          description:
-            error.message || "Une erreur est survenue lors de la suppression.",
-          variant: "destructive",
-        });
-      },
-    }
-  );
+    onSuccess: () => {
+      toast({
+        title: "Produit supprimé",
+        description: "Le produit a été supprimé avec succès.",
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["products"]
+      });
+      navigate("/products");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description:
+          error.message || "Une erreur est survenue lors de la suppression.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -551,7 +550,7 @@ const ProductForm = ({ initialProduct }: ProductFormProps) => {
                             <Input placeholder="Nom du produit" {...field} />
                           </FormControl>
                           <FormDescription>
-                            C'est le nom qui sera affiché sur la page du produit.
+                            C'est le nom qui sera affich�� sur la page du produit.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -1311,4 +1310,3 @@ const ProductForm = ({ initialProduct }: ProductFormProps) => {
 };
 
 export default ProductForm;
-
