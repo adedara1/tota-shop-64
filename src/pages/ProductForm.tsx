@@ -313,21 +313,37 @@ const ProductForm = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        console.log("No active session found");
-        toast({
-          title: "Erreur",
-          description: "Vous devez être connecté pour supprimer un produit",
-          variant: "destructive",
-        });
+      // Confirmation avant suppression
+      if (!confirm("Êtes-vous sûr de vouloir supprimer ce produit ? Cette action est irréversible.")) {
         return;
       }
 
+      setLoading(true);
       console.log("Starting deletion process for product:", id);
-      console.log("User ID:", session.user.id);
       
+      // 1. D'abord supprimer les statistiques associées au produit
+      const { error: statsError } = await supabase
+        .from("product_stats")
+        .delete()
+        .eq("product_id", id);
+      
+      if (statsError) {
+        console.error("Error deleting product stats:", statsError);
+        // On continue même s'il y a une erreur ici
+      }
+
+      // 2. Supprimer les éléments du panier associés au produit
+      const { error: cartError } = await supabase
+        .from("cart_items")
+        .delete()
+        .eq("product_id", id);
+      
+      if (cartError) {
+        console.error("Error deleting cart items:", cartError);
+        // On continue même s'il y a une erreur ici
+      }
+
+      // 3. Supprimer le produit lui-même
       const { error } = await supabase
         .from("products")
         .delete()
@@ -349,9 +365,11 @@ const ProductForm = () => {
       console.error("Error in handleDelete:", error);
       toast({
         title: "Erreur",
-        description: "Échec de la suppression",
+        description: "Échec de la suppression. Vérifiez que ce produit n'est pas utilisé ailleurs.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
