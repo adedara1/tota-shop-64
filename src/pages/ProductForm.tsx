@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -39,6 +40,7 @@ import ColorSelector from "@/components/ColorSelector";
 import Navbar from "@/components/Navbar";
 import PromoBar from "@/components/PromoBar";
 import Footer from "@/components/Footer";
+import { Badge } from "@/components/ui/badge";
 
 interface Product {
   id: string;
@@ -966,4 +968,347 @@ const ProductForm = ({ initialProduct }: ProductFormProps) => {
                           </FormControl>
                           <FormDescription>
                             Couleur de la valeur de l'option.
-                          </
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="product_name_color"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Couleur du nom du produit</FormLabel>
+                          <FormControl>
+                            <ColorSelector
+                              selectedColor={field.value}
+                              onColorSelect={(color) => form.setValue("product_name_color", color)}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Couleur du nom du produit.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="original_price_color"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Couleur du prix original</FormLabel>
+                          <FormControl>
+                            <ColorSelector
+                              selectedColor={field.value}
+                              onColorSelect={(color) => form.setValue("original_price_color", color)}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Couleur du prix original.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="discounted_price_color"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Couleur du prix réduit</FormLabel>
+                          <FormControl>
+                            <ColorSelector
+                              selectedColor={field.value}
+                              onColorSelect={(color) => form.setValue("discounted_price_color", color)}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Couleur du prix réduit.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="advanced" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Paramètres avancés</CardTitle>
+                    <CardDescription>
+                      Paramètres avancés pour le produit.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">Utiliser le panier interne</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Utiliser le panier interne au lieu de rediriger vers une URL externe.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={product.use_internal_cart || false}
+                        onCheckedChange={(checked) =>
+                          setProduct((prev) => ({
+                            ...prev,
+                            use_internal_cart: checked,
+                          }))
+                        }
+                      />
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">Masquer la barre de promotion</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Masquer la barre de promotion en haut de la page.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={product.hide_promo_bar || false}
+                        onCheckedChange={(checked) =>
+                          setProduct((prev) => ({
+                            ...prev,
+                            hide_promo_bar: checked,
+                          }))
+                        }
+                      />
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">Afficher les produits similaires</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Afficher la section des produits similaires sur la page du produit.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={product.show_similar_products || false}
+                        onCheckedChange={(checked) =>
+                          setProduct((prev) => ({
+                            ...prev,
+                            show_similar_products: checked,
+                          }))
+                        }
+                      />
+                    </div>
+
+                    {product.show_similar_products && (
+                      <>
+                        <div className="pl-8 pt-2">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setShowSimilarProductsSelector(true)}
+                          >
+                            Sélectionner les produits similaires
+                          </Button>
+                        </div>
+                        <Dialog open={showSimilarProductsSelector} onOpenChange={setShowSimilarProductsSelector}>
+                          <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                              <DialogTitle>Produits similaires</DialogTitle>
+                              <DialogDescription>
+                                Sélectionnez les produits similaires à afficher sur la page du produit.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="max-h-[60vh] overflow-y-auto py-4">
+                              <SimilarProductsSelector
+                                currentProductId={id || "new-product"}
+                                selectedProductIds={product.similar_products || []}
+                                onSelectionChange={handleSimilarProductsChange}
+                              />
+                            </div>
+                            <DialogFooter>
+                              <Button type="button" onClick={() => setShowSimilarProductsSelector(false)}>
+                                Fermer
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </>
+                    )}
+
+                    <Separator />
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">Afficher le trademark du produit</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Afficher le trademark du produit (par exemple, "Nike®").
+                        </p>
+                      </div>
+                      <Switch
+                        checked={product.show_product_trademark || false}
+                        onCheckedChange={(checked) =>
+                          setProduct((prev) => ({
+                            ...prev,
+                            show_product_trademark: checked,
+                          }))
+                        }
+                      />
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">Afficher les étoiles d'avis</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Afficher les étoiles d'avis sur la page du produit.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={product.show_star_reviews || false}
+                        onCheckedChange={(checked) =>
+                          setProduct((prev) => ({
+                            ...prev,
+                            show_star_reviews: checked,
+                          }))
+                        }
+                      />
+                    </div>
+
+                    {product.show_star_reviews && (
+                      <div className="pl-8 space-y-4">
+                        <div>
+                          <Label htmlFor="review-count">Nombre d'avis</Label>
+                          <Input
+                            id="review-count"
+                            type="number"
+                            value={product.review_count || 0}
+                            onChange={(e) =>
+                              setProduct((prev) => ({
+                                ...prev,
+                                review_count: parseInt(e.target.value) || 0,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="star-count">Nombre d'étoiles (1-5)</Label>
+                          <Input
+                            id="star-count"
+                            type="number"
+                            min="1"
+                            max="5"
+                            value={product.star_count || 5}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value) || 5;
+                              setProduct((prev) => ({
+                                ...prev,
+                                star_count: Math.min(Math.max(value, 1), 5),
+                              }));
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <Separator />
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">Afficher le statut du stock</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Afficher le statut du stock sur la page du produit.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={product.show_stock_status || false}
+                        onCheckedChange={(checked) =>
+                          setProduct((prev) => ({
+                            ...prev,
+                            show_stock_status: checked,
+                          }))
+                        }
+                      />
+                    </div>
+
+                    {product.show_stock_status && (
+                      <div className="pl-8">
+                        <Label htmlFor="stock-status-text">
+                          Texte du statut du stock
+                        </Label>
+                        <Input
+                          id="stock-status-text"
+                          value={product.stock_status_text || ""}
+                          onChange={(e) =>
+                            setProduct((prev) => ({
+                              ...prev,
+                              stock_status_text: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Aperçu</CardTitle>
+                <CardDescription>
+                  Aperçu du produit tel qu'il apparaîtra sur le site.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-white rounded-lg p-4">
+                  <div className="aspect-square bg-gray-100 rounded-lg mb-4 flex items-center justify-center">
+                    {imagePreview.length > 0 ? (
+                      <img
+                        src={imagePreview[0]}
+                        alt="Aperçu du produit"
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <p className="text-gray-500">Aucune image</p>
+                    )}
+                  </div>
+                  <h3 className="font-semibold text-lg">
+                    {form.watch("name") || "Nom du produit"}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span
+                      className="line-through text-sm"
+                      style={{ color: form.watch("original_price_color") }}
+                    >
+                      {form.watch("original_price")} {form.watch("currency")}
+                    </span>
+                    <span
+                      className="font-bold"
+                      style={{ color: form.watch("discounted_price_color") }}
+                    >
+                      {form.watch("discounted_price")} {form.watch("currency")}
+                    </span>
+                  </div>
+                  <div className="mt-4">
+                    <Button className="w-full">{form.watch("button_text")}</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+export default ProductForm;
+
