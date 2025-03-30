@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,9 @@ import { fr } from "date-fns/locale";
 import { Database } from "@/integrations/supabase/types";
 import ProductFormClone from "@/components/ProductFormClone";
 import { Toggle } from "@/components/ui/toggle";
+import { Checkbox } from "@/components/ui/checkbox";
+import SimilarProductsSelector from "@/components/SimilarProductsSelector";
+
 type CurrencyCode = Database['public']['Enums']['currency_code'];
 const COLOR_PALETTES = {
   blue: ['#0000FF', '#79F8F8', '#007FFF', '#1E7FCB', '#74D0F1', '#A9EAFE', '#3A8EBA'],
@@ -66,6 +70,7 @@ const CURRENCIES = [{
   code: 'EUR' as CurrencyCode,
   label: 'Euro (EUR)'
 }];
+
 interface Product {
   id: string;
   name: string;
@@ -81,7 +86,10 @@ interface Product {
   currency: CurrencyCode;
   options?: Record<string, string[]> | null;
   use_internal_cart?: boolean;
+  show_similar_products?: boolean;
+  similar_products?: string[];
 }
+
 const ProductForm = () => {
   const {
     toast
@@ -100,6 +108,9 @@ const ProductForm = () => {
   const [newOptionType, setNewOptionType] = useState("");
   const [newOptionValue, setNewOptionValue] = useState("");
   const [editingOptionType, setEditingOptionType] = useState("");
+  const [showSimilarProductsSelector, setShowSimilarProductsSelector] = useState(false);
+  const [similarProducts, setSimilarProducts] = useState<string[]>([]);
+
   const fetchProducts = async () => {
     try {
       const {
@@ -119,9 +130,11 @@ const ProductForm = () => {
       });
     }
   };
+
   useEffect(() => {
     fetchProducts();
   }, []);
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 4) {
@@ -134,6 +147,7 @@ const ProductForm = () => {
     }
     setImages(files);
   };
+
   useEffect(() => {
     if (editingProduct && editingProduct.options) {
       const types = Object.keys(editingProduct.options);
@@ -144,6 +158,7 @@ const ProductForm = () => {
       setOptionValues({});
     }
   }, [editingProduct]);
+
   const addOptionType = () => {
     if (newOptionType.trim() && !optionTypes.includes(newOptionType)) {
       setOptionTypes([...optionTypes, newOptionType]);
@@ -155,6 +170,7 @@ const ProductForm = () => {
       setEditingOptionType(newOptionType);
     }
   };
+
   const addOptionValue = () => {
     if (editingOptionType && newOptionValue.trim() && !optionValues[editingOptionType]?.includes(newOptionValue)) {
       setOptionValues({
@@ -164,6 +180,7 @@ const ProductForm = () => {
       setNewOptionValue("");
     }
   };
+
   const removeOptionType = (type: string) => {
     const newTypes = optionTypes.filter(t => t !== type);
     const newValues = {
@@ -176,6 +193,7 @@ const ProductForm = () => {
       setEditingOptionType("");
     }
   };
+
   const removeOptionValue = (type: string, value: string) => {
     if (optionValues[type]) {
       setOptionValues({
@@ -184,6 +202,11 @@ const ProductForm = () => {
       });
     }
   };
+
+  const handleSimilarProductsSelect = (selectedProducts: string[]) => {
+    setSimilarProducts(selectedProducts);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -223,7 +246,9 @@ const ProductForm = () => {
         button_text: formData.get("button_text") as string || "Ajouter au panier",
         currency: formData.get("currency") as CurrencyCode || "XOF",
         options: optionTypes.length > 0 ? optionValues : null,
-        use_internal_cart: formData.get("use_internal_cart") === "on"
+        use_internal_cart: formData.get("use_internal_cart") === "on",
+        show_similar_products: formData.get("show_similar_products") === "on",
+        similar_products: similarProducts.length > 0 ? similarProducts : []
       };
       console.log("Saving product data:", productData);
       if (editingProduct) {
@@ -265,6 +290,7 @@ const ProductForm = () => {
       setLoading(false);
     }
   };
+
   const toggleVisibility = async (id: string, currentVisibility: boolean) => {
     try {
       const {
@@ -287,40 +313,37 @@ const ProductForm = () => {
       });
     }
   };
+
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setDescription(product.description);
     setSelectedColor(product.theme_color || defaultColor);
+    setSimilarProducts(product.similar_products || []);
     setIsSheetOpen(true);
   };
+
   const handleDelete = async (id: string) => {
     try {
-      // Confirmation avant suppression
       if (!confirm("Êtes-vous sûr de vouloir supprimer ce produit ? Cette action est irréversible.")) {
         return;
       }
       setLoading(true);
       console.log("Starting deletion process for product:", id);
 
-      // 1. D'abord supprimer les statistiques associées au produit
       const {
         error: statsError
       } = await supabase.from("product_stats").delete().eq("product_id", id);
       if (statsError) {
         console.error("Error deleting product stats:", statsError);
-        // On continue même s'il y a une erreur ici
       }
 
-      // 2. Supprimer les éléments du panier associés au produit
       const {
         error: cartError
       } = await supabase.from("cart_items").delete().eq("product_id", id);
       if (cartError) {
         console.error("Error deleting cart items:", cartError);
-        // On continue même s'il y a une erreur ici
       }
 
-      // 3. Supprimer le produit lui-même
       const {
         error
       } = await supabase.from("products").delete().eq("id", id);
@@ -345,6 +368,7 @@ const ProductForm = () => {
       setLoading(false);
     }
   };
+
   const copyToClipboard = (id: string) => {
     const url = `https://digit-sarl.store/product/${id}`;
     navigator.clipboard.writeText(url);
@@ -353,6 +377,7 @@ const ProductForm = () => {
       description: "L'URL du produit a été copiée dans le presse-papier"
     });
   };
+
   const resetForm = () => {
     setImages([]);
     setDescription("");
@@ -363,9 +388,20 @@ const ProductForm = () => {
     setNewOptionType("");
     setNewOptionValue("");
     setEditingOptionType("");
+    setSimilarProducts([]);
     const form = document.querySelector("form") as HTMLFormElement;
     if (form) form.reset();
   };
+
+  useEffect(() => {
+    if (editingProduct) {
+      setDescription(editingProduct.description);
+      setSelectedColor(editingProduct.theme_color || defaultColor);
+      setSimilarProducts(editingProduct.similar_products || []);
+      setIsSheetOpen(true);
+    }
+  }, [editingProduct]);
+
   return <div className="min-h-screen bg-background">
       <Navbar />
       <div className="py-12 px-4 overflow-auto">
@@ -487,6 +523,27 @@ const ProductForm = () => {
                           </div>}
                       </div>
 
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <Checkbox 
+                            id="show_similar_products" 
+                            name="show_similar_products"
+                            defaultChecked={editingProduct?.show_similar_products}
+                          />
+                          <Label htmlFor="show_similar_products">Afficher des produits similaires</Label>
+                        </div>
+                        
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="mt-2"
+                          onClick={() => setShowSimilarProductsSelector(true)}
+                        >
+                          Sélectionner des produits similaires
+                          {similarProducts.length > 0 && ` (${similarProducts.length} sélectionnés)`}
+                        </Button>
+                      </div>
+
                       <div className="flex gap-4">
                         <Button type="submit" disabled={loading} className="flex-1">
                           {loading ? "En cours..." : editingProduct ? "Modifier" : "Créer"}
@@ -587,4 +644,5 @@ const ProductForm = () => {
       </div>
     </div>;
 };
+
 export default ProductForm;

@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import PromoBar from "@/components/PromoBar";
 import ProductGallery from "@/components/ProductGallery";
 import ProductDetails from "@/components/ProductDetails";
+import SimilarProducts from "@/components/SimilarProducts";
 import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -41,6 +42,8 @@ interface Product {
   show_stock_status?: boolean;
   stock_status_text?: string;
   stock_status_color?: string;
+  show_similar_products?: boolean;
+  similar_products?: string[];
 }
 
 const ProductDetail = () => {
@@ -100,7 +103,8 @@ const ProductDetail = () => {
         
         const transformedData: Product = {
           ...data,
-          options: typeof data.options === 'object' ? data.options : null
+          options: typeof data.options === 'object' ? data.options : null,
+          similar_products: data.similar_products || []
         };
         
         setProduct(transformedData);
@@ -227,10 +231,8 @@ const ProductDetail = () => {
     );
   }
 
-  // Combine selected option images with product images
-  const displayImages = selectedOptionImages.length > 0 
-    ? [...selectedOptionImages, ...product.images]
-    : product.images;
+  // Ne plus mélanger les images d'options avec les images du produit
+  const productImages = product.images;
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color || "#000000" }}>
@@ -240,7 +242,10 @@ const ProductDetail = () => {
       </div>
       <main className="container mx-auto py-4 md:py-12 px-4 max-w-[100vw]">
         <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-8 lg:gap-12`}>
-          <ProductGallery images={displayImages} />
+          <ProductGallery 
+            images={productImages} 
+            optionImages={selectedOptionImages}
+          />
           <div className="md:order-2 order-2 text-white">
             <ProductDetails
               key={product.id}
@@ -276,6 +281,16 @@ const ProductDetail = () => {
             />
           </div>
         </div>
+
+        {/* Section produits similaires */}
+        {product.show_similar_products && product.similar_products && product.similar_products.length > 0 && (
+          <div className="mt-12 bg-white/10 p-6 rounded-lg text-white">
+            <SimilarProducts 
+              productId={product.id} 
+              similarProducts={product.similar_products} 
+            />
+          </div>
+        )}
       </main>
       <Footer />
     </div>

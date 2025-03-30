@@ -4,9 +4,10 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ProductGalleryProps {
   images: string[];
+  optionImages?: string[];
 }
 
-const ProductGallery = ({ images }: ProductGalleryProps) => {
+const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
 
   // Reset active index when images change
