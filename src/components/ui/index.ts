@@ -13,3 +13,5 @@ export * from "./popover";
 export * from "./sheet";
 export * from "./toggle";
 export * from "./carousel";
+export * from "./checkbox";
+export * from "./switch";

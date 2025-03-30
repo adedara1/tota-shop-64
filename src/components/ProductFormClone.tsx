@@ -9,8 +9,9 @@ import ColorSelector from "@/components/ColorSelector";
 import { Database } from "@/integrations/supabase/types";
 import { Toggle } from "@/components/ui/toggle";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ImageIcon, X, Link as LinkIcon, Globe } from "lucide-react";
+import { ImageIcon, X, Link as LinkIcon, Globe, Star } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ColorInput from "@/components/ColorInput";
 
 type CurrencyCode = Database['public']['Enums']['currency_code'];
 
@@ -46,6 +47,24 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
   const [description, setDescription] = useState("");
   const defaultColor = "#f1eee9";
   const [selectedColor, setSelectedColor] = useState(defaultColor);
+  
+  const [optionTitleColor, setOptionTitleColor] = useState("#000000");
+  const [optionValueColor, setOptionValueColor] = useState("#000000");
+  const [productNameColor, setProductNameColor] = useState("#000000");
+  const [originalPriceColor, setOriginalPriceColor] = useState("#808080");
+  const [discountedPriceColor, setDiscountedPriceColor] = useState("#000000");
+  const [quantityTextColor, setQuantityTextColor] = useState("#000000");
+  
+  const [showProductTrademark, setShowProductTrademark] = useState(true);
+  const [showProductTrademarkColor, setShowProductTrademarkColor] = useState("#000000");
+  const [showStarReviews, setShowStarReviews] = useState(true);
+  const [starReviewsColor, setStarReviewsColor] = useState("#FFCC00");
+  const [reviewCount, setReviewCount] = useState(1238);
+  const [starCount, setStarCount] = useState(5);
+  const [showStockStatus, setShowStockStatus] = useState(true);
+  const [stockStatusText, setStockStatusText] = useState("In stock, ready to ship");
+  const [stockStatusColor, setStockStatusColor] = useState("#00AA00");
+  
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [whatsappMessage, setWhatsappMessage] = useState("");
   const [optionTypes, setOptionTypes] = useState<string[]>([]);
@@ -231,7 +250,22 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
         currency: formData.get("currency") as CurrencyCode || "XOF",
         options: optionTypes.length > 0 ? optionValues : null,
         use_internal_cart: useInternalCart,
-        hide_promo_bar: hidePromoBar
+        hide_promo_bar: hidePromoBar,
+        option_title_color: optionTitleColor,
+        option_value_color: optionValueColor,
+        product_name_color: productNameColor,
+        original_price_color: originalPriceColor,
+        discounted_price_color: discountedPriceColor,
+        quantity_text_color: quantityTextColor,
+        show_product_trademark: showProductTrademark,
+        product_trademark_color: showProductTrademarkColor,
+        show_star_reviews: showStarReviews,
+        star_reviews_color: starReviewsColor,
+        review_count: reviewCount,
+        star_count: starCount,
+        show_stock_status: showStockStatus,
+        stock_status_text: stockStatusText,
+        stock_status_color: stockStatusColor
       };
 
       console.log("Saving product data:", productData);
@@ -281,6 +315,119 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
         <Input id="name-clone" name="name" required />
       </div>
 
+      <div className="flex items-center space-x-2 my-4">
+        <Checkbox 
+          id="show-product-trademark" 
+          checked={showProductTrademark} 
+          onCheckedChange={(checked) => {
+            setShowProductTrademark(checked === true);
+          }}
+        />
+        <Label htmlFor="show-product-trademark" className="font-medium cursor-pointer">
+          Afficher le symbole "™" après le nom du produit
+        </Label>
+      </div>
+
+      {showProductTrademark && (
+        <ColorInput 
+          label="Couleur du texte du nom avec trademark" 
+          value={showProductTrademarkColor} 
+          onChange={setShowProductTrademarkColor}
+        />
+      )}
+
+      <div className="flex items-center space-x-2 my-4">
+        <Checkbox 
+          id="show-star-reviews" 
+          checked={showStarReviews} 
+          onCheckedChange={(checked) => {
+            setShowStarReviews(checked === true);
+          }}
+        />
+        <Label htmlFor="show-star-reviews" className="font-medium cursor-pointer">
+          Afficher les étoiles et le nombre d'avis
+        </Label>
+      </div>
+
+      {showStarReviews && (
+        <div className="ml-6 space-y-4 border-l-2 border-gray-200 pl-4">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="star-count">Nombre d'étoiles (1-5)</Label>
+            <Input 
+              id="star-count" 
+              type="number" 
+              min="1" 
+              max="5" 
+              value={starCount}
+              onChange={(e) => setStarCount(parseInt(e.target.value))}
+              className="w-20"
+            />
+            <div className="flex">
+              {[...Array(5)].map((_, i) => (
+                <Star 
+                  key={i} 
+                  size={16} 
+                  className={i < starCount ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}
+                />
+              ))}
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Label htmlFor="review-count">Nombre d'avis</Label>
+            <Input 
+              id="review-count" 
+              type="number" 
+              min="0" 
+              value={reviewCount}
+              onChange={(e) => setReviewCount(parseInt(e.target.value))}
+              className="w-40"
+            />
+          </div>
+          
+          <ColorInput 
+            label="Couleur des étoiles" 
+            value={starReviewsColor} 
+            onChange={setStarReviewsColor}
+            defaultColor="#FFCC00"
+          />
+        </div>
+      )}
+
+      <div className="flex items-center space-x-2 my-4">
+        <Checkbox 
+          id="show-stock-status" 
+          checked={showStockStatus} 
+          onCheckedChange={(checked) => {
+            setShowStockStatus(checked === true);
+          }}
+        />
+        <Label htmlFor="show-stock-status" className="font-medium cursor-pointer">
+          Afficher le statut de stock
+        </Label>
+      </div>
+
+      {showStockStatus && (
+        <div className="ml-6 space-y-4 border-l-2 border-gray-200 pl-4">
+          <div>
+            <Label htmlFor="stock-status-text">Texte du statut de stock</Label>
+            <Input 
+              id="stock-status-text" 
+              value={stockStatusText}
+              onChange={(e) => setStockStatusText(e.target.value)}
+              placeholder="Ex: En stock, prêt à être expédié"
+            />
+          </div>
+          
+          <ColorInput 
+            label="Couleur du texte du statut de stock" 
+            value={stockStatusColor} 
+            onChange={setStockStatusColor}
+            defaultColor="#00AA00"
+          />
+        </div>
+      )}
+
       <div>
         <Label htmlFor="currency-clone">Devise</Label>
         <select
@@ -307,6 +454,13 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
           required
         />
       </div>
+      
+      <ColorInput 
+        label="Couleur du texte du prix original" 
+        value={originalPriceColor} 
+        onChange={setOriginalPriceColor}
+        defaultColor="#808080"
+      />
 
       <div>
         <Label htmlFor="discounted_price-clone">Prix réduit</Label>
@@ -317,6 +471,24 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
           required
         />
       </div>
+      
+      <ColorInput 
+        label="Couleur du texte du prix réduit" 
+        value={discountedPriceColor} 
+        onChange={setDiscountedPriceColor}
+      />
+
+      <ColorInput 
+        label="Couleur du texte de quantité et ajustements" 
+        value={quantityTextColor} 
+        onChange={setQuantityTextColor}
+      />
+
+      <ColorInput 
+        label="Couleur du texte du nom du produit" 
+        value={productNameColor} 
+        onChange={setProductNameColor}
+      />
 
       <div className="flex items-center space-x-2 my-4">
         <Checkbox 
@@ -430,6 +602,18 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
 
       <div className="space-y-4">
         <Label>Options du produit</Label>
+        
+        <ColorInput 
+          label="Couleur du texte des titres d'options" 
+          value={optionTitleColor} 
+          onChange={setOptionTitleColor}
+        />
+        
+        <ColorInput 
+          label="Couleur du texte des valeurs d'options" 
+          value={optionValueColor} 
+          onChange={setOptionValueColor}
+        />
         
         <div className="flex items-center gap-2">
           <Input 

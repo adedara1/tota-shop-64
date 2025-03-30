@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import ProductOptions from "./ProductOptions";
-import { Plus, Minus, ShoppingBag } from "lucide-react";
+import { Plus, Minus, ShoppingBag, Star } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
 import { useNavigate } from "react-router-dom";
 
@@ -24,6 +24,23 @@ interface ProductDetailsProps {
   useInternalCart?: boolean;
   onAddToCart?: (productData: any, quantity: number, selectedOptions: Record<string, any>) => void;
   productId?: string;
+  // New props for customization
+  optionTitleColor?: string;
+  optionValueColor?: string;
+  productNameColor?: string;
+  originalPriceColor?: string;
+  discountedPriceColor?: string;
+  quantityTextColor?: string;
+  // Display toggles
+  showProductTrademark?: boolean;
+  productTrademarkColor?: string;
+  showStarReviews?: boolean;
+  starReviewsColor?: string;
+  reviewCount?: number;
+  starCount?: number;
+  showStockStatus?: boolean;
+  stockStatusText?: string;
+  stockStatusColor?: string;
 }
 
 const ProductDetails = ({
@@ -39,7 +56,23 @@ const ProductDetails = ({
   onOptionImageChange,
   useInternalCart = false,
   onAddToCart,
-  productId
+  productId,
+  // New props with defaults
+  optionTitleColor = "#000000",
+  optionValueColor = "#000000",
+  productNameColor = "#000000",
+  originalPriceColor = "#808080",
+  discountedPriceColor = "#000000",
+  quantityTextColor = "#000000",
+  showProductTrademark = true,
+  productTrademarkColor = "#000000",
+  showStarReviews = true,
+  starReviewsColor = "#FFCC00",
+  reviewCount = 1238,
+  starCount = 5,
+  showStockStatus = true,
+  stockStatusText = "In stock, ready to ship",
+  stockStatusColor = "#00AA00"
 }: ProductDetailsProps) => {
   const displayCurrency = currency === 'XOF' || currency === 'XAF' ? 'CFA' : currency;
   const [quantity, setQuantity] = useState(1);
@@ -161,33 +194,61 @@ const ProductDetails = ({
 
   return (
     <div className="space-y-6 max-w-full">
-      <h1 className="text-5xl font-medium break-words">{name}</h1>
+      <h1 className="text-5xl font-medium break-words" style={{ color: productNameColor }}>
+        {name}
+        {showProductTrademark && <span style={{ color: productTrademarkColor }}>™</span>}
+      </h1>
+      
+      {showStarReviews && (
+        <div className="flex items-center mt-2">
+          <div className="flex">
+            {[...Array(5)].map((_, i) => (
+              <Star 
+                key={i} 
+                size={16} 
+                className={i < starCount ? "fill-current" : "text-gray-300"}
+                style={{ color: i < starCount ? starReviewsColor : "#D1D5DB" }} 
+              />
+            ))}
+          </div>
+          <span className="text-xs ml-2">{reviewCount} reviews</span>
+        </div>
+      )}
       
       <div className="flex items-center gap-4">
         <div className="flex items-center">
-          <span className="text-gray-400 line-through text-2xl">{originalPrice}</span>
-          <span className="text-gray-400 line-through text-2xl ml-1">{displayCurrency}</span>
+          <span className="text-gray-400 line-through text-2xl" style={{ color: originalPriceColor }}>{originalPrice}</span>
+          <span className="text-gray-400 line-through text-2xl ml-1" style={{ color: originalPriceColor }}>{displayCurrency}</span>
         </div>
         <div className="flex items-center">
-          <span className="text-3xl">{totalPrice}</span>
-          <span className="text-3xl ml-1">{displayCurrency}</span>
+          <span className="text-3xl" style={{ color: discountedPriceColor }}>{totalPrice}</span>
+          <span className="text-3xl ml-1" style={{ color: discountedPriceColor }}>{displayCurrency}</span>
         </div>
       </div>
       
+      {showStockStatus && (
+        <div className="flex items-center mt-4 text-sm">
+          <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+          <span style={{ color: stockStatusColor }}>{stockStatusText}</span>
+        </div>
+      )}
+      
       {/* Quantity Selector */}
       <div className="mb-6">
-        <h3 className="text-sm font-medium mb-3">Quantité</h3>
+        <h3 className="text-sm font-medium mb-3" style={{ color: quantityTextColor }}>Quantité</h3>
         <div className="flex items-center">
           <button 
             onClick={decreaseQuantity}
             className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-300"
+            style={{ color: quantityTextColor }}
           >
             <Minus size={16} />
           </button>
-          <span className="mx-4">{quantity}</span>
+          <span className="mx-4" style={{ color: quantityTextColor }}>{quantity}</span>
           <button 
             onClick={increaseQuantity}
             className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-300"
+            style={{ color: quantityTextColor }}
           >
             <Plus size={16} />
           </button>
@@ -208,19 +269,22 @@ const ProductDetails = ({
                   : selectedOptions[optionTitle])
               : undefined
           }
+          titleColor={optionTitleColor}
+          valueColor={optionValueColor}
         />
       ))}
       
       {/* Selected Options Summary */}
       {Object.keys(selectedOptions).length > 0 && (
         <div className="bg-white/80 p-3 rounded-md">
-          <h3 className="text-sm font-medium mb-2">Options sélectionnées:</h3>
+          <h3 className="text-sm font-medium mb-2" style={{ color: optionTitleColor }}>Options sélectionnées:</h3>
           <ul className="space-y-1">
             {Object.entries(selectedOptions).map(([option, value]) => (
               <li key={option} className="text-sm">
-                <span className="font-medium">{option}:</span> {
-                  typeof value === 'object' ? value.value : value
-                }
+                <span className="font-medium" style={{ color: optionTitleColor }}>{option}:</span>{" "}
+                <span style={{ color: optionValueColor }}>
+                  {typeof value === 'object' ? value.value : value}
+                </span>
               </li>
             ))}
           </ul>

@@ -26,6 +26,22 @@ interface Product {
   options?: Record<string, any> | null;
   use_internal_cart?: boolean;
   hide_promo_bar?: boolean;
+  // New customization fields
+  option_title_color?: string;
+  option_value_color?: string;
+  product_name_color?: string;
+  original_price_color?: string;
+  discounted_price_color?: string;
+  quantity_text_color?: string;
+  show_product_trademark?: boolean;
+  product_trademark_color?: string;
+  show_star_reviews?: boolean;
+  star_reviews_color?: string;
+  review_count?: number;
+  star_count?: number;
+  show_stock_status?: boolean;
+  stock_status_text?: string;
+  stock_status_color?: string;
 }
 
 const ProductDetail = () => {
@@ -227,45 +243,6 @@ const ProductDetail = () => {
         <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-8 lg:gap-12`}>
           <ProductGallery images={displayImages} />
           <div className="md:order-2 order-2 text-white">
-            <div className="mb-6">
-              <h2 className="uppercase text-sm font-bold tracking-wider">
-                {product.name}™
-              </h2>
-              
-              {/* Rating stars */}
-              <div className="flex items-center mt-2">
-                <div className="flex">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star 
-                      key={star} 
-                      size={16} 
-                      className="text-yellow-400 fill-yellow-400" 
-                    />
-                  ))}
-                </div>
-                <span className="text-xs ml-2">1,238 reviews</span>
-              </div>
-              
-              {/* Price display */}
-              <div className="flex items-center gap-2 mt-4">
-                <span className="text-xl font-bold text-orange-500">${product.discounted_price.toFixed(2)}</span>
-                {product.original_price > product.discounted_price && (
-                  <span className="text-sm line-through text-gray-400">${product.original_price.toFixed(2)}</span>
-                )}
-                {discountPercentage > 0 && (
-                  <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
-                    {discountPercentage}% OFF
-                  </span>
-                )}
-              </div>
-              
-              {/* In stock indicator */}
-              <div className="flex items-center mt-4 text-sm">
-                <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                <span>In stock, ready to ship</span>
-              </div>
-            </div>
-            
             <ProductDetails
               key={product.id}
               name={product.name}
@@ -281,6 +258,22 @@ const ProductDetail = () => {
               useInternalCart={product.use_internal_cart}
               onAddToCart={handleAddToCart}
               productId={product.id}
+              // Pass customization properties
+              optionTitleColor={product.option_title_color}
+              optionValueColor={product.option_value_color}
+              productNameColor={product.product_name_color}
+              originalPriceColor={product.original_price_color}
+              discountedPriceColor={product.discounted_price_color}
+              quantityTextColor={product.quantity_text_color}
+              showProductTrademark={product.show_product_trademark}
+              productTrademarkColor={product.product_trademark_color}
+              showStarReviews={product.show_star_reviews}
+              starReviewsColor={product.star_reviews_color}
+              reviewCount={product.review_count}
+              starCount={product.star_count}
+              showStockStatus={product.show_stock_status}
+              stockStatusText={product.stock_status_text}
+              stockStatusColor={product.stock_status_color}
             />
           </div>
         </div>

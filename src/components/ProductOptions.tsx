@@ -1,8 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
-import { Toggle } from '@/components/ui/toggle';
-import { cn } from '@/lib/utils';
-import { ImageIcon } from 'lucide-react';
+import { useState, useEffect } from "react";
 
 interface OptionValue {
   value: string;
@@ -12,81 +9,116 @@ interface OptionValue {
 interface ProductOptionsProps {
   title: string;
   options: (string | OptionValue)[];
-  onSelect: (option: string | OptionValue) => void;
+  onSelect: (value: string | OptionValue) => void;
   selectedOption?: string;
+  titleColor?: string;
+  valueColor?: string;
 }
 
-const ProductOptions = ({
-  title,
-  options,
-  onSelect,
-  selectedOption
+const ProductOptions = ({ 
+  title, 
+  options, 
+  onSelect, 
+  selectedOption,
+  titleColor = "#000000",
+  valueColor = "#000000"
 }: ProductOptionsProps) => {
-  // Handle both string options and option objects with images
-  const normalizedOptions = options.map(opt => 
-    typeof opt === 'string' ? { value: opt } : opt
-  );
+  const [selectedValue, setSelectedValue] = useState<string | null>(null);
   
-  // If no option is selected, default to the first one
-  const [selected, setSelected] = useState<string>(
-    selectedOption || (normalizedOptions.length > 0 ? normalizedOptions[0].value : "")
-  );
-
   useEffect(() => {
     if (selectedOption) {
-      setSelected(selectedOption);
+      setSelectedValue(selectedOption);
+    } else if (options.length > 0) {
+      // Default to first option
+      const firstOption = options[0];
+      const value = typeof firstOption === 'object' ? firstOption.value : firstOption;
+      setSelectedValue(value);
+      onSelect(firstOption);
     }
-  }, [selectedOption]);
-
-  const handleSelect = (option: OptionValue) => {
-    setSelected(option.value);
+  }, [selectedOption, options, onSelect]);
+  
+  const handleSelect = (option: string | OptionValue) => {
+    const value = typeof option === 'object' ? option.value : option;
+    setSelectedValue(value);
     onSelect(option);
   };
-
-  if (!options || options.length === 0) {
-    return null;
-  }
-
+  
+  // Get unique values for rendering
+  const uniqueOptions = options.filter((option, index, self) => {
+    const value = typeof option === 'object' ? option.value : option;
+    return index === self.findIndex(o => {
+      const oValue = typeof o === 'object' ? o.value : o;
+      return oValue === value;
+    });
+  });
+  
+  // Check if any option has an image
+  const hasImages = options.some(option => typeof option === 'object' && option.image);
+  
+  if (uniqueOptions.length === 0) return null;
+  
   return (
     <div className="mb-6">
-      <h3 className="text-sm font-medium mb-3">{title}</h3>
-      <div className="flex flex-wrap gap-2">
-        {normalizedOptions.map((option) => (
-          <Toggle
-            key={option.value}
-            pressed={selected === option.value}
-            onPressedChange={() => handleSelect(option)}
-            className={cn(
-              "rounded-full px-4 py-2 text-sm border flex items-center",
-              selected === option.value
-                ? "bg-black text-white border-black"
-                : "bg-white text-black border-gray-300 hover:bg-gray-100"
-            )}
-          >
-            {option.value}
-          </Toggle>
-        ))}
-      </div>
+      <h3 className="text-sm font-medium mb-3" style={{ color: titleColor }}>{title}</h3>
       
-      {/* Option Images displayed as circular buttons */}
-      {normalizedOptions.some(opt => opt.image) && (
-        <div className="mt-4 flex flex-wrap gap-3">
-          {normalizedOptions.filter(opt => opt.image).map((option) => (
+      <div className={`flex flex-wrap gap-2 ${hasImages ? 'items-start' : 'items-center'}`}>
+        {uniqueOptions.map((option, index) => {
+          const value = typeof option === 'object' ? option.value : option;
+          const image = typeof option === 'object' ? option.image : undefined;
+          
+          if (image) {
+            // Image option
+            return (
+              <button
+                key={`${value}-${index}`}
+                type="button"
+                onClick={() => handleSelect(option)}
+                className={`
+                  p-1 border rounded-md overflow-hidden flex flex-col items-center justify-center
+                  ${selectedValue === value 
+                    ? 'border-black' 
+                    : 'border-gray-300 hover:border-gray-400'
+                  }
+                `}
+                title={value}
+              >
+                <div className="w-16 h-16 overflow-hidden mb-1">
+                  <img 
+                    src={image} 
+                    alt={value} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span 
+                  className="text-xs text-center block w-full px-1" 
+                  style={{ color: valueColor }}
+                >
+                  {value}
+                </span>
+              </button>
+            );
+          }
+          
+          // Text option
+          return (
             <button
-              key={`img-${option.value}`}
+              key={`${value}-${index}`}
+              type="button"
               onClick={() => handleSelect(option)}
-              className={cn(
-                "w-12 h-12 rounded-full bg-cover bg-center border-2 transition-all",
-                selected === option.value 
-                  ? "border-black scale-110" 
-                  : "border-gray-300 hover:border-gray-400"
-              )}
-              style={{ backgroundImage: option.image ? `url(${option.image})` : 'none' }}
-              title={option.value}
-            />
-          ))}
-        </div>
-      )}
+              className={`
+                px-4 py-2 rounded-full
+                ${selectedValue === value 
+                  ? 'bg-black text-white' 
+                  : 'bg-white border border-gray-300 hover:border-gray-400'
+                }
+              `}
+              style={selectedValue !== value ? { color: valueColor } : {}}
+            >
+              {value}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 };
