@@ -8,28 +8,14 @@ import Navbar from "@/components/Navbar";
 import RichTextEditor from "@/components/RichTextEditor";
 import ColorSelector from "@/components/ColorSelector";
 import { Copy, Edit, Eye, EyeOff, Plus, Trash } from "lucide-react";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Database } from "@/integrations/supabase/types";
 import ProductFormClone from "@/components/ProductFormClone";
 import { Toggle } from "@/components/ui/toggle";
-
 type CurrencyCode = Database['public']['Enums']['currency_code'];
-
 const COLOR_PALETTES = {
   blue: ['#0000FF', '#79F8F8', '#007FFF', '#1E7FCB', '#74D0F1', '#A9EAFE', '#3A8EBA'],
   white: ['#FFFFFF', '#FEFEFE', '#EFEFEF', '#F0FFFF', '#F5F5DC', '#FEFEE2'],
@@ -42,24 +28,44 @@ const COLOR_PALETTES = {
   red: ['#FF0000', '#91283B', '#6D071A', '#842E1B', '#BB0B0B', '#E73E01', '#ED0000'],
   green: ['#00FF00', '#79F8F8', '#7BA05B', '#008E8E', '#048B9A', '#83A697', '#80D0D0']
 };
-
 const ALL_COLORS = Object.values(COLOR_PALETTES).flat();
-
-const CURRENCIES = [
-  { code: 'XOF' as CurrencyCode, label: 'Franc CFA (XOF) - UEMOA' },
-  { code: 'XAF' as CurrencyCode, label: 'Franc CFA (XAF) - CEMAC' },
-  { code: 'ZAR' as CurrencyCode, label: 'Rand sud-africain (ZAR)' },
-  { code: 'MAD' as CurrencyCode, label: 'Dirham marocain (MAD)' },
-  { code: 'EGP' as CurrencyCode, label: 'Livre égyptienne (EGP)' },
-  { code: 'NGN' as CurrencyCode, label: 'Naira nigérian (NGN)' },
-  { code: 'KES' as CurrencyCode, label: 'Shilling kényan (KES)' },
-  { code: 'TND' as CurrencyCode, label: 'Dinar tunisien (TND)' },
-  { code: 'UGX' as CurrencyCode, label: 'Shilling ougandais (UGX)' },
-  { code: 'GHS' as CurrencyCode, label: 'Cedi ghanéen (GHS)' },
-  { code: 'USD' as CurrencyCode, label: 'Dollar américain (USD)' },
-  { code: 'EUR' as CurrencyCode, label: 'Euro (EUR)' }
-];
-
+const CURRENCIES = [{
+  code: 'XOF' as CurrencyCode,
+  label: 'Franc CFA (XOF) - UEMOA'
+}, {
+  code: 'XAF' as CurrencyCode,
+  label: 'Franc CFA (XAF) - CEMAC'
+}, {
+  code: 'ZAR' as CurrencyCode,
+  label: 'Rand sud-africain (ZAR)'
+}, {
+  code: 'MAD' as CurrencyCode,
+  label: 'Dirham marocain (MAD)'
+}, {
+  code: 'EGP' as CurrencyCode,
+  label: 'Livre égyptienne (EGP)'
+}, {
+  code: 'NGN' as CurrencyCode,
+  label: 'Naira nigérian (NGN)'
+}, {
+  code: 'KES' as CurrencyCode,
+  label: 'Shilling kényan (KES)'
+}, {
+  code: 'TND' as CurrencyCode,
+  label: 'Dinar tunisien (TND)'
+}, {
+  code: 'UGX' as CurrencyCode,
+  label: 'Shilling ougandais (UGX)'
+}, {
+  code: 'GHS' as CurrencyCode,
+  label: 'Cedi ghanéen (GHS)'
+}, {
+  code: 'USD' as CurrencyCode,
+  label: 'Dollar américain (USD)'
+}, {
+  code: 'EUR' as CurrencyCode,
+  label: 'Euro (EUR)'
+}];
 interface Product {
   id: string;
   name: string;
@@ -76,9 +82,10 @@ interface Product {
   options?: Record<string, string[]> | null;
   use_internal_cart?: boolean;
 }
-
 const ProductForm = () => {
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [description, setDescription] = useState("");
@@ -93,14 +100,14 @@ const ProductForm = () => {
   const [newOptionType, setNewOptionType] = useState("");
   const [newOptionValue, setNewOptionValue] = useState("");
   const [editingOptionType, setEditingOptionType] = useState("");
-
   const fetchProducts = async () => {
     try {
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .order("created_at", { ascending: false });
-
+      const {
+        data,
+        error
+      } = await supabase.from("products").select("*").order("created_at", {
+        ascending: false
+      });
       if (error) throw error;
       setProducts(data as Product[] || []);
     } catch (error) {
@@ -108,28 +115,25 @@ const ProductForm = () => {
       toast({
         title: "Erreur",
         description: "Impossible de charger les produits",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   useEffect(() => {
     fetchProducts();
   }, []);
-
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 4) {
       toast({
         title: "Erreur",
         description: "Vous ne pouvez télécharger que 4 images maximum",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
     setImages(files);
   };
-
   useEffect(() => {
     if (editingProduct && editingProduct.options) {
       const types = Object.keys(editingProduct.options);
@@ -140,7 +144,6 @@ const ProductForm = () => {
       setOptionValues({});
     }
   }, [editingProduct]);
-
   const addOptionType = () => {
     if (newOptionType.trim() && !optionTypes.includes(newOptionType)) {
       setOptionTypes([...optionTypes, newOptionType]);
@@ -152,10 +155,8 @@ const ProductForm = () => {
       setEditingOptionType(newOptionType);
     }
   };
-
   const addOptionValue = () => {
-    if (editingOptionType && newOptionValue.trim() && 
-        !optionValues[editingOptionType]?.includes(newOptionValue)) {
+    if (editingOptionType && newOptionValue.trim() && !optionValues[editingOptionType]?.includes(newOptionValue)) {
       setOptionValues({
         ...optionValues,
         [editingOptionType]: [...(optionValues[editingOptionType] || []), newOptionValue]
@@ -163,19 +164,18 @@ const ProductForm = () => {
       setNewOptionValue("");
     }
   };
-
   const removeOptionType = (type: string) => {
     const newTypes = optionTypes.filter(t => t !== type);
-    const newValues = { ...optionValues };
+    const newValues = {
+      ...optionValues
+    };
     delete newValues[type];
-    
     setOptionTypes(newTypes);
     setOptionValues(newValues);
     if (editingOptionType === type) {
       setEditingOptionType("");
     }
   };
-
   const removeOptionValue = (type: string, value: string) => {
     if (optionValues[type]) {
       setOptionValues({
@@ -184,38 +184,33 @@ const ProductForm = () => {
       });
     }
   };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const formData = new FormData(e.currentTarget);
       const imageUrls: string[] = [];
-
       if (images.length > 0) {
         for (const image of images) {
           const fileName = `${crypto.randomUUID()}-${image.name}`;
           console.log("Uploading image:", fileName);
-          
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from("products")
-            .upload(fileName, image);
-
+          const {
+            data: uploadData,
+            error: uploadError
+          } = await supabase.storage.from("products").upload(fileName, image);
           if (uploadError) {
             console.error("Error uploading image:", uploadError);
             throw uploadError;
           }
-
-          const { data: { publicUrl } } = supabase.storage
-            .from("products")
-            .getPublicUrl(fileName);
-
+          const {
+            data: {
+              publicUrl
+            }
+          } = supabase.storage.from("products").getPublicUrl(fileName);
           console.log("Image uploaded successfully:", publicUrl);
           imageUrls.push(publicUrl);
         }
       }
-
       const productData = {
         name: formData.get("name") as string,
         original_price: parseInt(formData.get("original_price") as string),
@@ -223,47 +218,39 @@ const ProductForm = () => {
         description: description,
         cart_url: formData.get("cart_url") as string,
         theme_color: selectedColor,
-        images: imageUrls.length > 0 ? imageUrls : (editingProduct?.images || []),
+        images: imageUrls.length > 0 ? imageUrls : editingProduct?.images || [],
         is_visible: editingProduct ? editingProduct.is_visible : true,
         button_text: formData.get("button_text") as string || "Ajouter au panier",
         currency: formData.get("currency") as CurrencyCode || "XOF",
         options: optionTypes.length > 0 ? optionValues : null,
         use_internal_cart: formData.get("use_internal_cart") === "on"
       };
-
       console.log("Saving product data:", productData);
-
       if (editingProduct) {
-        const { error: updateError } = await supabase
-          .from("products")
-          .update(productData)
-          .eq("id", editingProduct.id);
-
+        const {
+          error: updateError
+        } = await supabase.from("products").update(productData).eq("id", editingProduct.id);
         if (updateError) {
           console.error("Error updating product:", updateError);
           throw updateError;
         }
-
         toast({
           title: "Succès",
-          description: "Produit mis à jour avec succès",
+          description: "Produit mis à jour avec succès"
         });
       } else {
-        const { error: insertError } = await supabase
-          .from("products")
-          .insert(productData);
-
+        const {
+          error: insertError
+        } = await supabase.from("products").insert(productData);
         if (insertError) {
           console.error("Error creating product:", insertError);
           throw insertError;
         }
-
         toast({
           title: "Succès",
-          description: "Produit créé avec succès",
+          description: "Produit créé avec succès"
         });
       }
-
       resetForm();
       setIsSheetOpen(false);
       fetchProducts();
@@ -272,116 +259,100 @@ const ProductForm = () => {
       toast({
         title: "Erreur",
         description: "Échec de l'opération",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
-
   const toggleVisibility = async (id: string, currentVisibility: boolean) => {
     try {
-      const { error } = await supabase
-        .from("products")
-        .update({ is_visible: !currentVisibility })
-        .eq("id", id);
-
+      const {
+        error
+      } = await supabase.from("products").update({
+        is_visible: !currentVisibility
+      }).eq("id", id);
       if (error) throw error;
-
       toast({
         title: "Succès",
-        description: `Produit ${!currentVisibility ? 'visible' : 'masqué'} avec succès`,
+        description: `Produit ${!currentVisibility ? 'visible' : 'masqué'} avec succès`
       });
-
       fetchProducts();
     } catch (error) {
       console.error("Error toggling visibility:", error);
       toast({
         title: "Erreur",
         description: "Échec de la modification",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setDescription(product.description);
     setSelectedColor(product.theme_color || defaultColor);
     setIsSheetOpen(true);
   };
-
   const handleDelete = async (id: string) => {
     try {
       // Confirmation avant suppression
       if (!confirm("Êtes-vous sûr de vouloir supprimer ce produit ? Cette action est irréversible.")) {
         return;
       }
-
       setLoading(true);
       console.log("Starting deletion process for product:", id);
-      
+
       // 1. D'abord supprimer les statistiques associées au produit
-      const { error: statsError } = await supabase
-        .from("product_stats")
-        .delete()
-        .eq("product_id", id);
-      
+      const {
+        error: statsError
+      } = await supabase.from("product_stats").delete().eq("product_id", id);
       if (statsError) {
         console.error("Error deleting product stats:", statsError);
         // On continue même s'il y a une erreur ici
       }
 
       // 2. Supprimer les éléments du panier associés au produit
-      const { error: cartError } = await supabase
-        .from("cart_items")
-        .delete()
-        .eq("product_id", id);
-      
+      const {
+        error: cartError
+      } = await supabase.from("cart_items").delete().eq("product_id", id);
       if (cartError) {
         console.error("Error deleting cart items:", cartError);
         // On continue même s'il y a une erreur ici
       }
 
       // 3. Supprimer le produit lui-même
-      const { error } = await supabase
-        .from("products")
-        .delete()
-        .eq("id", id);
-
+      const {
+        error
+      } = await supabase.from("products").delete().eq("id", id);
       if (error) {
         console.error("Supabase deletion error:", error);
         throw error;
       }
-
       console.log("Product successfully deleted");
       toast({
         title: "Succès",
-        description: "Produit supprimé avec succès",
+        description: "Produit supprimé avec succès"
       });
-      
       await fetchProducts();
     } catch (error) {
       console.error("Error in handleDelete:", error);
       toast({
         title: "Erreur",
         description: "Échec de la suppression. Vérifiez que ce produit n'est pas utilisé ailleurs.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
-
   const copyToClipboard = (id: string) => {
     const url = `https://digit-sarl.store/product/${id}`;
     navigator.clipboard.writeText(url);
     toast({
       title: "Copié !",
-      description: "L'URL du produit a été copiée dans le presse-papier",
+      description: "L'URL du produit a été copiée dans le presse-papier"
     });
   };
-
   const resetForm = () => {
     setImages([]);
     setDescription("");
@@ -395,9 +366,7 @@ const ProductForm = () => {
     const form = document.querySelector("form") as HTMLFormElement;
     if (form) form.reset();
   };
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <Navbar />
       <div className="py-12 px-4 overflow-auto">
         <div className="container mx-auto max-w-6xl">
@@ -406,10 +375,7 @@ const ProductForm = () => {
             <div className="flex gap-4">
               <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Créer un produit
-                  </Button>
+                  
                 </SheetTrigger>
                 <SheetContent className="overflow-y-auto w-full sm:max-w-xl">
                   <SheetHeader>
@@ -421,199 +387,106 @@ const ProductForm = () => {
                     <form onSubmit={handleSubmit} className="space-y-6">
                       <div>
                         <Label htmlFor="images">Images du produit (Max 4)</Label>
-                        <Input
-                          id="images"
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handleImageChange}
-                        />
+                        <Input id="images" type="file" accept="image/*" multiple onChange={handleImageChange} />
                       </div>
 
                       <div>
                         <Label htmlFor="name">Nom du produit</Label>
-                        <Input 
-                          id="name" 
-                          name="name" 
-                          required 
-                          defaultValue={editingProduct?.name}
-                        />
+                        <Input id="name" name="name" required defaultValue={editingProduct?.name} />
                       </div>
 
                       <div>
                         <Label htmlFor="currency">Devise</Label>
-                        <select
-                          id="currency"
-                          name="currency"
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                          defaultValue={editingProduct?.currency || "XOF"}
-                          required
-                        >
-                          {CURRENCIES.map(currency => (
-                            <option key={currency.code} value={currency.code}>
+                        <select id="currency" name="currency" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm" defaultValue={editingProduct?.currency || "XOF"} required>
+                          {CURRENCIES.map(currency => <option key={currency.code} value={currency.code}>
                               {currency.label}
-                            </option>
-                          ))}
+                            </option>)}
                         </select>
                       </div>
 
                       <div>
                         <Label htmlFor="original_price">Prix original</Label>
-                        <Input
-                          id="original_price"
-                          name="original_price"
-                          type="number"
-                          required
-                          defaultValue={editingProduct?.original_price}
-                        />
+                        <Input id="original_price" name="original_price" type="number" required defaultValue={editingProduct?.original_price} />
                       </div>
 
                       <div>
                         <Label htmlFor="discounted_price">Prix réduit</Label>
-                        <Input
-                          id="discounted_price"
-                          name="discounted_price"
-                          type="number"
-                          required
-                          defaultValue={editingProduct?.discounted_price}
-                        />
+                        <Input id="discounted_price" name="discounted_price" type="number" required defaultValue={editingProduct?.discounted_price} />
                       </div>
 
                       <div>
                         <Label htmlFor="button_text">Texte du bouton</Label>
-                        <Input
-                          id="button_text"
-                          name="button_text"
-                          required
-                          defaultValue={editingProduct?.button_text || "Ajouter au panier"}
-                          placeholder="Ajouter au panier"
-                        />
+                        <Input id="button_text" name="button_text" required defaultValue={editingProduct?.button_text || "Ajouter au panier"} placeholder="Ajouter au panier" />
                       </div>
 
                       <div>
                         <Label htmlFor="description">Description</Label>
                         <div className="prose max-w-none">
-                          <RichTextEditor 
-                            value={description} 
-                            onChange={setDescription}
-                          />
+                          <RichTextEditor value={description} onChange={setDescription} />
                         </div>
                       </div>
 
                       <div className="space-y-2">
                         <Label>Couleur du thème</Label>
-                        <ColorSelector
-                          selectedColor={selectedColor}
-                          onColorSelect={setSelectedColor}
-                        />
+                        <ColorSelector selectedColor={selectedColor} onColorSelect={setSelectedColor} />
                       </div>
 
                       <div>
                         <Label htmlFor="cart_url">URL du panier</Label>
-                        <Input 
-                          id="cart_url" 
-                          name="cart_url" 
-                          type="url" 
-                          required 
-                          defaultValue={editingProduct?.cart_url}
-                        />
+                        <Input id="cart_url" name="cart_url" type="url" required defaultValue={editingProduct?.cart_url} />
                       </div>
 
                       <div className="space-y-4">
                         <Label>Options du produit</Label>
                         
                         <div className="flex items-center gap-2">
-                          <Input 
-                            placeholder="Nom de l'option (ex: Taille, Couleur)" 
-                            value={newOptionType}
-                            onChange={(e) => setNewOptionType(e.target.value)}
-                          />
-                          <Button 
-                            type="button" 
-                            onClick={addOptionType}
-                            variant="outline"
-                          >
+                          <Input placeholder="Nom de l'option (ex: Taille, Couleur)" value={newOptionType} onChange={e => setNewOptionType(e.target.value)} />
+                          <Button type="button" onClick={addOptionType} variant="outline">
                             Ajouter
                           </Button>
                         </div>
                         
-                        {optionTypes.length > 0 && (
-                          <div className="border rounded-lg p-4">
+                        {optionTypes.length > 0 && <div className="border rounded-lg p-4">
                             <div className="flex gap-2 mb-4 flex-wrap">
-                              {optionTypes.map(type => (
-                                <Toggle
-                                  key={type}
-                                  pressed={editingOptionType === type}
-                                  onPressedChange={() => setEditingOptionType(type)}
-                                  className={`
+                              {optionTypes.map(type => <Toggle key={type} pressed={editingOptionType === type} onPressedChange={() => setEditingOptionType(type)} className={`
                                     rounded-full px-3 py-1 text-sm 
-                                    ${editingOptionType === type 
-                                      ? 'bg-black text-white' 
-                                      : 'bg-white border border-gray-300'
-                                    }
-                                  `}
-                                >
+                                    ${editingOptionType === type ? 'bg-black text-white' : 'bg-white border border-gray-300'}
+                                  `}>
                                   <span>{type}</span>
-                                  <button 
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      removeOptionType(type);
-                                    }}
-                                    className="ml-2 text-xs"
-                                  >
+                                  <button type="button" onClick={e => {
+                              e.stopPropagation();
+                              removeOptionType(type);
+                            }} className="ml-2 text-xs">
                                     ✕
                                   </button>
-                                </Toggle>
-                              ))}
+                                </Toggle>)}
                             </div>
                             
-                            {editingOptionType && (
-                              <div className="space-y-3">
+                            {editingOptionType && <div className="space-y-3">
                                 <h4 className="text-sm font-medium">Valeurs pour "{editingOptionType}"</h4>
                                 
                                 <div className="flex items-center gap-2">
-                                  <Input 
-                                    placeholder="Valeur de l'option (ex: S, M, L)" 
-                                    value={newOptionValue}
-                                    onChange={(e) => setNewOptionValue(e.target.value)}
-                                  />
-                                  <Button 
-                                    type="button" 
-                                    onClick={addOptionValue}
-                                    variant="outline"
-                                    size="sm"
-                                  >
+                                  <Input placeholder="Valeur de l'option (ex: S, M, L)" value={newOptionValue} onChange={e => setNewOptionValue(e.target.value)} />
+                                  <Button type="button" onClick={addOptionValue} variant="outline" size="sm">
                                     Ajouter
                                   </Button>
                                 </div>
                                 
                                 <div className="flex flex-wrap gap-2">
-                                  {optionValues[editingOptionType]?.map(value => (
-                                    <div 
-                                      key={value} 
-                                      className="bg-gray-100 rounded-full px-3 py-1 text-sm flex items-center"
-                                    >
+                                  {optionValues[editingOptionType]?.map(value => <div key={value} className="bg-gray-100 rounded-full px-3 py-1 text-sm flex items-center">
                                       {value}
-                                      <button
-                                        type="button"
-                                        onClick={() => removeOptionValue(editingOptionType, value)}
-                                        className="ml-2"
-                                      >
+                                      <button type="button" onClick={() => removeOptionValue(editingOptionType, value)} className="ml-2">
                                         ✕
                                       </button>
-                                    </div>
-                                  ))}
+                                    </div>)}
                                 </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                              </div>}
+                          </div>}
                       </div>
 
                       <div className="flex gap-4">
                         <Button type="submit" disabled={loading} className="flex-1">
-                          {loading ? "En cours..." : (editingProduct ? "Modifier" : "Créer")}
+                          {loading ? "En cours..." : editingProduct ? "Modifier" : "Créer"}
                         </Button>
                         <SheetClose asChild>
                           <Button variant="outline" onClick={resetForm} className="flex-1">
@@ -640,13 +513,10 @@ const ProductForm = () => {
                     </SheetTitle>
                   </SheetHeader>
                   <div className="py-4">
-                    <ProductFormClone 
-                      onSuccess={() => {
-                        setShowCloneForm(false);
-                        fetchProducts();
-                      }}
-                      onCancel={() => setShowCloneForm(false)}
-                    />
+                    <ProductFormClone onSuccess={() => {
+                    setShowCloneForm(false);
+                    fetchProducts();
+                  }} onCancel={() => setShowCloneForm(false)} />
                   </div>
                 </SheetContent>
               </Sheet>
@@ -666,43 +536,26 @@ const ProductForm = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((product) => (
-                    <tr key={product.id} className="border-b hover:bg-gray-50">
+                  {products.map(product => <tr key={product.id} className="border-b hover:bg-gray-50">
                       <td className="px-6 py-4">{product.name}</td>
                       <td className="px-6 py-4">{product.original_price} {product.currency}</td>
                       <td className="px-6 py-4">{product.discounted_price} {product.currency}</td>
                       <td className="px-6 py-4">
-                        {format(new Date(product.created_at), "d MMMM yyyy", { locale: fr })}
+                        {format(new Date(product.created_at), "d MMMM yyyy", {
+                      locale: fr
+                    })}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => toggleVisibility(product.id, product.is_visible)}
-                            title={product.is_visible ? "Masquer" : "Afficher"}
-                          >
-                            {product.is_visible ? (
-                              <Eye className="h-4 w-4" />
-                            ) : (
-                              <EyeOff className="h-4 w-4" />
-                            )}
+                          <Button variant="outline" size="icon" onClick={() => toggleVisibility(product.id, product.is_visible)} title={product.is_visible ? "Masquer" : "Afficher"}>
+                            {product.is_visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => copyToClipboard(product.id)}
-                            title="Copier l'URL"
-                          >
+                          <Button variant="outline" size="icon" onClick={() => copyToClipboard(product.id)} title="Copier l'URL">
                             <Copy className="h-4 w-4" />
                           </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                title="Options"
-                              >
+                              <Button variant="outline" size="icon" title="Options">
                                 <Edit className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -717,26 +570,18 @@ const ProductForm = () => {
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            onClick={() => handleDelete(product.id)}
-                            title="Supprimer"
-                          >
+                          <Button variant="destructive" size="icon" onClick={() => handleDelete(product.id)} title="Supprimer">
                             <Trash className="h-4 w-4" />
                           </Button>
                         </div>
                       </td>
-                    </tr>
-                  ))}
+                    </tr>)}
                 </tbody>
               </table>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default ProductForm;
