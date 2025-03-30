@@ -2,8 +2,12 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import ProductDetail from './pages/ProductDetail';
+import Products from './pages/Products';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
+import ProductForm from './pages/ProductForm';
+import ProductsSettings from './pages/ProductsSettings';
+import PopoSettings from './pages/PopoSettings';
 import { Toaster } from "@/components/ui/toaster";
 import {
   QueryClient,
@@ -21,8 +25,12 @@ const App = () => {
         <QueryClientProvider client={queryClient}>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/products" element={<Products />} />
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/product-form" element={<ProductForm />} />
+            <Route path="/products-settings" element={<ProductsSettings />} />
+            <Route path="/popo-settings" element={<PopoSettings />} />
           </Routes>
         </QueryClientProvider>
       </CartProvider>
