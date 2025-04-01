@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ProductGalleryProps {
   images: string[];
@@ -10,6 +11,7 @@ interface ProductGalleryProps {
 const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const allImages = [...images];
+  const isMobile = useIsMobile();
 
   // Reset active index when images change
   useEffect(() => {
@@ -35,10 +37,10 @@ const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
   }
 
   return (
-    <div className="relative flex flex-row gap-4">
+    <div className="relative flex flex-col md:flex-row gap-4">
       {/* Thumbnails on the left side - both on mobile and desktop */}
       {allImages.length > 1 && (
-        <div className="flex flex-col gap-2 overflow-y-auto max-h-[500px] pb-0 pr-2 w-[100px]">
+        <div className={`flex ${isMobile ? 'flex-row overflow-x-auto pb-2' : 'flex-col overflow-y-auto max-h-[500px]'} gap-2 ${isMobile ? 'max-w-full' : 'w-[100px]'}`}>
           {allImages.map((image, index) => (
             <button
               key={index}
@@ -58,7 +60,7 @@ const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
       )}
       
       {/* Main image */}
-      <div className="relative h-[500px] overflow-hidden rounded-lg flex-grow">
+      <div className={`relative ${isMobile ? 'h-auto' : 'h-[500px]'} overflow-hidden rounded-lg flex-grow`}>
         <img 
           src={allImages[activeIndex]} 
           alt={`Product image ${activeIndex + 1}`}
