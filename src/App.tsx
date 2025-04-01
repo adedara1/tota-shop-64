@@ -8,6 +8,9 @@ import Dashboard from './pages/Dashboard';
 import ProductForm from './pages/ProductForm';
 import ProductsSettings from './pages/ProductsSettings';
 import PopoSettings from './pages/PopoSettings';
+import Payment from './pages/Payment';
+import Stats from './pages/Stats';
+import Contact from './pages/Contact';
 import { Toaster } from "@/components/ui/toaster";
 import {
   QueryClient,
@@ -31,6 +34,9 @@ const App = () => {
             <Route path="/product-form" element={<ProductForm />} />
             <Route path="/products-settings" element={<ProductsSettings />} />
             <Route path="/popo-settings" element={<PopoSettings />} />
+            <Route path="/paiement" element={<Payment />} />
+            <Route path="/stats" element={<Stats />} />
+            <Route path="/contact" element={<Contact />} />
           </Routes>
         </QueryClientProvider>
       </CartProvider>

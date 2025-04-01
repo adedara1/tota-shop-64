@@ -115,9 +115,9 @@ const ProductDetails = ({
   useEffect(() => {
     const checkCartItems = () => {
       try {
-        const items = localStorage.getItem('cartItems');
-        if (items) {
-          const parsedItems = JSON.parse(items);
+        const cartData = localStorage.getItem('cart');
+        if (cartData) {
+          const parsedItems = JSON.parse(cartData);
           setCartItemsCount(parsedItems.length);
         } else {
           setCartItemsCount(0);
@@ -130,10 +130,10 @@ const ProductDetails = ({
     
     checkCartItems();
     
-    window.addEventListener('cartUpdated', checkCartItems);
+    window.addEventListener('storage', checkCartItems);
     
     return () => {
-      window.removeEventListener('cartUpdated', checkCartItems);
+      window.removeEventListener('storage', checkCartItems);
     };
   }, []);
   
