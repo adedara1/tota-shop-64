@@ -66,7 +66,6 @@ const ProductEdit = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedOptionImages, setSelectedOptionImages] = useState<string[]>([]);
-  const [cartCount, setCartCount] = useState(0);
   const isMobile = useIsMobile();
   const [changes, setChanges] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
@@ -258,7 +257,7 @@ const ProductEdit = () => {
       <div className="min-h-screen" style={{ backgroundColor: "#000000" }}>
         {!product?.hide_promo_bar && <PromoBar />}
         <div className="bg-white">
-          <Navbar cartCount={cartCount} />
+          <Navbar />
         </div>
         <div className="container mx-auto py-12 px-4">
           <div className="text-center text-white">Chargement...</div>
@@ -273,7 +272,7 @@ const ProductEdit = () => {
       <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: "#000000" }}>
         <PromoBar />
         <div className="bg-white">
-          <Navbar cartCount={cartCount} />
+          <Navbar />
         </div>
         <div className="container mx-auto py-12 px-4 max-w-[100vw]">
           <div className="text-center text-white">
@@ -482,7 +481,7 @@ const ProductEdit = () => {
       <div className="pt-12">
         {!product.hide_promo_bar && <PromoBar />}
         <div className="bg-white">
-          <Navbar cartCount={cartCount} />
+          <Navbar />
         </div>
         <main className="container mx-auto py-4 md:py-12 px-4 max-w-[100vw]">
           <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-8 lg:gap-12`}>
