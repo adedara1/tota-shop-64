@@ -61,12 +61,13 @@ const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
       <div className="relative h-[500px] overflow-hidden rounded-lg flex-grow">
         <img 
           src={allImages[activeIndex]} 
-          alt={`Product image ${activeIndex + 1}`} 
-          className="w-full max-w-xl object-cover" 
+          alt={`Product image ${activeIndex + 1}`}
+          className="w-full max-w-xl"
           style={{
             objectFit: "contain",
-            height: "100%",
-            width: "100%"
+            width: "100%",
+            height: "auto",
+            alignSelf: "flex-start"
           }} 
         />
         
