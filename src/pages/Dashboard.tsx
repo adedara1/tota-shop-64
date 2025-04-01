@@ -10,11 +10,11 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container mx-auto py-12 px-4">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Tableau de bord</h1>
+      <div className="container mx-auto py-8 px-4 md:py-12">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold">Tableau de bord</h1>
           <Link to="/home">
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="flex items-center gap-2 w-full md:w-auto">
               <ArrowLeft className="w-4 h-4" />
               Retour à l'accueil
             </Button>

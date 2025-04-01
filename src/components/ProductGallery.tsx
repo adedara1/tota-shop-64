@@ -37,9 +37,30 @@ const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
   }
 
   return (
-    <div className="relative flex flex-col gap-4">
+    <div className="relative flex flex-row gap-4">
+      {/* Thumbnails on the left on desktop, bottom on mobile */}
+      {allImages.length > 1 && (
+        <div className={`flex ${isMobile ? 'flex-row order-2 w-full mt-4' : 'flex-col order-1 h-[500px]'} gap-2 ${isMobile ? 'overflow-x-auto' : 'overflow-y-auto'} ${isMobile ? 'max-w-full' : 'w-[100px]'}`}>
+          {allImages.map((image, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              className={`relative ${isMobile ? 'h-16 w-16' : 'h-16 w-16'} flex-shrink-0 rounded-md overflow-hidden border-2 ${
+                index === activeIndex ? 'border-black' : 'border-transparent'
+              }`}
+            >
+              <img 
+                src={image} 
+                alt={`Thumbnail ${index + 1}`} 
+                className="h-full w-full object-cover"
+              />
+            </button>
+          ))}
+        </div>
+      )}
+      
       {/* Main image */}
-      <div className={`relative ${isMobile ? 'h-auto' : 'h-[500px]'} overflow-hidden rounded-lg flex-grow`}>
+      <div className={`relative ${isMobile ? 'h-auto order-1' : 'h-[500px] order-2'} overflow-hidden rounded-lg flex-grow`}>
         <img 
           src={allImages[activeIndex]} 
           alt={`Product image ${activeIndex + 1}`}
@@ -71,27 +92,6 @@ const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
           </>
         )}
       </div>
-      
-      {/* Thumbnails on the bottom on mobile, left side on desktop */}
-      {allImages.length > 1 && (
-        <div className={`flex ${isMobile ? 'flex-row overflow-x-auto' : 'flex-col overflow-y-auto max-h-[500px]'} gap-2 ${isMobile ? 'max-w-full' : 'w-[100px]'}`}>
-          {allImages.map((image, index) => (
-            <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className={`relative h-16 w-16 flex-shrink-0 rounded-md overflow-hidden border-2 ${
-                index === activeIndex ? 'border-black' : 'border-transparent'
-              }`}
-            >
-              <img 
-                src={image} 
-                alt={`Thumbnail ${index + 1}`} 
-                className="h-full w-full object-cover"
-              />
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 };

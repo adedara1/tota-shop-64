@@ -12,6 +12,7 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 const items = [
   {
@@ -43,13 +44,14 @@ const items = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   return (
     <>
-      <Sidebar className="bg-white">
+      <Sidebar className={isMobile ? "bg-white text-black" : "bg-white"}>
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+            <SidebarGroupLabel className={isMobile ? "text-black" : ""}>Navigation</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {items.map((item) => (
@@ -58,6 +60,7 @@ export function AppSidebar() {
                       asChild
                       isActive={location.pathname === item.url}
                       tooltip={item.title}
+                      className={isMobile ? "text-black hover:text-gray-700 hover:bg-gray-100" : ""}
                     >
                       <Link to={item.url}>
                         <item.icon />
