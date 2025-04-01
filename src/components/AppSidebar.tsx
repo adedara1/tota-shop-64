@@ -1,5 +1,5 @@
 
-import { Home, PlusCircle, Mail, BarChart, Settings, LayoutDashboard } from "lucide-react"
+import { Home, PlusCircle, Mail, BarChart, Settings } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 import {
   Sidebar,
@@ -20,11 +20,6 @@ const items = [
     icon: Home,
   },
   {
-    title: "Dashboard",
-    url: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
     title: "Créer un produit",
     url: "/product-form",
     icon: PlusCircle,
@@ -38,6 +33,11 @@ const items = [
     title: "Contact",
     url: "/contact",
     icon: Mail,
+  },
+  {
+    title: "Paramètres Popo",
+    url: "/popo-setting",
+    icon: Settings,
   },
 ]
 

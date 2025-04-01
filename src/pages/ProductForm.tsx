@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import RichTextEditor from "@/components/RichTextEditor";
 import ColorSelector from "@/components/ColorSelector";
-import { Copy, Edit, Eye, EyeOff, Plus, Trash, ArrowLeft } from "lucide-react";
+import { Copy, Edit, Eye, EyeOff, Plus, Trash } from "lucide-react";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
@@ -17,7 +18,6 @@ import ProductFormClone from "@/components/ProductFormClone";
 import { Toggle } from "@/components/ui/toggle";
 import { Checkbox } from "@/components/ui/checkbox";
 import SimilarProductsSelector from "@/components/SimilarProductsSelector";
-import { Link } from "react-router-dom";
 
 type CurrencyCode = Database['public']['Enums']['currency_code'];
 const COLOR_PALETTES = {
@@ -407,14 +407,7 @@ const ProductForm = () => {
       <div className="py-12 px-4 overflow-auto">
         <div className="container mx-auto max-w-6xl">
           <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-4">
-              <Link to="/home">
-                <Button variant="outline" size="icon" title="Retour à l'accueil">
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              </Link>
-              <h1 className="text-3xl font-medium">Gestion des produits</h1>
-            </div>
+            <h1 className="text-3xl font-medium">Gestion des produits</h1>
             <div className="flex gap-4">
               <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetTrigger asChild>
@@ -620,9 +613,23 @@ const ProductForm = () => {
                           <Button variant="outline" size="icon" onClick={() => copyToClipboard(product.id)} title="Copier l'URL">
                             <Copy className="h-4 w-4" />
                           </Button>
-                          <Button variant="outline" size="icon" onClick={() => handleEdit(product)} title="Modifier">
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="icon" title="Options">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={() => handleEdit(product)}>
+                                Modifier
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <a href={`/edit/product/${product.id}`}>
+                                  Aperçu
+                                </a>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                           <Button variant="destructive" size="icon" onClick={() => handleDelete(product.id)} title="Supprimer">
                             <Trash className="h-4 w-4" />
                           </Button>
