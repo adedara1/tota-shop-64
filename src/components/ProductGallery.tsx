@@ -36,10 +36,73 @@ const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
     </div>;
   }
 
+  // Version desktop avec miniatures à gauche
+  if (!isMobile) {
+    return (
+      <div className="relative flex flex-row gap-4">
+        {/* Miniatures sur le côté gauche pour desktop */}
+        {allImages.length > 1 && (
+          <div className="flex flex-col gap-2 w-[100px] max-h-[500px] overflow-y-auto">
+            {allImages.map((image, index) => (
+              <button
+                key={index}
+                onClick={() => goToSlide(index)}
+                className={`relative h-16 w-16 flex-shrink-0 rounded-md overflow-hidden border-2 ${
+                  index === activeIndex ? 'border-black' : 'border-transparent'
+                }`}
+              >
+                <img 
+                  src={image} 
+                  alt={`Thumbnail ${index + 1}`} 
+                  className="h-full w-full object-cover"
+                />
+              </button>
+            ))}
+          </div>
+        )}
+        
+        {/* Image principale */}
+        <div className="relative h-[500px] flex-grow overflow-hidden rounded-lg">
+          <img 
+            src={allImages[activeIndex]} 
+            alt={`Product image ${activeIndex + 1}`}
+            className="w-full max-w-xl"
+            style={{
+              objectFit: "contain",
+              width: "100%",
+              height: "auto",
+              alignSelf: "flex-start"
+            }} 
+          />
+          
+          {allImages.length > 1 && (
+            <>
+              <button 
+                onClick={prevSlide} 
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center shadow-md" 
+                aria-label="Previous image"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button 
+                onClick={nextSlide} 
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center shadow-md" 
+                aria-label="Next image"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Version mobile (inchangée)
   return (
     <div className="relative flex flex-col gap-4">
       {/* Main image */}
-      <div className={`relative ${isMobile ? 'h-auto' : 'h-[500px]'} overflow-hidden rounded-lg flex-grow`}>
+      <div className="relative h-auto overflow-hidden rounded-lg flex-grow">
         <img 
           src={allImages[activeIndex]} 
           alt={`Product image ${activeIndex + 1}`}
@@ -72,9 +135,9 @@ const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
         )}
       </div>
       
-      {/* Thumbnails on the bottom on mobile, left side on desktop */}
+      {/* Miniatures en bas pour mobile */}
       {allImages.length > 1 && (
-        <div className={`flex ${isMobile ? 'flex-row overflow-x-auto' : 'flex-col overflow-y-auto max-h-[500px]'} gap-2 ${isMobile ? 'max-w-full' : 'w-[100px]'}`}>
+        <div className="flex flex-row overflow-x-auto gap-2 max-w-full">
           {allImages.map((image, index) => (
             <button
               key={index}
