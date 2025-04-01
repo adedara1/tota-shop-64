@@ -39,7 +39,7 @@ const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
   // Version desktop avec miniatures à gauche
   if (!isMobile) {
     return (
-      <div className="relative flex flex-row gap-4 w-full">
+      <div className="relative flex flex-row gap-4">
         {/* Miniatures sur le côté gauche pour desktop */}
         {allImages.length > 1 && (
           <div className="flex flex-col gap-2 w-[100px] max-h-[500px] overflow-y-auto">
@@ -66,7 +66,13 @@ const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
           <img 
             src={allImages[activeIndex]} 
             alt={`Product image ${activeIndex + 1}`}
-            className="w-full max-w-full h-full object-contain"
+            className="w-full max-w-xl"
+            style={{
+              objectFit: "contain",
+              width: "100%",
+              height: "auto",
+              alignSelf: "flex-start"
+            }} 
           />
           
           {allImages.length > 1 && (
@@ -94,13 +100,19 @@ const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
 
   // Version mobile (inchangée)
   return (
-    <div className="relative flex flex-col gap-4 w-full">
+    <div className="relative flex flex-col gap-4">
       {/* Main image */}
       <div className="relative h-auto overflow-hidden rounded-lg flex-grow">
         <img 
           src={allImages[activeIndex]} 
           alt={`Product image ${activeIndex + 1}`}
-          className="w-full object-contain"
+          className="w-full max-w-xl"
+          style={{
+            objectFit: "contain",
+            width: "100%",
+            height: "auto",
+            alignSelf: "flex-start"
+          }} 
         />
         
         {allImages.length > 1 && (
@@ -125,7 +137,7 @@ const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
       
       {/* Miniatures en bas pour mobile */}
       {allImages.length > 1 && (
-        <div className="flex flex-row overflow-x-auto gap-2 pb-2 w-full">
+        <div className="flex flex-row overflow-x-auto gap-2 max-w-full">
           {allImages.map((image, index) => (
             <button
               key={index}
