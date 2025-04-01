@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 
 interface OptionValue {
@@ -23,27 +22,27 @@ const ProductOptions = ({
   titleColor = "#000000",
   valueColor = "#000000"
 }: ProductOptionsProps) => {
-  const [selectedValue, setSelectedValue] = useState<string | null>(null);
+  const [selectedValue, setSelectedValue] = useState<string | null>(selectedOption || null);
   
-  // Fix the infinite loop by adding proper dependencies and conditions
   useEffect(() => {
     if (selectedOption) {
       setSelectedValue(selectedOption);
-    } else if (options.length > 0 && selectedValue === null) {
-      // Only set default if selectedValue is null to avoid loop
+      return;
+    }
+    
+    if (options.length > 0 && selectedValue === null) {
       const firstOption = options[0];
       const value = typeof firstOption === 'object' ? firstOption.value : firstOption;
       setSelectedValue(value);
       onSelect(firstOption);
     }
-  }, [selectedOption, options, onSelect]); // Remove selectedValue from dependencies
+  }, [selectedOption, options]);
   
   const handleSelect = (option: string | OptionValue) => {
     const value = typeof option === 'object' ? option.value : option;
     setSelectedValue(value);
     onSelect(option);
     
-    // Debug
     console.log(`Selected option in ProductOptions:`, { 
       option, 
       title, 
@@ -52,7 +51,6 @@ const ProductOptions = ({
     });
   };
   
-  // Get unique values for rendering
   const uniqueOptions = options.filter((option, index, self) => {
     const value = typeof option === 'object' ? option.value : option;
     return index === self.findIndex(o => {
@@ -61,7 +59,6 @@ const ProductOptions = ({
     });
   });
   
-  // Check if any option has an image
   const hasImages = options.some(option => typeof option === 'object' && option.image);
   
   if (uniqueOptions.length === 0) return null;
@@ -76,7 +73,6 @@ const ProductOptions = ({
           const image = typeof option === 'object' ? option.image : undefined;
           
           if (image) {
-            // Image option
             return (
               <button
                 key={`${value}-${index}`}
@@ -108,7 +104,6 @@ const ProductOptions = ({
             );
           }
           
-          // Text option
           return (
             <button
               key={`${value}-${index}`}

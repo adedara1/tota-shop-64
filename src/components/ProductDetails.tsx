@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import ProductOptions from "./ProductOptions";
 import { Plus, Minus, ShoppingBag, Star } from "lucide-react";
@@ -78,7 +77,7 @@ const ProductDetails = ({
   const [quantity, setQuantity] = useState(1);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
   const [totalPrice, setTotalPrice] = useState(discountedPrice);
-  const { addToCart, totalItems } = useCart();
+  const { addToCart } = useCart();
   const navigate = useNavigate();
   
   const discountPercentage = originalPrice > 0 
@@ -108,33 +107,35 @@ const ProductDetails = ({
     if (optionImages.length > 0 && onOptionImageChange) {
       onOptionImageChange(optionImages);
     }
-  }, [options, onOptionImageChange]);
+  }, [options]);
   
   useEffect(() => {
     setTotalPrice(discountedPrice * quantity);
   }, [discountedPrice, quantity]);
   
   const handleOptionSelect = (optionType: string, selectedValue: string | OptionValue) => {
-    const newSelectedOptions = { ...selectedOptions };
-    
-    if (typeof selectedValue === 'string') {
-      newSelectedOptions[optionType] = { value: selectedValue };
-    } else {
-      newSelectedOptions[optionType] = selectedValue;
-    }
-    
-    setSelectedOptions(newSelectedOptions);
-    
-    if (onOptionImageChange) {
-      const selectedImages = Object.values(newSelectedOptions)
-        .filter(opt => typeof opt === 'object' && opt.image)
-        .map(opt => opt.image as string);
+    setSelectedOptions(prev => {
+      const newSelectedOptions = { ...prev };
       
-      onOptionImageChange(selectedImages);
-    }
-    
-    console.log(`Selected ${optionType}:`, selectedValue);
-    console.log("All selected options:", newSelectedOptions);
+      if (typeof selectedValue === 'string') {
+        newSelectedOptions[optionType] = { value: selectedValue };
+      } else {
+        newSelectedOptions[optionType] = selectedValue;
+      }
+      
+      if (onOptionImageChange) {
+        const selectedImages = Object.values(newSelectedOptions)
+          .filter(opt => typeof opt === 'object' && opt.image)
+          .map(opt => opt.image as string);
+        
+        onOptionImageChange(selectedImages);
+      }
+      
+      console.log(`Selected ${optionType}:`, selectedValue);
+      console.log("All selected options:", newSelectedOptions);
+      
+      return newSelectedOptions;
+    });
   };
   
   const handleButtonClick = () => {
@@ -144,7 +145,6 @@ const ProductDetails = ({
     
     if (useInternalCart) {
       if (productId) {
-        // Add to cart directly using useCart hook
         addToCart({
           id: productId,
           name: name,
@@ -307,7 +307,7 @@ const ProductDetails = ({
           {buttonText}
         </button>
         
-        {useInternalCart && totalItems > 0 && (
+        {useInternalCart && (
           <button 
             onClick={goToCart}
             className="block flex-1 bg-gray-800 text-white py-3 px-6 rounded hover:bg-gray-900 transition-colors text-center flex items-center justify-center"
