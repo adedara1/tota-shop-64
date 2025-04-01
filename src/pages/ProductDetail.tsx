@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -27,7 +26,6 @@ interface Product {
   options?: Record<string, any> | null;
   use_internal_cart?: boolean;
   hide_promo_bar?: boolean;
-  // Customization fields
   option_title_color?: string;
   option_value_color?: string;
   product_name_color?: string;
@@ -45,6 +43,7 @@ interface Product {
   stock_status_color?: string;
   show_similar_products?: boolean;
   similar_products?: string[];
+  similar_products_title_color?: string;
 }
 
 const ProductDetail = () => {
@@ -55,7 +54,6 @@ const ProductDetail = () => {
   const isMobile = useIsMobile();
   const { addToCart } = useCart();
 
-  // Fetch product data
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -86,7 +84,6 @@ const ProductDetail = () => {
         
         setProduct(transformedData);
 
-        // Track product view
         const { error: statsError } = await supabase.rpc('increment_product_view', {
           product_id_param: id
         });
@@ -175,7 +172,6 @@ const ProductDetail = () => {
     );
   }
 
-  // Ne plus mélanger les images d'options avec les images du produit
   const productImages = product.images;
 
   return (
@@ -206,7 +202,6 @@ const ProductDetail = () => {
               useInternalCart={product.use_internal_cart}
               onAddToCart={handleAddToCart}
               productId={product.id}
-              // Pass customization properties
               optionTitleColor={product.option_title_color}
               optionValueColor={product.option_value_color}
               productNameColor={product.product_name_color}
@@ -226,12 +221,12 @@ const ProductDetail = () => {
           </div>
         </div>
 
-        {/* Section produits similaires */}
         {product.show_similar_products && product.similar_products && product.similar_products.length > 0 && (
           <div className="mt-12 bg-white/10 p-6 rounded-lg text-white">
             <SimilarProducts 
               productId={product.id} 
-              similarProducts={product.similar_products} 
+              similarProducts={product.similar_products}
+              titleColor={product.similar_products_title_color || "#FFFFFF"}
             />
           </div>
         )}

@@ -65,6 +65,7 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
   const [showStockStatus, setShowStockStatus] = useState(true);
   const [stockStatusText, setStockStatusText] = useState("In stock, ready to ship");
   const [stockStatusColor, setStockStatusColor] = useState("#00AA00");
+  const [similarProductsTitleColor, setSimilarProductsTitleColor] = useState("#FFFFFF");
   
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [whatsappMessage, setWhatsappMessage] = useState("");
@@ -271,7 +272,8 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
         stock_status_text: stockStatusText,
         stock_status_color: stockStatusColor,
         show_similar_products: showSimilarProducts,
-        similar_products: similarProducts
+        similar_products: similarProducts,
+        similar_products_title_color: similarProductsTitleColor
       };
 
       console.log("Saving product data:", productData);
@@ -771,6 +773,13 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
             >
               Sélectionner des produits similaires
             </Button>
+            
+            <ColorInput 
+              label="Couleur du titre 'Produits similaires'" 
+              value={similarProductsTitleColor} 
+              onChange={setSimilarProductsTitleColor}
+              defaultColor="#FFFFFF"
+            />
           </div>
         </div>
       )}
