@@ -1,6 +1,7 @@
 
 import { Home, PlusCircle, Mail, BarChart, Settings, LayoutDashboard } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
+import { useIsMobile } from "@/hooks/use-mobile"
 import {
   Sidebar,
   SidebarContent,
@@ -43,13 +44,14 @@ const items = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   return (
     <>
-      <Sidebar className="bg-white">
+      <Sidebar className={isMobile ? "bg-white text-black" : "bg-white"}>
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+            <SidebarGroupLabel className={isMobile ? "text-black" : ""}>Navigation</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {items.map((item) => (
@@ -58,9 +60,10 @@ export function AppSidebar() {
                       asChild
                       isActive={location.pathname === item.url}
                       tooltip={item.title}
+                      className={isMobile ? "text-black hover:text-black hover:bg-gray-100" : ""}
                     >
-                      <Link to={item.url}>
-                        <item.icon />
+                      <Link to={item.url} className={isMobile ? "text-black" : ""}>
+                        <item.icon className={isMobile ? "text-black" : ""} />
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
