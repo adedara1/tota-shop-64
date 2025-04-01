@@ -5,6 +5,8 @@ import { Plus, Minus, ShoppingBag, Star } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "./ui/badge";
+import { useCart } from "@/hooks/use-cart";
+import { toast } from "@/hooks/use-toast";
 
 interface OptionValue {
   value: string;
@@ -76,7 +78,7 @@ const ProductDetails = ({
   const [quantity, setQuantity] = useState(1);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, any>>({});
   const [totalPrice, setTotalPrice] = useState(discountedPrice);
-  const [cartItemsCount, setCartItemsCount] = useState(0);
+  const { addToCart, totalItems } = useCart();
   const navigate = useNavigate();
   
   const discountPercentage = originalPrice > 0 
@@ -112,31 +114,6 @@ const ProductDetails = ({
     setTotalPrice(discountedPrice * quantity);
   }, [discountedPrice, quantity]);
   
-  useEffect(() => {
-    const checkCartItems = () => {
-      try {
-        const cartData = localStorage.getItem('cart');
-        if (cartData) {
-          const parsedItems = JSON.parse(cartData);
-          setCartItemsCount(parsedItems.length);
-        } else {
-          setCartItemsCount(0);
-        }
-      } catch (error) {
-        console.error("Error checking cart items:", error);
-        setCartItemsCount(0);
-      }
-    };
-    
-    checkCartItems();
-    
-    window.addEventListener('storage', checkCartItems);
-    
-    return () => {
-      window.removeEventListener('storage', checkCartItems);
-    };
-  }, []);
-  
   const handleOptionSelect = (optionType: string, selectedValue: string | OptionValue) => {
     const newSelectedOptions = { ...selectedOptions };
     
@@ -166,8 +143,22 @@ const ProductDetails = ({
     }
     
     if (useInternalCart) {
-      if (onAddToCart) {
-        onAddToCart({ id: productId, name, price: discountedPrice }, quantity, selectedOptions);
+      if (productId) {
+        // Add to cart directly using useCart hook
+        addToCart({
+          id: productId,
+          name: name,
+          price: discountedPrice,
+          quantity: quantity,
+          options: selectedOptions,
+          image: Object.values(selectedOptions)
+            .find((opt: any) => opt.image)?.image || null
+        });
+        
+        toast({
+          title: "Produit ajouté au panier",
+          description: `${quantity} × ${name} ajouté au panier`,
+        });
       }
       return;
     }
@@ -316,7 +307,7 @@ const ProductDetails = ({
           {buttonText}
         </button>
         
-        {useInternalCart && cartItemsCount > 0 && (
+        {useInternalCart && totalItems > 0 && (
           <button 
             onClick={goToCart}
             className="block flex-1 bg-gray-800 text-white py-3 px-6 rounded hover:bg-gray-900 transition-colors text-center flex items-center justify-center"

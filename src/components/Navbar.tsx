@@ -2,43 +2,12 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { X, Menu, ShoppingBag } from "lucide-react";
+import { useCart } from "@/hooks/use-cart";
 
-interface NavbarProps {
-  cartCount?: number;
-}
-
-const Navbar = ({ cartCount = 0 }: NavbarProps) => {
+const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const [count, setCount] = useState(cartCount);
-
-  useEffect(() => {
-    // Fetch cart count from local storage on mount
-    const fetchCartCount = () => {
-      try {
-        const cartItems = localStorage.getItem('cartItems');
-        if (cartItems) {
-          const items = JSON.parse(cartItems);
-          setCount(items.length);
-        }
-      } catch (error) {
-        console.error("Error fetching cart count:", error);
-      }
-    };
-
-    fetchCartCount();
-
-    // Add event listener for cart updates
-    const handleCartUpdate = () => {
-      fetchCartCount();
-    };
-
-    window.addEventListener('cartUpdated', handleCartUpdate);
-
-    return () => {
-      window.removeEventListener('cartUpdated', handleCartUpdate);
-    };
-  }, []);
+  const { totalItems } = useCart();
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -82,9 +51,9 @@ const Navbar = ({ cartCount = 0 }: NavbarProps) => {
             className="relative"
           >
             <ShoppingBag size={20} />
-            {count > 0 && (
+            {totalItems > 0 && (
               <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                {count}
+                {totalItems}
               </span>
             )}
           </Link>
@@ -97,9 +66,9 @@ const Navbar = ({ cartCount = 0 }: NavbarProps) => {
             className="relative"
           >
             <ShoppingBag size={20} />
-            {count > 0 && (
+            {totalItems > 0 && (
               <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                {count}
+                {totalItems}
               </span>
             )}
           </Link>

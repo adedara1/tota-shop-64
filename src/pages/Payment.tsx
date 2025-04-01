@@ -11,64 +11,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-
-interface CartItem {
-  product_id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  options?: Record<string, any>;
-  image?: string;
-}
+import { useCart } from "@/hooks/use-cart";
 
 const Payment = () => {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const { items: cartItems, updateQuantity, removeFromCart, totalPrice } = useCart();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Load cart items from local storage
-    const loadCartItems = () => {
-      try {
-        const items = localStorage.getItem('cartItems');
-        if (items) {
-          setCartItems(JSON.parse(items));
-        }
-      } catch (error) {
-        console.error("Error loading cart items:", error);
-      }
-    };
-
-    loadCartItems();
-  }, []);
-
-  const updateCartStorage = (items: CartItem[]) => {
-    localStorage.setItem('cartItems', JSON.stringify(items));
-    window.dispatchEvent(new Event('cartUpdated'));
-  };
-
-  const handleQuantityChange = (index: number, newQuantity: number) => {
-    if (newQuantity < 1) return;
-
-    const updatedItems = [...cartItems];
-    updatedItems[index].quantity = newQuantity;
-    setCartItems(updatedItems);
-    updateCartStorage(updatedItems);
-  };
-
-  const handleRemoveItem = (index: number) => {
-    const updatedItems = cartItems.filter((_, i) => i !== index);
-    setCartItems(updatedItems);
-    updateCartStorage(updatedItems);
-  };
-
-  const getCartTotal = () => {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  };
 
   const handleCheckout = async () => {
     if (cartItems.length === 0) {
@@ -103,13 +55,11 @@ const Payment = () => {
         return `- ${item.name} x${item.quantity} (${item.price} CFA)${optionsText ? ` [${optionsText}]` : ''}`;
       }).join('\n');
       
-      const totalAmount = getCartTotal();
-      
       const message = `
 Nouvelle commande:
 ${productDetails}
 
-Total: ${totalAmount} CFA
+Total: ${totalPrice} CFA
 
 Client:
 Nom: ${name}
@@ -118,21 +68,10 @@ Téléphone: ${phone}
 Adresse: ${address || 'Non spécifiée'}
       `.trim();
       
-      // Save order in database using cart_items table
-      const orderData = {
-        customer_name: name,
-        customer_email: email,
-        customer_phone: phone,
-        customer_address: address,
-        order_items: cartItems,
-        total_amount: totalAmount,
-        status: 'pending'
-      };
-      
-      // Insert directly into cart_items table since we don't have orders table yet
+      // Save order in database
       const { error } = await supabase.from('cart_items').insert(
         cartItems.map(item => ({
-          product_id: item.product_id,
+          product_id: item.id,
           name: item.name,
           price: item.price,
           quantity: item.quantity,
@@ -145,10 +84,6 @@ Adresse: ${address || 'Non spécifiée'}
         console.error("Error saving order items:", error);
       }
       
-      // Clear cart
-      localStorage.removeItem('cartItems');
-      window.dispatchEvent(new Event('cartUpdated'));
-      
       // Redirect to WhatsApp
       const whatsappUrl = `https://wa.me/51180895?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
@@ -157,6 +92,10 @@ Adresse: ${address || 'Non spécifiée'}
         title: "Commande envoyée",
         description: "Votre commande a été envoyée. Nous vous contacterons dès que possible."
       });
+      
+      // Clear cart and redirect
+      localStorage.removeItem('cart');
+      window.dispatchEvent(new Event('storage'));
       
       // Redirect to thank you page
       navigate('/products');
@@ -203,7 +142,7 @@ Adresse: ${address || 'Non spécifiée'}
                   
                   <div className="divide-y">
                     {cartItems.map((item, index) => (
-                      <div key={`${item.product_id}-${index}`} className="py-4 flex gap-4">
+                      <div key={`${item.id}-${index}`} className="py-4 flex gap-4">
                         <div className="w-20 h-20 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
                           {item.image ? (
                             <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
@@ -226,14 +165,14 @@ Adresse: ${address || 'Non spécifiée'}
                           <div className="mt-2 flex items-center justify-between">
                             <div className="flex items-center">
                               <button 
-                                onClick={() => handleQuantityChange(index, item.quantity - 1)}
+                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
                                 className="p-1 rounded-full border"
                               >
                                 <Minus size={14} />
                               </button>
                               <span className="mx-2">{item.quantity}</span>
                               <button 
-                                onClick={() => handleQuantityChange(index, item.quantity + 1)}
+                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
                                 className="p-1 rounded-full border"
                               >
                                 <Plus size={14} />
@@ -244,7 +183,7 @@ Adresse: ${address || 'Non spécifiée'}
                         </div>
                         
                         <button 
-                          onClick={() => handleRemoveItem(index)}
+                          onClick={() => removeFromCart(item.id)}
                           className="text-gray-500 hover:text-red-500"
                         >
                           <Trash2 size={18} />
@@ -263,11 +202,11 @@ Adresse: ${address || 'Non spécifiée'}
                 <div className="space-y-3 mb-4">
                   <div className="flex justify-between items-center text-sm">
                     <span>Sous-total</span>
-                    <span>{getCartTotal()} CFA</span>
+                    <span>{totalPrice} CFA</span>
                   </div>
                   <div className="border-t pt-3 flex justify-between items-center font-medium">
                     <span>Total</span>
-                    <span className="text-lg">{getCartTotal()} CFA</span>
+                    <span className="text-lg">{totalPrice} CFA</span>
                   </div>
                 </div>
                 

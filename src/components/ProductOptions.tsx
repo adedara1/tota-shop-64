@@ -25,18 +25,18 @@ const ProductOptions = ({
 }: ProductOptionsProps) => {
   const [selectedValue, setSelectedValue] = useState<string | null>(null);
   
-  // Update the selected value when the selectedOption prop changes
+  // Fix the infinite loop by adding proper dependencies and conditions
   useEffect(() => {
     if (selectedOption) {
       setSelectedValue(selectedOption);
-    } else if (options.length > 0 && !selectedValue) {
-      // Default to first option only if selectedValue is not set
+    } else if (options.length > 0 && selectedValue === null) {
+      // Only set default if selectedValue is null to avoid loop
       const firstOption = options[0];
       const value = typeof firstOption === 'object' ? firstOption.value : firstOption;
       setSelectedValue(value);
       onSelect(firstOption);
     }
-  }, [selectedOption, options, onSelect, selectedValue]);
+  }, [selectedOption, options, onSelect]); // Remove selectedValue from dependencies
   
   const handleSelect = (option: string | OptionValue) => {
     const value = typeof option === 'object' ? option.value : option;
