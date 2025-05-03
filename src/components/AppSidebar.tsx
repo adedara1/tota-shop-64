@@ -13,7 +13,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { useEffect, useState } from "react"
-import { useMobileDetect } from "@/hooks/use-mobile"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 const items = [
   {
@@ -45,7 +45,7 @@ const items = [
 
 export function AppSidebar() {
   const location = useLocation();
-  const isMobile = useMobileDetect();
+  const isMobile = useIsMobile();
   const [mobileClass, setMobileClass] = useState("");
 
   useEffect(() => {

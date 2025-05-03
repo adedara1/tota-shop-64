@@ -272,8 +272,7 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
         stock_status_text: stockStatusText,
         stock_status_color: stockStatusColor,
         show_similar_products: showSimilarProducts,
-        similar_products: similarProducts,
-        similar_products_title_color: similarProductsTitleColor
+        similar_products: similarProducts
       };
 
       console.log("Saving product data:", productData);
