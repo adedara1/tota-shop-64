@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -110,6 +109,8 @@ const ProductForm = () => {
   const [editingOptionType, setEditingOptionType] = useState("");
   const [showSimilarProductsSelector, setShowSimilarProductsSelector] = useState(false);
   const [similarProducts, setSimilarProducts] = useState<string[]>([]);
+  const [showCloneForm, setShowCloneForm] = useState(false);
+  const [selectedProductForClone, setSelectedProductForClone] = useState<Product | null>(null);
 
   const fetchProducts = async () => {
     try {
@@ -315,11 +316,10 @@ const ProductForm = () => {
   };
 
   const handleEdit = (product: Product) => {
-    setEditingProduct(product);
-    setDescription(product.description);
-    setSelectedColor(product.theme_color || defaultColor);
-    setSimilarProducts(product.similar_products || []);
-    setIsSheetOpen(true);
+    // Maintenant, au lieu d'ouvrir le sheet pour l'édition, nous initialisons 
+    // le formulaire ProductFormClone avec les données du produit
+    setSelectedProductForClone(product);
+    setShowCloneForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -409,20 +409,99 @@ const ProductForm = () => {
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-medium">Gestion des produits</h1>
             <div className="flex gap-4">
-              <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+              {/* Cacher le bouton "Nouveau produit" */}
+              
+              <Sheet open={showCloneForm} onOpenChange={setShowCloneForm}>
                 <SheetTrigger asChild>
-                  <Button variant="default">
+                  <Button variant="default" className="bg-green-500 hover:bg-green-600">
                     <Plus className="mr-2 h-4 w-4" />
-                    Nouveau produit
+                    Créer un produit
                   </Button>
                 </SheetTrigger>
                 <SheetContent className="overflow-y-auto w-full sm:max-w-xl">
                   <SheetHeader>
                     <SheetTitle>
-                      {editingProduct ? "Modifier le produit" : "Créer un nouveau produit"}
+                      {selectedProductForClone ? "Modifier le produit" : "Créer un nouveau produit"}
                     </SheetTitle>
                   </SheetHeader>
                   <div className="py-4">
+                    <ProductFormClone 
+                      onSuccess={() => {
+                        setShowCloneForm(false);
+                        fetchProducts();
+                      }} 
+                      onCancel={() => {
+                        setShowCloneForm(false);
+                        setSelectedProductForClone(null);
+                      }}
+                      product={selectedProductForClone}
+                    />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="px-6 py-3 text-left">Nom</th>
+                    <th className="px-6 py-3 text-left">Prix original</th>
+                    <th className="px-6 py-3 text-left">Prix réduit</th>
+                    <th className="px-6 py-3 text-left">Date de création</th>
+                    <th className="px-6 py-3 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map(product => <tr key={product.id} className="border-b hover:bg-gray-50">
+                      <td className="px-6 py-4">{product.name}</td>
+                      <td className="px-6 py-4">{product.original_price} {product.currency}</td>
+                      <td className="px-6 py-4">{product.discounted_price} {product.currency}</td>
+                      <td className="px-6 py-4">
+                        {format(new Date(product.created_at), "d MMMM yyyy", {
+                      locale: fr
+                    })}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="icon" onClick={() => toggleVisibility(product.id, product.is_visible)} title={product.is_visible ? "Masquer" : "Afficher"}>
+                            {product.is_visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                          </Button>
+                          <Button variant="outline" size="icon" onClick={() => copyToClipboard(product.id)} title="Copier l'URL">
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={() => handleEdit(product)} 
+                            title="Modifier"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="destructive" size="icon" onClick={() => handleDelete(product.id)} title="Supprimer">
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>)}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sheet pour l'édition - maintenant caché car nous utilisons ProductFormClone */}
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent className="overflow-y-auto w-full sm:max-w-xl" hidden>
+          <SheetHeader>
+            <SheetTitle>
+              {editingProduct ? "Modifier le produit" : "Créer un nouveau produit"}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="py-4">
                     <form onSubmit={handleSubmit} className="space-y-6">
                       <div>
                         <Label htmlFor="images">Images du produit (Max 4)</Label>
@@ -556,92 +635,15 @@ const ProductForm = () => {
                       </div>
                     </form>
                   </div>
-                </SheetContent>
-              </Sheet>
+        </SheetContent>
+      </Sheet>
 
-              <Sheet open={showCloneForm} onOpenChange={setShowCloneForm}>
-                <SheetTrigger asChild>
-                  <Button variant="default" className="bg-green-500 hover:bg-green-600">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Créer un produit
-                  </Button>
-                </SheetTrigger>
-                <SheetContent className="overflow-y-auto w-full sm:max-w-xl">
-                  <SheetHeader>
-                    <SheetTitle>
-                      Créer un nouveau produit
-                    </SheetTitle>
-                  </SheetHeader>
-                  <div className="py-4">
-                    <ProductFormClone onSuccess={() => {
-                    setShowCloneForm(false);
-                    fetchProducts();
-                  }} onCancel={() => setShowCloneForm(false)} />
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="px-6 py-3 text-left">Nom</th>
-                    <th className="px-6 py-3 text-left">Prix original</th>
-                    <th className="px-6 py-3 text-left">Prix réduit</th>
-                    <th className="px-6 py-3 text-left">Date de création</th>
-                    <th className="px-6 py-3 text-left">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map(product => <tr key={product.id} className="border-b hover:bg-gray-50">
-                      <td className="px-6 py-4">{product.name}</td>
-                      <td className="px-6 py-4">{product.original_price} {product.currency}</td>
-                      <td className="px-6 py-4">{product.discounted_price} {product.currency}</td>
-                      <td className="px-6 py-4">
-                        {format(new Date(product.created_at), "d MMMM yyyy", {
-                      locale: fr
-                    })}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="icon" onClick={() => toggleVisibility(product.id, product.is_visible)} title={product.is_visible ? "Masquer" : "Afficher"}>
-                            {product.is_visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                          </Button>
-                          <Button variant="outline" size="icon" onClick={() => copyToClipboard(product.id)} title="Copier l'URL">
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="icon" title="Options">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => handleEdit(product)}>
-                                Modifier
-                              </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <a href={`/edit/product/${product.id}`}>
-                                  Aperçu
-                                </a>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                          <Button variant="destructive" size="icon" onClick={() => handleDelete(product.id)} title="Supprimer">
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>)}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
+      <SimilarProductsSelector
+        open={showSimilarProductsSelector}
+        onOpenChange={setShowSimilarProductsSelector}
+        onSave={handleSimilarProductsSelect}
+        initialSelectedProducts={similarProducts}
+      />
     </div>;
 };
 

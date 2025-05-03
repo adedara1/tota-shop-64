@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +34,7 @@ const CURRENCIES = [
 interface ProductFormCloneProps {
   onSuccess: () => void;
   onCancel: () => void;
+  product?: any | null;
 }
 
 interface OptionValue {
@@ -41,7 +42,7 @@ interface OptionValue {
   image?: string;
 }
 
-const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
+const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
@@ -82,6 +83,65 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
   const [showSimilarProducts, setShowSimilarProducts] = useState(false);
   const [similarProducts, setSimilarProducts] = useState<string[]>([]);
   const [showSimilarProductsSelector, setShowSimilarProductsSelector] = useState(false);
+
+  // Initialiser le formulaire avec les données du produit si nous sommes en mode édition
+  useEffect(() => {
+    if (product) {
+      setDescription(product.description || "");
+      setSelectedColor(product.theme_color || defaultColor);
+      setSimilarProducts(product.similar_products || []);
+      
+      setOptionTitleColor(product.option_title_color || "#000000");
+      setOptionValueColor(product.option_value_color || "#000000");
+      setProductNameColor(product.product_name_color || "#000000");
+      setOriginalPriceColor(product.original_price_color || "#808080");
+      setDiscountedPriceColor(product.discounted_price_color || "#000000");
+      setQuantityTextColor(product.quantity_text_color || "#000000");
+      
+      setShowProductTrademark(product.show_product_trademark || false);
+      setShowProductTrademarkColor(product.product_trademark_color || "#000000");
+      setShowStarReviews(product.show_star_reviews || true);
+      setStarReviewsColor(product.star_reviews_color || "#FFCC00");
+      setReviewCount(product.review_count || 1238);
+      setStarCount(product.star_count || 5);
+      setShowStockStatus(product.show_stock_status || false);
+      setStockStatusText(product.stock_status_text || "In stock, ready to ship");
+      setStockStatusColor(product.stock_status_color || "#00AA00");
+      setSimilarProductsTitleColor(product.similar_products_title_color || "#FFFFFF");
+      
+      setUseInternalCart(product.use_internal_cart || false);
+      setHidePromoBar(product.hide_promo_bar || false);
+      setShowSimilarProducts(product.show_similar_products || false);
+      
+      // Traitement des options
+      if (product.options) {
+        setOptionTypes(Object.keys(product.options));
+        setOptionValues(product.options);
+      }
+      
+      // Traitement de l'URL du panier
+      if (product.cart_url) {
+        if (product.cart_url === "#internal") {
+          setUseInternalCart(true);
+        } else if (product.cart_url.includes("wa.me")) {
+          setUrlType('whatsapp');
+          // Extraction du numéro WhatsApp et du message
+          try {
+            const url = new URL(product.cart_url);
+            const phoneNumber = url.pathname.replace('/','');
+            const message = url.searchParams.get('text') || '';
+            setWhatsappNumber(phoneNumber);
+            setWhatsappMessage(message);
+          } catch (e) {
+            console.error("Erreur lors de l'analyse de l'URL WhatsApp:", e);
+          }
+        } else {
+          setUrlType('custom');
+          setCustomUrl(product.cart_url);
+        }
+      }
+    }
+  }, [product]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -198,7 +258,7 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.Event<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
@@ -249,7 +309,7 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
         description: description,
         cart_url: cartUrl,
         theme_color: selectedColor,
-        images: imageUrls,
+        images: imageUrls.length > 0 ? imageUrls : product?.images || [],
         is_visible: true,
         button_text: formData.get("button_text") as string || "Contactez-nous sur WhatsApp",
         currency: formData.get("currency") as Database['public']['Enums']['currency_code'] || "XOF",
@@ -272,31 +332,52 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
         stock_status_text: stockStatusText,
         stock_status_color: stockStatusColor,
         show_similar_products: showSimilarProducts,
-        similar_products: similarProducts
+        similar_products: similarProducts,
+        similar_products_title_color: similarProductsTitleColor
       };
 
       console.log("Saving product data:", productData);
 
-      const { error: insertError } = await supabase
-        .from("products")
-        .insert(productData);
+      if (product) {
+        // Mode édition
+        const { error: updateError } = await supabase
+          .from("products")
+          .update(productData)
+          .eq("id", product.id);
 
-      if (insertError) {
-        console.error("Error creating product:", insertError);
-        throw insertError;
+        if (updateError) {
+          console.error("Error updating product:", updateError);
+          throw updateError;
+        }
+
+        toast({
+          title: "Succès",
+          description: "Produit mis à jour avec succès",
+        });
+
+      } else {
+        // Mode création
+        const { error: insertError } = await supabase
+          .from("products")
+          .insert(productData);
+
+        if (insertError) {
+          console.error("Error creating product:", insertError);
+          throw insertError;
+        }
+
+        toast({
+          title: "Succès",
+          description: "Produit créé avec succès",
+        });
       }
-
-      toast({
-        title: "Succès",
-        description: "Produit créé avec succès",
-      });
 
       onSuccess();
     } catch (error) {
-      console.error("Error creating product:", error);
+      console.error("Error creating/updating product:", error);
       toast({
         title: "Erreur",
-        description: "Échec de la création du produit",
+        description: "Échec de la création/modification du produit",
         variant: "destructive",
       });
     } finally {
@@ -323,7 +404,12 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
 
       <div>
         <Label htmlFor="name-clone">Nom du produit</Label>
-        <Input id="name-clone" name="name" required />
+        <Input 
+          id="name-clone" 
+          name="name" 
+          required 
+          defaultValue={product?.name || ""}
+        />
       </div>
 
       <div className="flex items-center space-x-2 my-4">
@@ -463,6 +549,7 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
           name="original_price"
           type="number"
           required
+          defaultValue={product?.original_price || ""}
         />
       </div>
       
@@ -480,6 +567,7 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
           name="discounted_price"
           type="number"
           required
+          defaultValue={product?.discounted_price || ""}
         />
       </div>
       
@@ -792,9 +880,14 @@ const ProductFormClone = ({ onSuccess, onCancel }: ProductFormCloneProps) => {
 
       <div className="flex gap-4">
         <Button type="submit" disabled={loading} className="flex-1">
-          {loading ? "En cours..." : "Créer"}
+          {loading ? "En cours..." : product ? "Modifier" : "Créer"}
         </Button>
-        <Button variant="outline" onClick={onCancel} className="flex-1">
+        <Button 
+          variant="outline" 
+          onClick={onCancel} 
+          className="flex-1"
+          type="button"
+        >
           Annuler
         </Button>
       </div>

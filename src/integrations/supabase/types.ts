@@ -186,6 +186,7 @@ export type Database = {
           show_star_reviews: boolean | null
           show_stock_status: boolean | null
           similar_products: string[] | null
+          similar_products_title_color: string | null
           star_count: number | null
           star_reviews_color: string | null
           stock_status_color: string | null
@@ -222,6 +223,7 @@ export type Database = {
           show_star_reviews?: boolean | null
           show_stock_status?: boolean | null
           similar_products?: string[] | null
+          similar_products_title_color?: string | null
           star_count?: number | null
           star_reviews_color?: string | null
           stock_status_color?: string | null
@@ -258,6 +260,7 @@ export type Database = {
           show_star_reviews?: boolean | null
           show_stock_status?: boolean | null
           similar_products?: string[] | null
+          similar_products_title_color?: string | null
           star_count?: number | null
           star_reviews_color?: string | null
           stock_status_color?: string | null
