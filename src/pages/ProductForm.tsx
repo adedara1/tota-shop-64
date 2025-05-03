@@ -9,7 +9,6 @@ import RichTextEditor from "@/components/RichTextEditor";
 import ColorSelector from "@/components/ColorSelector";
 import { Copy, Edit, Eye, EyeOff, Plus, Trash } from "lucide-react";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Database } from "@/integrations/supabase/types";
@@ -101,7 +100,6 @@ const ProductForm = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [showCloneForm, setShowCloneForm] = useState(false);
   const [optionTypes, setOptionTypes] = useState<string[]>([]);
   const [optionValues, setOptionValues] = useState<Record<string, string[]>>({});
   const [newOptionType, setNewOptionType] = useState("");
@@ -316,8 +314,6 @@ const ProductForm = () => {
   };
 
   const handleEdit = (product: Product) => {
-    // Maintenant, au lieu d'ouvrir le sheet pour l'édition, nous initialisons 
-    // le formulaire ProductFormClone avec les données du produit
     setSelectedProductForClone(product);
     setShowCloneForm(true);
   };
@@ -409,8 +405,6 @@ const ProductForm = () => {
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-medium">Gestion des produits</h1>
             <div className="flex gap-4">
-              {/* Cacher le bouton "Nouveau produit" */}
-              
               <Sheet open={showCloneForm} onOpenChange={setShowCloneForm}>
                 <SheetTrigger asChild>
                   <Button variant="default" className="bg-green-500 hover:bg-green-600">

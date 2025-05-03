@@ -258,7 +258,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
     }
   };
 
-  const handleSubmit = async (e: React.Event<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
