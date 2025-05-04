@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import ProductOptions from "./ProductOptions";
-import { Plus, Minus, ShoppingBag, ShoppingCart } from "lucide-react";
+import { Plus, Minus, ShoppingBag, ShoppingCart, Star } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "./ui/badge";
