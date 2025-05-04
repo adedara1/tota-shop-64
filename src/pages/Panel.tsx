@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Home } from "lucide-react";
+import { Link } from "react-router-dom";
+import { toast } from "@/hooks/use-toast";
 
 interface CartItem {
   id: string;
@@ -27,8 +29,8 @@ interface CartItem {
   image: string;
   created_at: string;
   updated_at: string;
-  processed: boolean | null; // Added processed property
-  hidden?: boolean; // Added hidden property
+  processed: boolean | null;
+  hidden?: boolean;
 }
 
 interface Product {
@@ -76,6 +78,7 @@ const Panel = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Record<string, CartItem[]>>({});
   const [selectedOrder, setSelectedOrder] = useState<CartItem | null>(null);
+  const [selectedBasket, setSelectedBasket] = useState<string | null>(null);
   const [hiddenOrders, setHiddenOrders] = useState<string[]>([]);
 
   useEffect(() => {
@@ -133,6 +136,10 @@ const Panel = () => {
     });
   };
 
+  const handleBasketClick = (customerKey: string) => {
+    setSelectedBasket(customerKey === selectedBasket ? null : customerKey);
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('fr-FR', {
@@ -176,9 +183,61 @@ const Panel = () => {
       }
 
       // Show success message
-      alert("Commande marquée comme traitée");
+      toast({
+        title: "Commande traitée",
+        description: "La commande a été marquée comme traitée"
+      });
     } catch (error) {
       console.error("Error marking order as processed:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de marquer la commande comme traitée"
+      });
+    }
+  };
+
+  const markBasketAsProcessed = async (customerKey: string, productId: string) => {
+    try {
+      const customerOrders = groupOrdersByCustomer(productId)[customerKey] || [];
+      
+      // Get all order IDs in this basket
+      const orderIds = customerOrders.map(order => order.id);
+      
+      // Update all orders in the basket
+      for (const orderId of orderIds) {
+        await supabase
+          .from("cart_items")
+          .update({ processed: true })
+          .eq("id", orderId);
+      }
+
+      // Update local state
+      setOrders(prev => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach(pid => {
+          updated[pid] = updated[pid].map(order => {
+            if (orderIds.includes(order.id)) {
+              return { ...order, processed: true };
+            }
+            return order;
+          });
+        });
+        return updated;
+      });
+
+      // Show success message
+      toast({
+        title: "Panier traité",
+        description: "Toutes les commandes du panier ont été marquées comme traitées"
+      });
+    } catch (error) {
+      console.error("Error marking basket as processed:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de marquer le panier comme traité"
+      });
     }
   };
 
@@ -232,7 +291,15 @@ const Panel = () => {
 
   return (
     <div className="container mx-auto p-4 md:p-8">
-      <h1 className="text-3xl font-bold mb-8 text-center">Tableau de bord des commandes</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-center">Tableau de bord des commandes</h1>
+        <Button variant="outline" asChild className="flex items-center gap-2">
+          <Link to="/home">
+            <Home size={16} />
+            <span>Retour à l'accueil</span>
+          </Link>
+        </Button>
+      </div>
       
       {products.length === 0 ? (
         <div className="text-center py-12">
@@ -269,7 +336,7 @@ const Panel = () => {
                         <Badge>{orders[product.id]?.filter(order => !order.hidden)?.length || 0} commandes</Badge>
                       </CardTitle>
                       <CardDescription>
-                        Cliquez sur une commande pour voir les détails
+                        Cliquez sur une étiquette pour voir les détails du panier
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="max-h-[500px] overflow-y-auto space-y-2">
@@ -284,13 +351,17 @@ const Panel = () => {
                           const customerLabel = generateCustomerLabel(customer);
                           const labelColor = generateCustomerColor(customerLabel);
                           const totalPrice = calculateGroupTotal(orderGroup);
+                          const isSelected = selectedBasket === customerKey;
                           
                           return (
-                            <div key={customerKey} className="mb-4 border rounded-lg overflow-hidden">
+                            <div key={customerKey} className={`mb-4 border rounded-lg overflow-hidden ${isSelected ? 'border-blue-500 shadow-md' : ''}`}>
                               {customer && (
-                                <div className="bg-gray-100 p-2 flex justify-between items-center">
+                                <div 
+                                  className={`${isSelected ? 'bg-blue-50' : 'bg-gray-100'} p-2 flex justify-between items-center cursor-pointer`}
+                                  onClick={() => handleBasketClick(customerKey)}
+                                >
                                   <div className="flex items-center">
-                                    <Badge className={`${labelColor} text-white`}>
+                                    <Badge className={`${labelColor} text-white cursor-pointer`}>
                                       {customerLabel}
                                     </Badge>
                                     <span className="ml-2 font-medium">{customer.name}</span>
@@ -302,7 +373,7 @@ const Panel = () => {
                                 </div>
                               )}
                               
-                              {orderGroup.map((order) => (
+                              {(isSelected || !customer) && orderGroup.map((order) => (
                                 <div 
                                   key={order.id}
                                   onClick={() => handleOrderClick(order)}
@@ -339,6 +410,19 @@ const Panel = () => {
                                   </div>
                                 </div>
                               ))}
+                              
+                              {isSelected && (
+                                <CardFooter className="bg-gray-50 p-2 flex justify-end">
+                                  <Button 
+                                    variant="default"
+                                    size="sm"
+                                    className="bg-blue-500 hover:bg-blue-600"
+                                    onClick={() => markBasketAsProcessed(customerKey, product.id)}
+                                  >
+                                    Marquer panier comme traité
+                                  </Button>
+                                </CardFooter>
+                              )}
                             </div>
                           );
                         })
@@ -437,6 +521,54 @@ const Panel = () => {
                                   ))
                                 }
                               </ul>
+                            </div>
+                          )}
+
+                          {/* If this order is part of a basket, show basket summary */}
+                          {selectedOrder?.options?.customer && (
+                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                              <h4 className="font-semibold text-lg mb-3">Récapitulatif du panier</h4>
+                              <div className="space-y-2">
+                                {(() => {
+                                  const customer = getCustomerInfo(selectedOrder);
+                                  if (!customer) return null;
+                                  
+                                  const customerKey = `${customer.name}-${customer.phone}`;
+                                  const productId = selectedOrder.product_id;
+                                  const basketOrders = groupOrdersByCustomer(productId)[customerKey] || [];
+                                  const totalBasketPrice = calculateGroupTotal(basketOrders);
+                                  
+                                  return (
+                                    <>
+                                      <p className="mb-2">Ce produit fait partie d'un panier contenant {basketOrders.length} article{basketOrders.length > 1 ? 's' : ''}:</p>
+                                      <ul className="mb-4 space-y-1">
+                                        {basketOrders.map((order) => (
+                                          <li key={order.id} className="flex justify-between items-center">
+                                            <span>
+                                              {order.quantity}× {order.name}
+                                              {order.id === selectedOrder.id && 
+                                                <Badge variant="outline" className="ml-2 text-xs">actuel</Badge>
+                                              }
+                                            </span>
+                                            <span className="font-medium">{order.price * order.quantity} CFA</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                      <div className="flex justify-between font-semibold text-lg pt-2 border-t">
+                                        <span>Total du panier:</span>
+                                        <span>{totalBasketPrice} CFA</span>
+                                      </div>
+                                      <Button 
+                                        variant="default" 
+                                        className="w-full mt-2"
+                                        onClick={() => markBasketAsProcessed(customerKey, productId)}
+                                      >
+                                        Marquer panier comme traité
+                                      </Button>
+                                    </>
+                                  );
+                                })()}
+                              </div>
                             </div>
                           )}
                         </CardContent>

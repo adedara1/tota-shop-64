@@ -1,5 +1,5 @@
 
-import { Home, PlusCircle, Mail, BarChart, Settings, LayoutDashboard } from "lucide-react"
+import { Home, PlusCircle, Mail, BarChart, Settings, LayoutDashboard, Layers } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 import {
   Sidebar,
@@ -35,6 +35,11 @@ const items = [
     title: "Statistiques",
     url: "/stats",
     icon: BarChart,
+  },
+  {
+    title: "Panel",
+    url: "/panel",
+    icon: Layers,
   },
   {
     title: "Contact",
