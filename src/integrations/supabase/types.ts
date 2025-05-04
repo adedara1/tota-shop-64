@@ -41,9 +41,7 @@ export type Database = {
       }
       cart_items: {
         Row: {
-          cart_id: string | null
           created_at: string
-          hidden: boolean | null
           id: string
           image: string | null
           name: string
@@ -55,9 +53,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          cart_id?: string | null
           created_at?: string
-          hidden?: boolean | null
           id?: string
           image?: string | null
           name: string
@@ -69,9 +65,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          cart_id?: string | null
           created_at?: string
-          hidden?: boolean | null
           id?: string
           image?: string | null
           name?: string
@@ -84,13 +78,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "cart_items_cart_id_fkey"
-            columns: ["cart_id"]
-            isOneToOne: false
-            referencedRelation: "carts"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "cart_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -98,48 +85,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      carts: {
-        Row: {
-          created_at: string
-          customer_address: string | null
-          customer_email: string | null
-          customer_name: string | null
-          customer_phone: string | null
-          id: string
-          label: string | null
-          label_color: string | null
-          processed: boolean | null
-          total_amount: number
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          customer_address?: string | null
-          customer_email?: string | null
-          customer_name?: string | null
-          customer_phone?: string | null
-          id?: string
-          label?: string | null
-          label_color?: string | null
-          processed?: boolean | null
-          total_amount?: number
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          customer_address?: string | null
-          customer_email?: string | null
-          customer_name?: string | null
-          customer_phone?: string | null
-          id?: string
-          label?: string | null
-          label_color?: string | null
-          processed?: boolean | null
-          total_amount?: number
-          updated_at?: string
-        }
-        Relationships: []
       }
       popo_settings: {
         Row: {
