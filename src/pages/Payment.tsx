@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -14,7 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/use-cart";
 
 const Payment = () => {
-  const { items: cartItems, updateQuantity, removeFromCart, totalPrice } = useCart();
+  const { items: cartItems, updateQuantity, removeFromCart, totalPrice, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -44,58 +43,41 @@ const Payment = () => {
     setLoading(true);
 
     try {
-      // Format WhatsApp message
-      const productDetails = cartItems.map(item => {
-        const optionsText = item.options 
-          ? Object.entries(item.options)
-              .map(([key, value]) => `${key}: ${typeof value === 'object' ? value.value : value}`)
-              .join(', ')
-          : '';
-        
-        return `- ${item.name} x${item.quantity} (${item.price} CFA)${optionsText ? ` [${optionsText}]` : ''}`;
-      }).join('\n');
+      // Save customer details along with each cart item
+      const customerInfo = {
+        name,
+        email,
+        phone,
+        address
+      };
       
-      const message = `
-Nouvelle commande:
-${productDetails}
-
-Total: ${totalPrice} CFA
-
-Client:
-Nom: ${name}
-Email: ${email || 'Non spécifié'}
-Téléphone: ${phone}
-Adresse: ${address || 'Non spécifiée'}
-      `.trim();
-      
-      // Save order in database
-      const { error } = await supabase.from('cart_items').insert(
-        cartItems.map(item => ({
+      // Save order in database with customer information
+      for (const item of cartItems) {
+        const { error } = await supabase.from('cart_items').insert({
           product_id: item.id,
           name: item.name,
           price: item.price,
           quantity: item.quantity,
-          options: item.options,
+          options: {
+            ...item.options,
+            customer: customerInfo // Add customer details to the options object
+          },
           image: item.image
-        }))
-      );
-      
-      if (error) {
-        console.error("Error saving order items:", error);
+        });
+        
+        if (error) {
+          console.error("Error saving order item:", error);
+          throw error;
+        }
       }
-      
-      // Redirect to WhatsApp
-      const whatsappUrl = `https://wa.me/51180895?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
       
       toast({
         title: "Commande envoyée",
-        description: "Votre commande a été envoyée. Nous vous contacterons dès que possible."
+        description: "Votre commande a été enregistrée. Nous vous contacterons dès que possible."
       });
       
       // Clear cart and redirect
-      localStorage.removeItem('cart');
-      window.dispatchEvent(new Event('storage'));
+      clearCart();
       
       // Redirect to thank you page
       navigate('/products');
@@ -268,7 +250,7 @@ Adresse: ${address || 'Non spécifiée'}
                     disabled={loading}
                     className="w-full"
                   >
-                    {loading ? "Traitement en cours..." : "Commander par WhatsApp"}
+                    {loading ? "Traitement en cours..." : "Commander"}
                   </Button>
                   
                   <button 

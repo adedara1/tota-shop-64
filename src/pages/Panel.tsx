@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface CartItem {
   id: string;
@@ -13,7 +14,15 @@ interface CartItem {
   name: string;
   price: number;
   quantity: number;
-  options: Record<string, any>;
+  options: {
+    customer?: {
+      name: string;
+      email: string;
+      phone: string;
+      address: string;
+    };
+    [key: string]: any;
+  };
   image: string;
   created_at: string;
   updated_at: string;
@@ -23,6 +32,13 @@ interface Product {
   id: string;
   name: string;
   images: string[];
+}
+
+interface Customer {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
 }
 
 const Panel = () => {
@@ -95,6 +111,44 @@ const Panel = () => {
     }).format(date);
   };
 
+  const getCustomerInfo = (order: CartItem): Customer | null => {
+    if (order?.options?.customer) {
+      return order.options.customer;
+    }
+    return null;
+  };
+
+  const markAsProcessed = async (orderId: string) => {
+    try {
+      const { error } = await supabase
+        .from("cart_items")
+        .update({ processed: true })
+        .eq("id", orderId);
+
+      if (error) throw error;
+
+      // Update local state
+      setOrders(prev => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach(productId => {
+          updated[productId] = updated[productId].map(order => 
+            order.id === orderId ? { ...order, processed: true } : order
+          );
+        });
+        return updated;
+      });
+
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder(prev => prev ? { ...prev, processed: true } : null);
+      }
+
+      // Show success message
+      alert("Commande marquée comme traitée");
+    } catch (error) {
+      console.error("Error marking order as processed:", error);
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-8">
       <h1 className="text-3xl font-bold mb-8 text-center">Tableau de bord des commandes</h1>
@@ -147,7 +201,7 @@ const Panel = () => {
                               selectedOrder?.id === order.id 
                                 ? 'bg-blue-50 border-blue-300' 
                                 : 'hover:bg-gray-50'
-                            }`}
+                            } ${order.processed ? 'opacity-60' : ''}`}
                           >
                             <div className="flex justify-between items-center">
                               <div className="flex items-center">
@@ -163,8 +217,15 @@ const Panel = () => {
                                   </div>
                                 </div>
                               </div>
-                              <div className="font-semibold">
-                                {order.price * order.quantity} CFA
+                              <div className="flex flex-col items-end">
+                                <div className="font-semibold">
+                                  {order.price * order.quantity} CFA
+                                </div>
+                                {order.processed && (
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                    Traitée
+                                  </Badge>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -185,7 +246,7 @@ const Panel = () => {
                     
                     {selectedOrder ? (
                       <>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-6">
                           <div className="flex items-center space-x-4">
                             {selectedOrder.image && (
                               <Avatar className="h-20 w-20">
@@ -217,23 +278,64 @@ const Panel = () => {
                             </div>
                           </div>
 
-                          {Object.keys(selectedOrder.options).length > 0 && (
+                          {/* Customer Information Section */}
+                          {getCustomerInfo(selectedOrder) && (
+                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                              <h4 className="font-semibold text-lg mb-3">Informations Client</h4>
+                              <Table>
+                                <TableBody>
+                                  <TableRow>
+                                    <TableCell className="font-medium">Nom</TableCell>
+                                    <TableCell>{getCustomerInfo(selectedOrder)?.name}</TableCell>
+                                  </TableRow>
+                                  {getCustomerInfo(selectedOrder)?.email && (
+                                    <TableRow>
+                                      <TableCell className="font-medium">Email</TableCell>
+                                      <TableCell>{getCustomerInfo(selectedOrder)?.email}</TableCell>
+                                    </TableRow>
+                                  )}
+                                  <TableRow>
+                                    <TableCell className="font-medium">Téléphone</TableCell>
+                                    <TableCell>{getCustomerInfo(selectedOrder)?.phone}</TableCell>
+                                  </TableRow>
+                                  {getCustomerInfo(selectedOrder)?.address && (
+                                    <TableRow>
+                                      <TableCell className="font-medium">Adresse</TableCell>
+                                      <TableCell>{getCustomerInfo(selectedOrder)?.address}</TableCell>
+                                    </TableRow>
+                                  )}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          )}
+
+                          {/* Product Options Section */}
+                          {Object.keys(selectedOrder.options).length > 0 && 
+                           Object.keys(selectedOrder.options).filter(key => key !== 'customer').length > 0 && (
                             <div>
                               <h4 className="font-medium mb-2">Options sélectionnées:</h4>
                               <ul className="bg-gray-50 p-3 rounded-md">
-                                {Object.entries(selectedOrder.options).map(([key, value]) => (
-                                  <li key={key} className="flex justify-between py-1 border-b border-gray-100 last:border-0">
-                                    <span className="font-medium">{key}:</span>
-                                    <span>{typeof value === 'object' ? value.value : value}</span>
-                                  </li>
-                                ))}
+                                {Object.entries(selectedOrder.options)
+                                  .filter(([key]) => key !== 'customer')
+                                  .map(([key, value]) => (
+                                    <li key={key} className="flex justify-between py-1 border-b border-gray-100 last:border-0">
+                                      <span className="font-medium">{key}:</span>
+                                      <span>{typeof value === 'object' ? value.value : value}</span>
+                                    </li>
+                                  ))
+                                }
                               </ul>
                             </div>
                           )}
                         </CardContent>
                         <CardFooter>
-                          <Button variant="outline" className="w-full">
-                            Marquer comme traité
+                          <Button 
+                            variant={selectedOrder.processed ? "outline" : "default"} 
+                            className="w-full"
+                            onClick={() => markAsProcessed(selectedOrder.id)}
+                            disabled={selectedOrder.processed}
+                          >
+                            {selectedOrder.processed ? "Déjà traitée" : "Marquer comme traitée"}
                           </Button>
                         </CardFooter>
                       </>
