@@ -141,7 +141,7 @@ const ProductDetail = () => {
   if (loading) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: "#000000" }}>
-        {!product?.hide_promo_bar && <PromoBar />}
+        <PromoBar productId={id} />
         <div className="bg-white">
           <Navbar />
         </div>
@@ -179,7 +179,7 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color || "#000000" }}>
-      {!product.hide_promo_bar && <PromoBar />}
+      <PromoBar productId={id} />
       <div className="bg-white">
         <Navbar />
       </div>

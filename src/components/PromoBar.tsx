@@ -46,9 +46,11 @@ const PromoBar = ({ text = "Livraison GRATUITE et Paiement à la livraison !", p
               setCustomText(data.custom_promo_text);
             } else {
               console.log("No custom promo text found, using default:", text);
+              setCustomText(text);
             }
           } else {
             console.log("No promo info found, using default text:", text);
+            setCustomText(text);
           }
         } catch (error) {
           console.error("Exception when loading promo info:", error);
@@ -58,6 +60,10 @@ const PromoBar = ({ text = "Livraison GRATUITE et Paiement à la livraison !", p
       };
       
       loadPromoText();
+    } else {
+      // Réinitialiser au texte par défaut si aucun productId
+      setCustomText(text);
+      setVisible(true);
     }
   }, [productId, text]);
 
