@@ -80,6 +80,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
   const [customUrl, setCustomUrl] = useState("");
   const [urlType, setUrlType] = useState<'whatsapp' | 'custom'>('whatsapp');
   const [hidePromoBar, setHidePromoBar] = useState(false);
+  const [customPromoText, setCustomPromoText] = useState("Livraison GRATUITE et Paiement à la livraison !");
   const [showSimilarProducts, setShowSimilarProducts] = useState(false);
   const [similarProducts, setSimilarProducts] = useState<string[]>([]);
   const [showSimilarProductsSelector, setShowSimilarProductsSelector] = useState(false);
@@ -111,6 +112,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
       
       setUseInternalCart(product.use_internal_cart || false);
       setHidePromoBar(product.hide_promo_bar || false);
+      setCustomPromoText(product.custom_promo_text || "Livraison GRATUITE et Paiement à la livraison !");
       setShowSimilarProducts(product.show_similar_products || false);
       
       // Traitement des options
@@ -316,6 +318,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
         options: optionTypes.length > 0 ? optionValues : null,
         use_internal_cart: useInternalCart,
         hide_promo_bar: hidePromoBar,
+        custom_promo_text: customPromoText,
         option_title_color: optionTitleColor,
         option_value_color: optionValueColor,
         product_name_color: productNameColor,
@@ -611,9 +614,23 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
           }}
         />
         <Label htmlFor="hide-promo-bar" className="font-medium cursor-pointer">
-          Masquer la barre d'annonce "Livraison GRATUITE"
+          Masquer la barre d'annonce
         </Label>
       </div>
+      
+      {!hidePromoBar && (
+        <div className="ml-6 space-y-4 border-l-2 border-gray-200 pl-4">
+          <div>
+            <Label htmlFor="custom-promo-text">Texte personnalisé de la barre d'annonce</Label>
+            <Input
+              id="custom-promo-text"
+              value={customPromoText}
+              onChange={(e) => setCustomPromoText(e.target.value)}
+              placeholder="Livraison GRATUITE et Paiement à la livraison !"
+            />
+          </div>
+        </div>
+      )}
       
       {!useInternalCart && (
         <div className="rounded-md border p-4 space-y-4">
