@@ -30,7 +30,8 @@ interface CartItem {
   created_at: string;
   updated_at: string;
   processed: boolean | null;
-  hidden?: boolean;
+  hidden: boolean;
+  cart_id: string | null;
 }
 
 interface Product {
@@ -108,8 +109,7 @@ const Panel = () => {
                 ...order,
                 options: typeof order.options === 'string' 
                   ? JSON.parse(order.options) 
-                  : order.options || {},
-                hidden: false
+                  : order.options || {}
               }));
               
               setOrders(prev => ({
@@ -241,20 +241,52 @@ const Panel = () => {
     }
   };
 
-  const toggleHideOrder = (orderId: string) => {
-    // Update local state
-    setOrders(prev => {
-      const updated = { ...prev };
-      Object.keys(updated).forEach(productId => {
-        updated[productId] = updated[productId].map(order => 
-          order.id === orderId ? { ...order, hidden: !order.hidden } : order
-        );
+  const toggleHideOrder = async (orderId: string) => {
+    try {
+      // Find the order to toggle
+      let orderToToggle: CartItem | null = null;
+      let productId: string | null = null;
+      
+      Object.entries(orders).forEach(([pid, productOrders]) => {
+        const order = productOrders.find(o => o.id === orderId);
+        if (order) {
+          orderToToggle = order;
+          productId = pid;
+        }
       });
-      return updated;
-    });
+      
+      if (!orderToToggle) return;
+      
+      // Toggle hidden state in database
+      const newHiddenState = !orderToToggle.hidden;
+      const { error } = await supabase
+        .from("cart_items")
+        .update({ hidden: newHiddenState })
+        .eq("id", orderId);
 
-    if (selectedOrder?.id === orderId) {
-      setSelectedOrder(prev => prev ? { ...prev, hidden: !prev.hidden } : null);
+      if (error) throw error;
+
+      // Update local state
+      setOrders(prev => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach(pid => {
+          updated[pid] = updated[pid].map(order => 
+            order.id === orderId ? { ...order, hidden: newHiddenState } : order
+          );
+        });
+        return updated;
+      });
+
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder(prev => prev ? { ...prev, hidden: newHiddenState } : null);
+      }
+    } catch (error) {
+      console.error("Error toggling order visibility:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de modifier la visibilité de la commande"
+      });
     }
   };
 
@@ -289,6 +321,11 @@ const Panel = () => {
     return orderGroup.reduce((total, order) => total + (order.price * order.quantity), 0);
   };
 
+  // Count visible orders (not hidden)
+  const countVisibleOrders = (productId: string) => {
+    return orders[productId]?.filter(order => !order.hidden)?.length || 0;
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-8">
       <div className="flex justify-between items-center mb-6">
@@ -313,7 +350,7 @@ const Panel = () => {
           <TabsList className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-8">
             {products.map((product) => {
               // Count only non-hidden orders
-              const orderCount = orders[product.id]?.filter(order => !order.hidden)?.length || 0;
+              const orderCount = countVisibleOrders(product.id);
               return (
                 <TabsTrigger key={product.id} value={product.id} className="text-sm md:text-base">
                   {product.name}
@@ -333,14 +370,14 @@ const Panel = () => {
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
                         <span>Commandes pour {product.name}</span>
-                        <Badge>{orders[product.id]?.filter(order => !order.hidden)?.length || 0} commandes</Badge>
+                        <Badge>{countVisibleOrders(product.id)} commandes</Badge>
                       </CardTitle>
                       <CardDescription>
                         Cliquez sur une étiquette pour voir les détails du panier
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="max-h-[500px] overflow-y-auto space-y-2">
-                      {!orders[product.id] || orders[product.id].filter(order => !order.hidden).length === 0 ? (
+                      {!orders[product.id] || countVisibleOrders(product.id) === 0 ? (
                         <div className="text-center py-8 text-gray-500">
                           Aucune commande pour ce produit
                         </div>

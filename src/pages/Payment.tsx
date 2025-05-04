@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -11,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/use-cart";
+import { generateCustomerLabel, generateCustomerColor } from "@/utils/customerUtils";
 
 const Payment = () => {
   const { items: cartItems, updateQuantity, removeFromCart, totalPrice, clearCart } = useCart();
@@ -43,15 +45,35 @@ const Payment = () => {
     setLoading(true);
 
     try {
-      // Save customer details along with each cart item
+      // Create customer info object
       const customerInfo = {
         name,
         email,
         phone,
         address
       };
+
+      // Generate customer label and color
+      const customerLabel = generateCustomerLabel(customerInfo);
+      const labelColor = generateCustomerColor(customerLabel);
       
-      // Save order in database with customer information
+      // Create a new cart for this order
+      const { data: cartData, error: cartError } = await supabase
+        .from('carts')
+        .insert({
+          customer_name: name,
+          customer_phone: phone,
+          customer_email: email,
+          customer_address: address,
+          label: customerLabel,
+          label_color: labelColor
+        })
+        .select('id')
+        .single();
+      
+      if (cartError) throw cartError;
+
+      // Save each cart item linked to the cart
       for (const item of cartItems) {
         const { error } = await supabase.from('cart_items').insert({
           product_id: item.id,
@@ -62,7 +84,8 @@ const Payment = () => {
             ...item.options,
             customer: customerInfo // Add customer details to the options object
           },
-          image: item.image
+          image: item.image,
+          cart_id: cartData.id
         });
         
         if (error) {
