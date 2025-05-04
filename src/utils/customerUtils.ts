@@ -45,10 +45,10 @@ export const generateCartLabel = (cartId: string) => {
   return `CA-${cartId.substring(0, 3)}`;
 };
 
-// Helper function to save promo text to the database
+// Helper function to save promo text directly to the products table
 export const savePromoText = async (productId: string, text: string) => {
   try {
-    if (!productId || !text) {
+    if (!productId || text === undefined) {
       console.error('Missing productId or text for saving promo text:', { productId, text });
       toast({
         variant: "destructive",
@@ -61,14 +61,14 @@ export const savePromoText = async (productId: string, text: string) => {
     console.log('Attempting to save promo text:', { productId, text });
     
     const { data, error } = await supabase
-      .from('promo_settings')
-      .upsert({ 
-        product_id: productId, 
-        custom_text: text
-      });
+      .from('products')
+      .update({ 
+        custom_promo_text: text
+      })
+      .eq("id", productId);
     
     if (error) {
-      console.error('Error saving promo text to Supabase:', error);
+      console.error('Error saving promo text:', error);
       toast({
         variant: "destructive",
         title: "Erreur",
@@ -95,32 +95,47 @@ export const savePromoText = async (productId: string, text: string) => {
   }
 };
 
-// Helper function to fetch promo text from the database
-export const fetchPromoText = async (productId: string): Promise<string | null> => {
+// Fonction pour définir la visibilité de la barre promo 
+export const setPromoBarVisibility = async (productId: string, visible: boolean) => {
   try {
     if (!productId) {
-      console.error('Missing productId for fetching promo text');
-      return null;
+      console.error('Missing productId for setting promo bar visibility');
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Identifiant du produit manquant"
+      });
+      return { error: new Error('Missing productId') };
     }
     
-    console.log('Fetching promo text for product:', productId);
+    console.log('Setting promo bar visibility:', { productId, visible });
     
     const { data, error } = await supabase
-      .from('promo_settings')
-      .select('custom_text')
-      .eq('product_id', productId)
-      .maybeSingle();
+      .from('products')
+      .update({ 
+        hide_promo_bar: !visible
+      })
+      .eq("id", productId);
     
     if (error) {
-      console.error('Error fetching promo text from Supabase:', error);
-      return null;
+      console.error('Error setting promo bar visibility:', error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Échec lors de la mise à jour de la visibilité de la barre promotionnelle"
+      });
+      return { error };
     }
+
+    toast({
+      title: "Succès",
+      description: `La barre promotionnelle est maintenant ${visible ? 'visible' : 'masquée'}`
+    });
     
-    console.log('Fetched promo text result:', data);
-    return data?.custom_text || null;
+    return { data, error: null };
   } catch (err) {
-    console.error('Exception when fetching promo text:', err);
-    return null;
+    console.error('Exception when setting promo bar visibility:', err);
+    return { error: err };
   }
 };
 

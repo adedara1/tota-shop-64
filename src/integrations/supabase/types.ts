@@ -221,6 +221,7 @@ export type Database = {
           cart_url: string
           created_at: string
           currency: Database["public"]["Enums"]["currency_code"]
+          custom_promo_text: string | null
           description: string
           discounted_price: number
           discounted_price_color: string | null
@@ -258,6 +259,7 @@ export type Database = {
           cart_url: string
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"]
+          custom_promo_text?: string | null
           description: string
           discounted_price: number
           discounted_price_color?: string | null
@@ -295,6 +297,7 @@ export type Database = {
           cart_url?: string
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"]
+          custom_promo_text?: string | null
           description?: string
           discounted_price?: number
           discounted_price_color?: string | null
