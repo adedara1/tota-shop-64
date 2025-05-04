@@ -12,6 +12,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/use-cart";
 
+// Function to generate a unique customer label
+const generateCustomerLabel = (name: string, phone: string) => {
+  if (!name || !phone) return "";
+  
+  const firstTwoLetters = name.substring(0, 2).toUpperCase();
+  const lastThreeDigits = phone.replace(/\D/g, '').slice(-3);
+  
+  return `${firstTwoLetters}-${lastThreeDigits}`;
+};
+
+// Function to generate a consistent color for a customer
+const generateCustomerColor = (label: string) => {
+  const colors = [
+    "bg-purple-500", "bg-blue-500", "bg-green-500", 
+    "bg-yellow-500", "bg-orange-500", "bg-red-500", 
+    "bg-pink-500", "bg-indigo-500", "bg-cyan-500"
+  ];
+  
+  // Simple hash function to get a consistent color
+  let hash = 0;
+  for (let i = 0; i < label.length; i++) {
+    hash = label.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
+
 const Payment = () => {
   const { items: cartItems, updateQuantity, removeFromCart, totalPrice, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
@@ -43,7 +71,7 @@ const Payment = () => {
     setLoading(true);
 
     try {
-      // Save customer details along with each cart item
+      // Create customer information
       const customerInfo = {
         name,
         email,
@@ -51,7 +79,28 @@ const Payment = () => {
         address
       };
       
-      // Save order in database with customer information
+      // Generate label for the cart
+      const customerLabel = generateCustomerLabel(name, phone);
+      const labelColor = generateCustomerColor(customerLabel);
+      
+      // First, create a cart in the database
+      const { data: cartData, error: cartError } = await supabase.from('carts').insert({
+        customer_name: name,
+        customer_phone: phone,
+        customer_email: email,
+        customer_address: address,
+        label: customerLabel,
+        label_color: labelColor,
+        total_amount: totalPrice
+      }).select();
+      
+      if (cartError) throw cartError;
+      
+      const cartId = cartData?.[0]?.id;
+      
+      if (!cartId) throw new Error("Failed to create cart");
+      
+      // Save order items linked to the cart
       for (const item of cartItems) {
         const { error } = await supabase.from('cart_items').insert({
           product_id: item.id,
@@ -60,9 +109,10 @@ const Payment = () => {
           quantity: item.quantity,
           options: {
             ...item.options,
-            customer: customerInfo // Add customer details to the options object
+            customer: customerInfo
           },
-          image: item.image
+          image: item.image,
+          cart_id: cartId // Link to the cart
         });
         
         if (error) {

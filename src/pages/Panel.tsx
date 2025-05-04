@@ -30,13 +30,28 @@ interface CartItem {
   created_at: string;
   updated_at: string;
   processed: boolean | null;
-  hidden?: boolean;
+  hidden: boolean | null;
+  cart_id: string | null;
 }
 
 interface Product {
   id: string;
   name: string;
   images: string[];
+}
+
+interface Cart {
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string | null;
+  customer_address: string | null;
+  label: string | null;
+  label_color: string | null;
+  total_amount: number;
+  created_at: string;
+  updated_at: string;
+  processed: boolean | null;
 }
 
 interface Customer {
@@ -46,85 +61,74 @@ interface Customer {
   address: string;
 }
 
-// Function to generate a unique customer label
-const generateCustomerLabel = (customer: Customer | null) => {
-  if (!customer) return "";
-  
-  const firstTwoLetters = customer.name.substring(0, 2).toUpperCase();
-  const lastThreeDigits = customer.phone.replace(/\D/g, '').slice(-3);
-  
-  return `${firstTwoLetters}-${lastThreeDigits}`;
-};
-
-// Function to generate a consistent color for a customer
-const generateCustomerColor = (label: string) => {
-  const colors = [
-    "bg-purple-500", "bg-blue-500", "bg-green-500", 
-    "bg-yellow-500", "bg-orange-500", "bg-red-500", 
-    "bg-pink-500", "bg-indigo-500", "bg-cyan-500"
-  ];
-  
-  // Simple hash function to get a consistent color
-  let hash = 0;
-  for (let i = 0; i < label.length; i++) {
-    hash = label.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  
-  const index = Math.abs(hash) % colors.length;
-  return colors[index];
-};
-
 const Panel = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Record<string, CartItem[]>>({});
+  const [carts, setCarts] = useState<Cart[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<CartItem | null>(null);
-  const [selectedBasket, setSelectedBasket] = useState<string | null>(null);
+  const [selectedCart, setSelectedCart] = useState<string | null>(null);
   const [hiddenOrders, setHiddenOrders] = useState<string[]>([]);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("products")
-          .select("id, name, images")
-          .eq("use_internal_cart", true);
+  const fetchData = async () => {
+    try {
+      // Fetch products
+      const { data: productsData, error: productsError } = await supabase
+        .from("products")
+        .select("id, name, images")
+        .eq("use_internal_cart", true);
 
-        if (error) throw error;
-        if (data) setProducts(data);
+      if (productsError) throw productsError;
+      if (productsData) setProducts(productsData);
 
-        // For each product, fetch its orders
-        if (data && data.length > 0) {
-          for (const product of data) {
-            const { data: orderData, error: orderError } = await supabase
-              .from("cart_items")
-              .select("*")
-              .eq("product_id", product.id);
+      // Fetch carts
+      const { data: cartsData, error: cartsError } = await supabase
+        .from("carts")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-            if (orderError) throw orderError;
+      if (cartsError) throw cartsError;
+      if (cartsData) setCarts(cartsData);
+
+      // For each product, fetch its orders
+      if (productsData && productsData.length > 0) {
+        const ordersMap: Record<string, CartItem[]> = {};
+
+        for (const product of productsData) {
+          const { data: orderData, error: orderError } = await supabase
+            .from("cart_items")
+            .select("*")
+            .eq("product_id", product.id);
+
+          if (orderError) throw orderError;
+          
+          if (orderData && orderData.length > 0) {
+            // Parse options if stored as string
+            const processedOrders = orderData.map(order => ({
+              ...order,
+              options: typeof order.options === 'string' 
+                ? JSON.parse(order.options) 
+                : order.options || {},
+              hidden: order.hidden || false
+            }));
             
-            if (orderData && orderData.length > 0) {
-              // Parse options if stored as string
-              const processedOrders = orderData.map(order => ({
-                ...order,
-                options: typeof order.options === 'string' 
-                  ? JSON.parse(order.options) 
-                  : order.options || {},
-                hidden: false
-              }));
-              
-              setOrders(prev => ({
-                ...prev,
-                [product.id]: processedOrders as CartItem[]
-              }));
-            }
+            ordersMap[product.id] = processedOrders as CartItem[];
           }
         }
-      } catch (error) {
-        console.error("Error fetching products or orders:", error);
+        
+        setOrders(ordersMap);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de charger les données."
+      });
+    }
+  };
 
-    fetchProducts();
+  useEffect(() => {
+    fetchData();
   }, []);
 
   const handleOrderClick = (order: CartItem) => {
@@ -136,8 +140,8 @@ const Panel = () => {
     });
   };
 
-  const handleBasketClick = (customerKey: string) => {
-    setSelectedBasket(customerKey === selectedBasket ? null : customerKey);
+  const handleCartClick = (cartId: string) => {
+    setSelectedCart(cartId === selectedCart ? null : cartId);
   };
 
   const formatDate = (dateString: string) => {
@@ -158,6 +162,7 @@ const Panel = () => {
     return null;
   };
 
+  // Process an order as complete
   const markAsProcessed = async (orderId: string) => {
     try {
       const { error } = await supabase
@@ -182,7 +187,6 @@ const Panel = () => {
         setSelectedOrder(prev => prev ? { ...prev, processed: true } : null);
       }
 
-      // Show success message
       toast({
         title: "Commande traitée",
         description: "La commande a été marquée comme traitée"
@@ -197,42 +201,50 @@ const Panel = () => {
     }
   };
 
-  const markBasketAsProcessed = async (customerKey: string, productId: string) => {
+  // Mark a whole cart as processed
+  const markCartAsProcessed = async (cartId: string) => {
     try {
-      const customerOrders = groupOrdersByCustomer(productId)[customerKey] || [];
+      // First update the cart itself
+      const { error: cartError } = await supabase
+        .from("carts")
+        .update({ processed: true })
+        .eq("id", cartId);
       
-      // Get all order IDs in this basket
-      const orderIds = customerOrders.map(order => order.id);
-      
-      // Update all orders in the basket
-      for (const orderId of orderIds) {
-        await supabase
-          .from("cart_items")
-          .update({ processed: true })
-          .eq("id", orderId);
-      }
+      if (cartError) throw cartError;
 
-      // Update local state
+      // Then update all cart items
+      const { error: itemsError } = await supabase
+        .from("cart_items")
+        .update({ processed: true })
+        .eq("cart_id", cartId);
+
+      if (itemsError) throw itemsError;
+      
+      // Update local states
+      setCarts(prev => prev.map(cart => 
+        cart.id === cartId ? { ...cart, processed: true } : cart
+      ));
+
       setOrders(prev => {
         const updated = { ...prev };
-        Object.keys(updated).forEach(pid => {
-          updated[pid] = updated[pid].map(order => {
-            if (orderIds.includes(order.id)) {
-              return { ...order, processed: true };
-            }
-            return order;
-          });
+        Object.keys(updated).forEach(productId => {
+          updated[productId] = updated[productId].map(order => 
+            order.cart_id === cartId ? { ...order, processed: true } : order
+          );
         });
         return updated;
       });
 
-      // Show success message
+      if (selectedOrder?.cart_id === cartId) {
+        setSelectedOrder(prev => prev ? { ...prev, processed: true } : null);
+      }
+
       toast({
         title: "Panier traité",
         description: "Toutes les commandes du panier ont été marquées comme traitées"
       });
     } catch (error) {
-      console.error("Error marking basket as processed:", error);
+      console.error("Error marking cart as processed:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
@@ -241,52 +253,107 @@ const Panel = () => {
     }
   };
 
-  const toggleHideOrder = (orderId: string) => {
-    // Update local state
-    setOrders(prev => {
-      const updated = { ...prev };
-      Object.keys(updated).forEach(productId => {
-        updated[productId] = updated[productId].map(order => 
-          order.id === orderId ? { ...order, hidden: !order.hidden } : order
-        );
-      });
-      return updated;
+  // Toggle order visibility
+  const toggleHideOrder = async (orderId: string) => {
+    // Find the order to toggle
+    let orderToToggle: CartItem | null = null;
+    let currentHiddenState = false;
+
+    // Find the order in the orders object
+    Object.keys(orders).forEach(productId => {
+      const order = orders[productId].find(o => o.id === orderId);
+      if (order) {
+        orderToToggle = order;
+        currentHiddenState = Boolean(order.hidden);
+      }
     });
 
-    if (selectedOrder?.id === orderId) {
-      setSelectedOrder(prev => prev ? { ...prev, hidden: !prev.hidden } : null);
+    if (!orderToToggle) return;
+
+    try {
+      // Update the hidden state in the database
+      const { error } = await supabase
+        .from("cart_items")
+        .update({ hidden: !currentHiddenState })
+        .eq("id", orderId);
+
+      if (error) throw error;
+      
+      // Update local state
+      setOrders(prev => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach(productId => {
+          updated[productId] = updated[productId].map(order => 
+            order.id === orderId ? { ...order, hidden: !order.hidden } : order
+          );
+        });
+        return updated;
+      });
+
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder(prev => prev ? { ...prev, hidden: !prev.hidden } : null);
+      }
+
+      toast({
+        title: currentHiddenState ? "Commande visible" : "Commande masquée",
+        description: currentHiddenState 
+          ? "La commande est maintenant visible dans la liste" 
+          : "La commande est maintenant masquée de la liste"
+      });
+    } catch (error) {
+      console.error("Error toggling order visibility:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de modifier la visibilité de la commande"
+      });
     }
   };
 
-  // Group orders by customer
-  const groupOrdersByCustomer = (productId: string) => {
+  // Get all orders for a specific cart
+  const getCartOrders = (cartId: string): CartItem[] => {
+    const cartOrders: CartItem[] = [];
+    
+    Object.keys(orders).forEach(productId => {
+      orders[productId].forEach(order => {
+        if (order.cart_id === cartId && !order.hidden) {
+          cartOrders.push(order);
+        }
+      });
+    });
+
+    return cartOrders;
+  };
+
+  // Calculate total for a cart
+  const calculateCartTotal = (cartId: string): number => {
+    const cartOrders = getCartOrders(cartId);
+    return cartOrders.reduce((total, order) => total + (order.price * order.quantity), 0);
+  };
+
+  // Get distinct product orders grouped by cart
+  const getProductOrdersByCart = (productId: string): Record<string, CartItem[]> => {
     const productOrders = orders[productId] || [];
-    const groupedOrders: Record<string, CartItem[]> = {};
+    const cartMap: Record<string, CartItem[]> = {};
     
     productOrders.forEach(order => {
       if (order.hidden) return; // Skip hidden orders
+      if (!order.cart_id) return; // Skip orders without cart ID
       
-      const customer = getCustomerInfo(order);
-      if (!customer) {
-        // Handle orders without customer info
-        const key = `unknown-${order.id}`;
-        groupedOrders[key] = [order];
-        return;
+      if (!cartMap[order.cart_id]) {
+        cartMap[order.cart_id] = [];
       }
       
-      const customerKey = `${customer.name}-${customer.phone}`;
-      if (!groupedOrders[customerKey]) {
-        groupedOrders[customerKey] = [];
-      }
-      groupedOrders[customerKey].push(order);
+      cartMap[order.cart_id].push(order);
     });
     
-    return groupedOrders;
+    return cartMap;
   };
 
-  // Calculate total price for a group of orders
-  const calculateGroupTotal = (orderGroup: CartItem[]) => {
-    return orderGroup.reduce((total, order) => total + (order.price * order.quantity), 0);
+  // Get cart details from a cart ID
+  const getCartDetails = (cartId: string | null): Cart | null => {
+    if (!cartId) return null;
+    return carts.find(cart => cart.id === cartId) || null;
   };
 
   return (
@@ -312,7 +379,7 @@ const Panel = () => {
         <Tabs defaultValue={products[0]?.id} className="w-full">
           <TabsList className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-8">
             {products.map((product) => {
-              // Count only non-hidden orders
+              // Count only non-hidden orders for this product
               const orderCount = orders[product.id]?.filter(order => !order.hidden)?.length || 0;
               return (
                 <TabsTrigger key={product.id} value={product.id} className="text-sm md:text-base">
@@ -345,35 +412,33 @@ const Panel = () => {
                           Aucune commande pour ce produit
                         </div>
                       ) : (
-                        Object.entries(groupOrdersByCustomer(product.id)).map(([customerKey, orderGroup]) => {
-                          const firstOrder = orderGroup[0];
-                          const customer = getCustomerInfo(firstOrder);
-                          const customerLabel = generateCustomerLabel(customer);
-                          const labelColor = generateCustomerColor(customerLabel);
-                          const totalPrice = calculateGroupTotal(orderGroup);
-                          const isSelected = selectedBasket === customerKey;
+                        Object.entries(getProductOrdersByCart(product.id)).map(([cartId, cartOrders]) => {
+                          const cart = getCartDetails(cartId);
+                          if (!cart) return null;
+                          
+                          const isSelected = selectedCart === cartId;
+                          const labelColor = cart.label_color || "bg-blue-500";
+                          const totalPrice = calculateCartTotal(cartId);
                           
                           return (
-                            <div key={customerKey} className={`mb-4 border rounded-lg overflow-hidden ${isSelected ? 'border-blue-500 shadow-md' : ''}`}>
-                              {customer && (
-                                <div 
-                                  className={`${isSelected ? 'bg-blue-50' : 'bg-gray-100'} p-2 flex justify-between items-center cursor-pointer`}
-                                  onClick={() => handleBasketClick(customerKey)}
-                                >
-                                  <div className="flex items-center">
-                                    <Badge className={`${labelColor} text-white cursor-pointer`}>
-                                      {customerLabel}
-                                    </Badge>
-                                    <span className="ml-2 font-medium">{customer.name}</span>
-                                    <span className="ml-2 text-sm text-gray-500">{customer.phone}</span>
-                                  </div>
-                                  <div className="font-semibold">
-                                    Total: {totalPrice} CFA
-                                  </div>
+                            <div key={cartId} className={`mb-4 border rounded-lg overflow-hidden ${isSelected ? 'border-blue-500 shadow-md' : ''}`}>
+                              <div 
+                                className={`${isSelected ? 'bg-blue-50' : 'bg-gray-100'} p-2 flex justify-between items-center cursor-pointer`}
+                                onClick={() => handleCartClick(cartId)}
+                              >
+                                <div className="flex items-center">
+                                  <Badge className={`${labelColor} text-white cursor-pointer`}>
+                                    {cart.label || 'Panier'}
+                                  </Badge>
+                                  <span className="ml-2 font-medium">{cart.customer_name}</span>
+                                  <span className="ml-2 text-sm text-gray-500">{cart.customer_phone}</span>
                                 </div>
-                              )}
+                                <div className="font-semibold">
+                                  Total: {cart.total_amount} CFA
+                                </div>
+                              </div>
                               
-                              {(isSelected || !customer) && orderGroup.map((order) => (
+                              {isSelected && cartOrders.map((order) => (
                                 <div 
                                   key={order.id}
                                   onClick={() => handleOrderClick(order)}
@@ -417,9 +482,10 @@ const Panel = () => {
                                     variant="default"
                                     size="sm"
                                     className="bg-blue-500 hover:bg-blue-600"
-                                    onClick={() => markBasketAsProcessed(customerKey, product.id)}
+                                    onClick={() => markCartAsProcessed(cartId)}
+                                    disabled={cart.processed}
                                   >
-                                    Marquer panier comme traité
+                                    {cart.processed ? "Panier déjà traité" : "Marquer panier comme traité"}
                                   </Button>
                                 </CardFooter>
                               )}
@@ -524,46 +590,48 @@ const Panel = () => {
                             </div>
                           )}
 
-                          {/* If this order is part of a basket, show basket summary */}
-                          {selectedOrder?.options?.customer && (
+                          {/* Cart Summary Section - Show details of all items in the same cart */}
+                          {selectedOrder.cart_id && (
                             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
                               <h4 className="font-semibold text-lg mb-3">Récapitulatif du panier</h4>
                               <div className="space-y-2">
                                 {(() => {
-                                  const customer = getCustomerInfo(selectedOrder);
-                                  if (!customer) return null;
+                                  const cartId = selectedOrder.cart_id;
+                                  if (!cartId) return null;
                                   
-                                  const customerKey = `${customer.name}-${customer.phone}`;
-                                  const productId = selectedOrder.product_id;
-                                  const basketOrders = groupOrdersByCustomer(productId)[customerKey] || [];
-                                  const totalBasketPrice = calculateGroupTotal(basketOrders);
+                                  const cartOrders = getCartOrders(cartId);
+                                  const cart = getCartDetails(cartId);
+                                  const totalCartPrice = cart ? cart.total_amount : calculateCartTotal(cartId);
                                   
                                   return (
                                     <>
-                                      <p className="mb-2">Ce produit fait partie d'un panier contenant {basketOrders.length} article{basketOrders.length > 1 ? 's' : ''}:</p>
+                                      <p className="mb-2">Ce produit fait partie d'un panier contenant {cartOrders.length} article{cartOrders.length > 1 ? 's' : ''}:</p>
                                       <ul className="mb-4 space-y-1">
-                                        {basketOrders.map((order) => (
+                                        {cartOrders.map((order) => (
                                           <li key={order.id} className="flex justify-between items-center">
-                                            <span>
-                                              {order.quantity}× {order.name}
-                                              {order.id === selectedOrder.id && 
-                                                <Badge variant="outline" className="ml-2 text-xs">actuel</Badge>
-                                              }
-                                            </span>
+                                            <div className="flex items-center">
+                                              <span>
+                                                {order.quantity}× {order.name}
+                                                {order.id === selectedOrder.id && 
+                                                  <Badge variant="outline" className="ml-2 text-xs">actuel</Badge>
+                                                }
+                                              </span>
+                                            </div>
                                             <span className="font-medium">{order.price * order.quantity} CFA</span>
                                           </li>
                                         ))}
                                       </ul>
                                       <div className="flex justify-between font-semibold text-lg pt-2 border-t">
                                         <span>Total du panier:</span>
-                                        <span>{totalBasketPrice} CFA</span>
+                                        <span>{totalCartPrice} CFA</span>
                                       </div>
                                       <Button 
                                         variant="default" 
                                         className="w-full mt-2"
-                                        onClick={() => markBasketAsProcessed(customerKey, productId)}
+                                        onClick={() => cartId && markCartAsProcessed(cartId)}
+                                        disabled={cart?.processed}
                                       >
-                                        Marquer panier comme traité
+                                        {cart?.processed ? "Panier déjà traité" : "Marquer panier comme traité"}
                                       </Button>
                                     </>
                                   );
