@@ -1,3 +1,4 @@
+
 // Utility functions for customer-related operations
 
 export interface Customer {
@@ -33,4 +34,31 @@ export const generateCustomerColor = (label: string) => {
   
   const index = Math.abs(hash) % colors.length;
   return colors[index];
+};
+
+// Helper function to save promo text to the database
+export const savePromoText = async (productId: string, text: string) => {
+  const { error } = await supabase
+    .from('promo_settings')
+    .upsert({ 
+      product_id: productId, 
+      custom_text: text
+    });
+  
+  return { error };
+};
+
+// Helper function to fetch promo text from the database
+export const fetchPromoText = async (productId: string): Promise<string | null> => {
+  const { data, error } = await supabase
+    .from('promo_settings')
+    .select('custom_text')
+    .eq('product_id', productId)
+    .maybeSingle();
+  
+  if (error || !data) {
+    return null;
+  }
+  
+  return data.custom_text;
 };

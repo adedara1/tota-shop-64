@@ -1,41 +1,19 @@
-import { useEffect, useState } from "react";
-import { Navigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
-  const location = useLocation();
+import { useAuth } from "@/hooks/useAuth";
+import { Navigate, Outlet } from "react-router-dom";
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Don't protect product detail pages
-  if (location.pathname.match(/^\/product\/[^/]+$/)) {
-    return <>{children}</>;
-  }
-
+const ProtectedRoute = () => {
+  const { user, loading } = useAuth();
+  
   if (loading) {
-    return <div>Chargement...</div>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
+      </div>
+    );
   }
-
-  if (!user) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
-  }
-
-  return <>{children}</>;
+  
+  return user ? <Outlet /> : <Navigate to="/auth" replace />;
 };
 
 export default ProtectedRoute;
