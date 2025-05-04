@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,12 +36,24 @@ interface Product {
   images: string[];
 }
 
+// Nouvelle interface pour représenter un panier groupé
+interface GroupedCart {
+  id: string;
+  label?: string;
+  labelColor?: string;
+  customer?: Customer | null;
+  orders: CartItem[];
+  totalPrice: number;
+}
+
 const Panel = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Record<string, CartItem[]>>({});
   const [selectedOrder, setSelectedOrder] = useState<CartItem | null>(null);
   const [selectedBasket, setSelectedBasket] = useState<string | null>(null);
   const [hiddenOrders, setHiddenOrders] = useState<string[]>([]);
+  // Nouveau state pour stocker les paniers groupés
+  const [groupedCarts, setGroupedCarts] = useState<Record<string, Record<string, GroupedCart>>>({});
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -53,7 +66,7 @@ const Panel = () => {
         if (error) throw error;
         if (data) setProducts(data);
 
-        // For each product, fetch its orders
+        // Pour chaque produit, récupérer ses commandes
         if (data && data.length > 0) {
           for (const product of data) {
             const { data: orderData, error: orderError } = await supabase
@@ -64,7 +77,7 @@ const Panel = () => {
             if (orderError) throw orderError;
             
             if (orderData && orderData.length > 0) {
-              // Parse options if stored as string
+              // Traitement des commandes
               const processedOrders = orderData.map(order => ({
                 ...order,
                 options: typeof order.options === 'string' 
@@ -87,6 +100,89 @@ const Panel = () => {
     fetchProducts();
   }, []);
 
+  // Effet pour grouper les commandes par panier lorsque orders change
+  useEffect(() => {
+    const newGroupedCarts: Record<string, Record<string, GroupedCart>> = {};
+    
+    // Pour chaque produit
+    Object.entries(orders).forEach(([productId, productOrders]) => {
+      newGroupedCarts[productId] = {};
+      
+      // Groupe temporaire pour les articles sans cart_id
+      const noCartIdGroups: Record<string, CartItem[]> = {};
+
+      // Première passe: traiter les articles avec cart_id
+      productOrders.forEach(order => {
+        if (order.hidden) return; // Ignorer les commandes cachées
+        
+        // Si l'article a un cart_id, l'utiliser comme clé de groupe
+        if (order.cart_id) {
+          if (!newGroupedCarts[productId][order.cart_id]) {
+            // Initialiser un nouveau groupe de panier
+            const customer = getCustomerInfo(order);
+            const label = customer ? generateCustomerLabel(customer) : `Cart-${order.cart_id.substring(0, 5)}`;
+            const labelColor = generateCustomerColor(label);
+            
+            newGroupedCarts[productId][order.cart_id] = {
+              id: order.cart_id,
+              label,
+              labelColor,
+              customer,
+              orders: [],
+              totalPrice: 0
+            };
+          }
+          
+          // Ajouter la commande au groupe
+          newGroupedCarts[productId][order.cart_id].orders.push(order);
+          newGroupedCarts[productId][order.cart_id].totalPrice += (order.price * order.quantity);
+        } 
+        // Si pas de cart_id, grouper par customerKey 
+        else {
+          const customer = getCustomerInfo(order);
+          if (customer) {
+            const customerKey = `${customer.name}-${customer.phone}`;
+            if (!noCartIdGroups[customerKey]) {
+              noCartIdGroups[customerKey] = [];
+            }
+            noCartIdGroups[customerKey].push(order);
+          } else {
+            // Commandes sans client et sans cart_id sont des groupes individuels
+            const key = `unknown-${order.id}`;
+            noCartIdGroups[key] = [order];
+          }
+        }
+      });
+
+      // Deuxième passe: traiter les groupes sans cart_id
+      Object.entries(noCartIdGroups).forEach(([groupKey, groupOrders]) => {
+        // Créer un identifiant unique pour ce groupe
+        const groupId = `legacy-${groupKey}`;
+        
+        // Obtenir les informations du client à partir du premier ordre
+        const firstOrder = groupOrders[0];
+        const customer = getCustomerInfo(firstOrder);
+        const label = customer ? generateCustomerLabel(customer) : `Unknown-${groupId.substring(0, 5)}`;
+        const labelColor = generateCustomerColor(label);
+        
+        // Calculer le prix total
+        const totalPrice = groupOrders.reduce((total, order) => total + (order.price * order.quantity), 0);
+        
+        // Ajouter le groupe
+        newGroupedCarts[productId][groupId] = {
+          id: groupId,
+          label,
+          labelColor,
+          customer,
+          orders: groupOrders,
+          totalPrice
+        };
+      });
+    });
+    
+    setGroupedCarts(newGroupedCarts);
+  }, [orders]);
+
   const handleOrderClick = (order: CartItem) => {
     setSelectedOrder({
       ...order,
@@ -96,8 +192,8 @@ const Panel = () => {
     });
   };
 
-  const handleBasketClick = (customerKey: string) => {
-    setSelectedBasket(customerKey === selectedBasket ? null : customerKey);
+  const handleBasketClick = (basketId: string) => {
+    setSelectedBasket(basketId === selectedBasket ? null : basketId);
   };
 
   const formatDate = (dateString: string) => {
@@ -127,7 +223,7 @@ const Panel = () => {
 
       if (error) throw error;
 
-      // Update local state
+      // Mise à jour du state local
       setOrders(prev => {
         const updated = { ...prev };
         Object.keys(updated).forEach(productId => {
@@ -142,7 +238,7 @@ const Panel = () => {
         setSelectedOrder(prev => prev ? { ...prev, processed: true } : null);
       }
 
-      // Show success message
+      // Afficher un message de succès
       toast({
         title: "Commande traitée",
         description: "La commande a été marquée comme traitée"
@@ -157,14 +253,15 @@ const Panel = () => {
     }
   };
 
-  const markBasketAsProcessed = async (customerKey: string, productId: string) => {
+  const markBasketAsProcessed = async (basketId: string, productId: string) => {
     try {
-      const customerOrders = groupOrdersByCustomer(productId)[customerKey] || [];
+      // Récupérer toutes les commandes du panier
+      const basketOrders = groupedCarts[productId]?.[basketId]?.orders || [];
       
-      // Get all order IDs in this basket
-      const orderIds = customerOrders.map(order => order.id);
+      // Récupérer tous les IDs de commandes dans ce panier
+      const orderIds = basketOrders.map(order => order.id);
       
-      // Update all orders in the basket
+      // Mettre à jour toutes les commandes du panier
       for (const orderId of orderIds) {
         await supabase
           .from("cart_items")
@@ -172,7 +269,7 @@ const Panel = () => {
           .eq("id", orderId);
       }
 
-      // Update local state
+      // Mise à jour du state local
       setOrders(prev => {
         const updated = { ...prev };
         Object.keys(updated).forEach(pid => {
@@ -186,7 +283,7 @@ const Panel = () => {
         return updated;
       });
 
-      // Show success message
+      // Afficher un message de succès
       toast({
         title: "Panier traité",
         description: "Toutes les commandes du panier ont été marquées comme traitées"
@@ -203,7 +300,7 @@ const Panel = () => {
 
   const toggleHideOrder = async (orderId: string) => {
     try {
-      // Find the order to toggle
+      // Trouver la commande à basculer
       let orderToToggle: CartItem | null = null;
       let productId: string | null = null;
       
@@ -217,7 +314,7 @@ const Panel = () => {
       
       if (!orderToToggle) return;
       
-      // Toggle hidden state in database
+      // Basculer l'état caché dans la base de données
       const newHiddenState = !orderToToggle.hidden;
       const { error } = await supabase
         .from("cart_items")
@@ -226,7 +323,7 @@ const Panel = () => {
 
       if (error) throw error;
 
-      // Update local state
+      // Mise à jour du state local
       setOrders(prev => {
         const updated = { ...prev };
         Object.keys(updated).forEach(pid => {
@@ -250,17 +347,17 @@ const Panel = () => {
     }
   };
 
-  // Group orders by customer
+  // Ancienne fonction groupOrdersByCustomer (gardée pour compatibilité)
   const groupOrdersByCustomer = (productId: string) => {
     const productOrders = orders[productId] || [];
     const groupedOrders: Record<string, CartItem[]> = {};
     
     productOrders.forEach(order => {
-      if (order.hidden) return; // Skip hidden orders
+      if (order.hidden) return; // Ignorer les commandes cachées
       
       const customer = getCustomerInfo(order);
       if (!customer) {
-        // Handle orders without customer info
+        // Gérer les commandes sans info client
         const key = `unknown-${order.id}`;
         groupedOrders[key] = [order];
         return;
@@ -276,12 +373,12 @@ const Panel = () => {
     return groupedOrders;
   };
 
-  // Calculate total price for a group of orders
+  // Fonction pour calculer le prix total d'un groupe de commandes
   const calculateGroupTotal = (orderGroup: CartItem[]) => {
     return orderGroup.reduce((total, order) => total + (order.price * order.quantity), 0);
   };
 
-  // Count visible orders (not hidden)
+  // Compter les commandes visibles (non cachées)
   const countVisibleOrders = (productId: string) => {
     return orders[productId]?.filter(order => !order.hidden)?.length || 0;
   };
@@ -309,7 +406,7 @@ const Panel = () => {
         <Tabs defaultValue={products[0]?.id} className="w-full">
           <TabsList className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-8">
             {products.map((product) => {
-              // Count only non-hidden orders
+              // Compter uniquement les commandes non cachées
               const orderCount = countVisibleOrders(product.id);
               return (
                 <TabsTrigger key={product.id} value={product.id} className="text-sm md:text-base">
@@ -342,35 +439,33 @@ const Panel = () => {
                           Aucune commande pour ce produit
                         </div>
                       ) : (
-                        Object.entries(groupOrdersByCustomer(product.id)).map(([customerKey, orderGroup]) => {
-                          const firstOrder = orderGroup[0];
-                          const customer = getCustomerInfo(firstOrder);
-                          const customerLabel = generateCustomerLabel(customer);
-                          const labelColor = generateCustomerColor(customerLabel);
-                          const totalPrice = calculateGroupTotal(orderGroup);
-                          const isSelected = selectedBasket === customerKey;
+                        // Utiliser les paniers groupés plutôt que groupOrdersByCustomer
+                        Object.entries(groupedCarts[product.id] || {}).map(([basketId, basket]) => {
+                          const isSelected = selectedBasket === basketId;
                           
                           return (
-                            <div key={customerKey} className={`mb-4 border rounded-lg overflow-hidden ${isSelected ? 'border-blue-500 shadow-md' : ''}`}>
-                              {customer && (
-                                <div 
-                                  className={`${isSelected ? 'bg-blue-50' : 'bg-gray-100'} p-2 flex justify-between items-center cursor-pointer`}
-                                  onClick={() => handleBasketClick(customerKey)}
-                                >
-                                  <div className="flex items-center">
-                                    <Badge className={`${labelColor} text-white cursor-pointer`}>
-                                      {customerLabel}
-                                    </Badge>
-                                    <span className="ml-2 font-medium">{customer.name}</span>
-                                    <span className="ml-2 text-sm text-gray-500">{customer.phone}</span>
-                                  </div>
-                                  <div className="font-semibold">
-                                    Total: {totalPrice} CFA
-                                  </div>
+                            <div key={basketId} className={`mb-4 border rounded-lg overflow-hidden ${isSelected ? 'border-blue-500 shadow-md' : ''}`}>
+                              <div 
+                                className={`${isSelected ? 'bg-blue-50' : 'bg-gray-100'} p-2 flex justify-between items-center cursor-pointer`}
+                                onClick={() => handleBasketClick(basketId)}
+                              >
+                                <div className="flex items-center">
+                                  <Badge className={`${basket.labelColor} text-white cursor-pointer`}>
+                                    {basket.label}
+                                  </Badge>
+                                  {basket.customer && (
+                                    <>
+                                      <span className="ml-2 font-medium">{basket.customer.name}</span>
+                                      <span className="ml-2 text-sm text-gray-500">{basket.customer.phone}</span>
+                                    </>
+                                  )}
                                 </div>
-                              )}
+                                <div className="font-semibold">
+                                  Total: {basket.totalPrice} CFA
+                                </div>
+                              </div>
                               
-                              {(isSelected || !customer) && orderGroup.map((order) => (
+                              {isSelected && basket.orders.map((order) => (
                                 <div 
                                   key={order.id}
                                   onClick={() => handleOrderClick(order)}
@@ -414,7 +509,7 @@ const Panel = () => {
                                     variant="default"
                                     size="sm"
                                     className="bg-blue-500 hover:bg-blue-600"
-                                    onClick={() => markBasketAsProcessed(customerKey, product.id)}
+                                    onClick={() => markBasketAsProcessed(basketId, product.id)}
                                   >
                                     Marquer panier comme traité
                                   </Button>
@@ -471,7 +566,7 @@ const Panel = () => {
                             </div>
                           </div>
 
-                          {/* Customer Information Section */}
+                          {/* Section d'information client */}
                           {getCustomerInfo(selectedOrder) && (
                             <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
                               <h4 className="font-semibold text-lg mb-3">Informations Client</h4>
@@ -502,7 +597,7 @@ const Panel = () => {
                             </div>
                           )}
 
-                          {/* Product Options Section */}
+                          {/* Section des options du produit */}
                           {Object.keys(selectedOrder.options).length > 0 && 
                            Object.keys(selectedOrder.options).filter(key => key !== 'customer').length > 0 && (
                             <div>
@@ -521,34 +616,27 @@ const Panel = () => {
                             </div>
                           )}
 
-                          {/* If this order is part of a basket, show basket summary */}
-                          {selectedOrder?.options?.customer && (
+                          {/* Si cette commande fait partie d'un panier, afficher le récapitulatif du panier */}
+                          {selectedOrder?.cart_id && (
                             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
                               <h4 className="font-semibold text-lg mb-3">Récapitulatif du panier</h4>
                               <div className="space-y-2">
                                 {(() => {
-                                  const customer = getCustomerInfo(selectedOrder);
-                                  if (!customer) return null;
-                                  
-                                  // If the order has a cart_id, use that to find all items in the same cart
+                                  // Trouver le panier correspondant à l'article sélectionné
                                   const cartId = selectedOrder.cart_id;
+                                  if (!cartId) return null;
+                                  
+                                  // Trouver tous les articles du même panier (cart_id)
                                   let basketOrders: CartItem[] = [];
                                   
-                                  if (cartId) {
-                                    // Find all items across all products that belong to this cart_id
-                                    Object.values(orders).forEach(productOrders => {
-                                      productOrders.forEach(order => {
-                                        if (order.cart_id === cartId && !order.hidden) {
-                                          basketOrders.push(order);
-                                        }
-                                      });
+                                  // Chercher dans tous les produits les items avec ce cart_id
+                                  Object.values(orders).forEach(productOrders => {
+                                    productOrders.forEach(order => {
+                                      if (order.cart_id === cartId && !order.hidden) {
+                                        basketOrders.push(order);
+                                      }
                                     });
-                                  } else {
-                                    // Fallback to the old method if no cart_id
-                                    const customerKey = `${customer.name}-${customer.phone}`;
-                                    const productId = selectedOrder.product_id;
-                                    basketOrders = groupOrdersByCustomer(productId)[customerKey] || [];
-                                  }
+                                  });
                                   
                                   const totalBasketPrice = calculateGroupTotal(basketOrders);
                                   
@@ -577,17 +665,12 @@ const Panel = () => {
                                         className="w-full mt-2"
                                         onClick={() => {
                                           if (cartId) {
-                                            // Mark all items in this cart as processed
+                                            // Marquer tous les articles de ce panier comme traités
                                             basketOrders.forEach(order => {
                                               if (!order.processed) {
                                                 markAsProcessed(order.id);
                                               }
                                             });
-                                          } else {
-                                            // Fallback to old method
-                                            const customerKey = `${customer.name}-${customer.phone}`;
-                                            const productId = selectedOrder.product_id;
-                                            markBasketAsProcessed(customerKey, productId);
                                           }
                                         }}
                                       >
@@ -641,3 +724,4 @@ const Panel = () => {
 };
 
 export default Panel;
+
