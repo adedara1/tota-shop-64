@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import ProductOptions from "./ProductOptions";
 import { Plus, Minus, ShoppingBag, ShoppingCart, Star } from "lucide-react";
@@ -216,6 +215,29 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
     }
   };
 
+  const handleOrderNowClick = () => {
+    // First add to cart
+    if (productId) {
+      addToCart({
+        id: productId,
+        name: name,
+        price: discountedPrice,
+        quantity: quantity,
+        options: selectedOptions,
+        image: Object.values(selectedOptions)
+          .find((opt: any) => opt.image)?.image || null
+      });
+      
+      toast({
+        title: "Produit ajouté au panier",
+        description: `${quantity} × ${name} ajouté au panier`,
+      });
+      
+      // Then navigate to payment page
+      navigate('/paiement');
+    }
+  };
+
   const goToCart = () => {
     navigate('/paiement');
   };
@@ -348,11 +370,11 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
         
         {useInternalCart && (
           <button 
-            onClick={goToCart}
+            onClick={handleOrderNowClick}
             className="block flex-1 bg-gray-800 text-white py-3 px-6 rounded hover:bg-gray-900 transition-colors text-center flex items-center justify-center"
           >
             <ShoppingCart className="mr-2" size={18} />
-            {addedToCart ? "Voir mon panier" : "Commander maintenant"}
+            Commander maintenant
           </button>
         )}
       </div>

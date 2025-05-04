@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Eye, EyeOff } from "lucide-react";
 
 interface CartItem {
   id: string;
@@ -27,6 +28,7 @@ interface CartItem {
   created_at: string;
   updated_at: string;
   processed: boolean | null; // Added processed property
+  hidden?: boolean; // Added hidden property
 }
 
 interface Product {
@@ -42,10 +44,39 @@ interface Customer {
   address: string;
 }
 
+// Function to generate a unique customer label
+const generateCustomerLabel = (customer: Customer | null) => {
+  if (!customer) return "";
+  
+  const firstTwoLetters = customer.name.substring(0, 2).toUpperCase();
+  const lastThreeDigits = customer.phone.replace(/\D/g, '').slice(-3);
+  
+  return `${firstTwoLetters}-${lastThreeDigits}`;
+};
+
+// Function to generate a consistent color for a customer
+const generateCustomerColor = (label: string) => {
+  const colors = [
+    "bg-purple-500", "bg-blue-500", "bg-green-500", 
+    "bg-yellow-500", "bg-orange-500", "bg-red-500", 
+    "bg-pink-500", "bg-indigo-500", "bg-cyan-500"
+  ];
+  
+  // Simple hash function to get a consistent color
+  let hash = 0;
+  for (let i = 0; i < label.length; i++) {
+    hash = label.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
+
 const Panel = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Record<string, CartItem[]>>({});
   const [selectedOrder, setSelectedOrder] = useState<CartItem | null>(null);
+  const [hiddenOrders, setHiddenOrders] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -74,7 +105,8 @@ const Panel = () => {
                 ...order,
                 options: typeof order.options === 'string' 
                   ? JSON.parse(order.options) 
-                  : order.options || {}
+                  : order.options || {},
+                hidden: false
               }));
               
               setOrders(prev => ({
@@ -150,6 +182,54 @@ const Panel = () => {
     }
   };
 
+  const toggleHideOrder = (orderId: string) => {
+    // Update local state
+    setOrders(prev => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach(productId => {
+        updated[productId] = updated[productId].map(order => 
+          order.id === orderId ? { ...order, hidden: !order.hidden } : order
+        );
+      });
+      return updated;
+    });
+
+    if (selectedOrder?.id === orderId) {
+      setSelectedOrder(prev => prev ? { ...prev, hidden: !prev.hidden } : null);
+    }
+  };
+
+  // Group orders by customer
+  const groupOrdersByCustomer = (productId: string) => {
+    const productOrders = orders[productId] || [];
+    const groupedOrders: Record<string, CartItem[]> = {};
+    
+    productOrders.forEach(order => {
+      if (order.hidden) return; // Skip hidden orders
+      
+      const customer = getCustomerInfo(order);
+      if (!customer) {
+        // Handle orders without customer info
+        const key = `unknown-${order.id}`;
+        groupedOrders[key] = [order];
+        return;
+      }
+      
+      const customerKey = `${customer.name}-${customer.phone}`;
+      if (!groupedOrders[customerKey]) {
+        groupedOrders[customerKey] = [];
+      }
+      groupedOrders[customerKey].push(order);
+    });
+    
+    return groupedOrders;
+  };
+
+  // Calculate total price for a group of orders
+  const calculateGroupTotal = (orderGroup: CartItem[]) => {
+    return orderGroup.reduce((total, order) => total + (order.price * order.quantity), 0);
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-8">
       <h1 className="text-3xl font-bold mb-8 text-center">Tableau de bord des commandes</h1>
@@ -164,14 +244,18 @@ const Panel = () => {
       ) : (
         <Tabs defaultValue={products[0]?.id} className="w-full">
           <TabsList className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-8">
-            {products.map((product) => (
-              <TabsTrigger key={product.id} value={product.id} className="text-sm md:text-base">
-                {product.name}
-                {orders[product.id] && (
-                  <Badge className="ml-2 bg-red-500">{orders[product.id].length}</Badge>
-                )}
-              </TabsTrigger>
-            ))}
+            {products.map((product) => {
+              // Count only non-hidden orders
+              const orderCount = orders[product.id]?.filter(order => !order.hidden)?.length || 0;
+              return (
+                <TabsTrigger key={product.id} value={product.id} className="text-sm md:text-base">
+                  {product.name}
+                  {orderCount > 0 && (
+                    <Badge className="ml-2 bg-red-500">{orderCount}</Badge>
+                  )}
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
           
           {products.map((product) => (
@@ -182,55 +266,82 @@ const Panel = () => {
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
                         <span>Commandes pour {product.name}</span>
-                        <Badge>{orders[product.id]?.length || 0} commandes</Badge>
+                        <Badge>{orders[product.id]?.filter(order => !order.hidden)?.length || 0} commandes</Badge>
                       </CardTitle>
                       <CardDescription>
                         Cliquez sur une commande pour voir les détails
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="max-h-[500px] overflow-y-auto space-y-2">
-                      {!orders[product.id] || orders[product.id].length === 0 ? (
+                      {!orders[product.id] || orders[product.id].filter(order => !order.hidden).length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
                           Aucune commande pour ce produit
                         </div>
                       ) : (
-                        orders[product.id].map((order) => (
-                          <div 
-                            key={order.id}
-                            onClick={() => handleOrderClick(order)}
-                            className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                              selectedOrder?.id === order.id 
-                                ? 'bg-blue-50 border-blue-300' 
-                                : 'hover:bg-gray-50'
-                            } ${order.processed ? 'opacity-60' : ''}`}
-                          >
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center">
-                                {order.image && (
-                                  <Avatar className="h-10 w-10 mr-3">
-                                    <img src={order.image} alt={order.name} />
-                                  </Avatar>
-                                )}
-                                <div>
-                                  <div className="font-medium">{order.quantity}× {order.name}</div>
-                                  <div className="text-sm text-gray-500">
-                                    {formatDate(order.created_at)}
+                        Object.entries(groupOrdersByCustomer(product.id)).map(([customerKey, orderGroup]) => {
+                          const firstOrder = orderGroup[0];
+                          const customer = getCustomerInfo(firstOrder);
+                          const customerLabel = generateCustomerLabel(customer);
+                          const labelColor = generateCustomerColor(customerLabel);
+                          const totalPrice = calculateGroupTotal(orderGroup);
+                          
+                          return (
+                            <div key={customerKey} className="mb-4 border rounded-lg overflow-hidden">
+                              {customer && (
+                                <div className="bg-gray-100 p-2 flex justify-between items-center">
+                                  <div className="flex items-center">
+                                    <Badge className={`${labelColor} text-white`}>
+                                      {customerLabel}
+                                    </Badge>
+                                    <span className="ml-2 font-medium">{customer.name}</span>
+                                    <span className="ml-2 text-sm text-gray-500">{customer.phone}</span>
+                                  </div>
+                                  <div className="font-semibold">
+                                    Total: {totalPrice} CFA
                                   </div>
                                 </div>
-                              </div>
-                              <div className="flex flex-col items-end">
-                                <div className="font-semibold">
-                                  {order.price * order.quantity} CFA
+                              )}
+                              
+                              {orderGroup.map((order) => (
+                                <div 
+                                  key={order.id}
+                                  onClick={() => handleOrderClick(order)}
+                                  className={`p-4 cursor-pointer transition-colors ${
+                                    selectedOrder?.id === order.id 
+                                      ? 'bg-blue-50 border-blue-300' 
+                                      : 'hover:bg-gray-50'
+                                  } ${order.processed ? 'opacity-60' : ''}`}
+                                >
+                                  <div className="flex justify-between items-center">
+                                    <div className="flex items-center">
+                                      {order.image && (
+                                        <Avatar className="h-10 w-10 mr-3">
+                                          <img src={order.image} alt={order.name} />
+                                        </Avatar>
+                                      )}
+                                      <div>
+                                        <div className="font-medium">{order.quantity}× {order.name}</div>
+                                        <div className="text-sm text-gray-500">
+                                          {formatDate(order.created_at)}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-col items-end">
+                                      <div className="font-semibold">
+                                        {order.price * order.quantity} CFA
+                                      </div>
+                                      {order.processed && (
+                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                          Traitée
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
-                                {order.processed && (
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                    Traitée
-                                  </Badge>
-                                )}
-                              </div>
+                              ))}
                             </div>
-                          </div>
-                        ))
+                          );
+                        })
                       )}
                     </CardContent>
                   </Card>
@@ -329,7 +440,7 @@ const Panel = () => {
                             </div>
                           )}
                         </CardContent>
-                        <CardFooter>
+                        <CardFooter className="flex flex-col space-y-2">
                           <Button 
                             variant={selectedOrder.processed ? "outline" : "default"} 
                             className="w-full"
@@ -338,6 +449,17 @@ const Panel = () => {
                           >
                             {selectedOrder.processed ? "Déjà traitée" : "Marquer comme traitée"}
                           </Button>
+                          
+                          {selectedOrder.processed && (
+                            <Button 
+                              variant="outline" 
+                              className="w-full flex items-center gap-2"
+                              onClick={() => toggleHideOrder(selectedOrder.id)}
+                            >
+                              {selectedOrder.hidden ? <Eye size={16} /> : <EyeOff size={16} />}
+                              {selectedOrder.hidden ? "Afficher la commande" : "Masquer la commande"}
+                            </Button>
+                          )}
                         </CardFooter>
                       </>
                     ) : (
