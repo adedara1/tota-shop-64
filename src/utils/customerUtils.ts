@@ -93,4 +93,40 @@ export const isSharedCart = async (cartId: string, productId: string) => {
   }
 };
 
+// Update the is_shared_cart status for cart items
+export const updateSharedCartStatus = async (cartId: string) => {
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    
+    // Fetch all items in the cart
+    const { data, error } = await fetchAllCartItems(cartId);
+    
+    if (error || !data || data.length === 0) {
+      return { success: false };
+    }
+    
+    // Check if cart has items with different product IDs
+    const productIds = new Set(data.map(item => item.product_id));
+    const isShared = productIds.size > 1;
+    
+    // Update all items in the cart with the shared status
+    if (data.length > 0) {
+      const { error: updateError } = await supabase
+        .from("cart_items")
+        .update({ is_shared_cart: isShared })
+        .eq("cart_id", cartId);
+      
+      if (updateError) {
+        console.error("Error updating shared cart status:", updateError);
+        return { success: false };
+      }
+    }
+    
+    return { success: true, isShared };
+  } catch (error) {
+    console.error("Error updating shared cart status:", error);
+    return { success: false };
+  }
+};
+
 // Add any other utility functions here

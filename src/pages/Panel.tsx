@@ -14,7 +14,8 @@ import {
   generateCustomerLabel, 
   generateCustomerColor, 
   generateCartLabel, 
-  fetchAllCartItems 
+  fetchAllCartItems,
+  updateSharedCartStatus
 } from "@/utils/customerUtils";
 
 interface CartItem {
@@ -33,12 +34,7 @@ interface CartItem {
   processed: boolean | null;
   hidden: boolean;
   cart_id: string | null;
-}
-
-interface Product {
-  id: string;
-  name: string;
-  images: string[];
+  is_shared_cart?: boolean;
 }
 
 // Interface pour représenter un panier groupé
@@ -242,14 +238,17 @@ const Panel = () => {
   }, [orders]);
 
   const handleOrderClick = async (order: CartItem) => {
-    setSelectedOrder({
+    // Process order options
+    const processedOrder = {
       ...order,
       options: typeof order.options === 'string' 
         ? JSON.parse(order.options) 
         : order.options || {}
-    });
+    };
+    
+    setSelectedOrder(processedOrder);
 
-    // If this order has a cart_id, refresh the all cart items for this cart
+    // If this order has a cart_id, refresh the cart items and check shared status
     if (order.cart_id) {
       const { data, error } = await fetchAllCartItems(order.cart_id);
       if (!error && data.length > 0) {
@@ -259,10 +258,16 @@ const Panel = () => {
         }));
         
         // Check if this is a shared cart with multiple products
-        const isShared = data.some(item => 
-          item.product_id !== order.product_id
-        );
+        const isShared = data.some(item => item.product_id !== order.product_id);
         setIsPartOfSharedCart(isShared);
+        
+        // If the shared status in the database doesn't match our calculation,
+        // update it in the database for all items in this cart
+        if (order.is_shared_cart !== isShared) {
+          await updateSharedCartStatus(order.cart_id);
+        }
+      } else {
+        setIsPartOfSharedCart(false);
       }
     } else {
       // If no cart_id, it's not part of a shared cart
@@ -282,6 +287,9 @@ const Panel = () => {
           ...prev,
           [basketId]: data
         }));
+        
+        // Check if this is a shared cart and update the database if needed
+        await updateSharedCartStatus(basketId);
       }
     }
   };
@@ -512,24 +520,6 @@ const Panel = () => {
     });
     
     return allItems;
-  };
-
-  // Function to save cart item state to Supabase
-  const saveCartItemState = async (orderId: string, isSharedCart: boolean) => {
-    try {
-      const { error } = await supabase
-        .from("cart_items")
-        .update({ 
-          is_shared_cart: isSharedCart 
-        })
-        .eq("id", orderId);
-
-      if (error) throw error;
-      
-      console.log("Cart item state saved:", isSharedCart);
-    } catch (error) {
-      console.error("Error saving cart item state:", error);
-    }
   };
 
   return (
@@ -797,7 +787,7 @@ const Panel = () => {
                                         <span>Total du panier:</span>
                                         <span>{totalBasketPrice} CFA</span>
                                       </div>
-                                      {!isPartOfSharedCart && (
+                                      {!isPartOfSharedCart && selectedOrder.cart_id && (
                                         <Button 
                                           variant="default" 
                                           className="w-full mt-2"
@@ -810,6 +800,14 @@ const Panel = () => {
                                         >
                                           Marquer panier comme traité
                                         </Button>
+                                      )}
+                                      {isPartOfSharedCart && (
+                                        <div className="bg-yellow-50 p-3 rounded-md border border-yellow-200 mt-2">
+                                          <p className="text-amber-600 text-sm">
+                                            Ce produit fait partie d'un panier partagé avec d'autres produits. 
+                                            Utilisez le bouton de traitement individuel ci-dessous.
+                                          </p>
+                                        </div>
                                       )}
                                     </>
                                   );

@@ -46,6 +46,7 @@ export type Database = {
           hidden: boolean | null
           id: string
           image: string | null
+          is_shared_cart: boolean | null
           name: string
           options: Json | null
           price: number
@@ -60,6 +61,7 @@ export type Database = {
           hidden?: boolean | null
           id?: string
           image?: string | null
+          is_shared_cart?: boolean | null
           name: string
           options?: Json | null
           price: number
@@ -74,6 +76,7 @@ export type Database = {
           hidden?: boolean | null
           id?: string
           image?: string | null
+          is_shared_cart?: boolean | null
           name?: string
           options?: Json | null
           price?: number
