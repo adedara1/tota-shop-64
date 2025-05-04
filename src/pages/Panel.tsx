@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,7 +9,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Eye, EyeOff, Home } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { Customer, generateCustomerLabel, generateCustomerColor } from "@/utils/customerUtils";
+import { 
+  Customer, 
+  generateCustomerLabel, 
+  generateCustomerColor, 
+  generateCartLabel, 
+  fetchAllCartItems 
+} from "@/utils/customerUtils";
 
 interface CartItem {
   id: string;
@@ -54,6 +59,8 @@ const Panel = () => {
   const [hiddenOrders, setHiddenOrders] = useState<string[]>([]);
   // State pour stocker les paniers groupés
   const [groupedCarts, setGroupedCarts] = useState<Record<string, Record<string, GroupedCart>>>({});
+  // State to store all cart items across products
+  const [allCartItems, setAllCartItems] = useState<Record<string, CartItem[]>>({});
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -90,6 +97,35 @@ const Panel = () => {
                 [product.id]: processedOrders as CartItem[]
               }));
             }
+          }
+
+          // Also fetch all cart items
+          const { data: allCartData, error: allCartError } = await supabase
+            .from("cart_items")
+            .select("*")
+            .not("cart_id", "is", null)
+            .eq("hidden", false);
+
+          if (!allCartError && allCartData) {
+            // Group by cart_id
+            const cartItemsByCartId: Record<string, CartItem[]> = {};
+            
+            allCartData.forEach(item => {
+              if (item.cart_id) {
+                if (!cartItemsByCartId[item.cart_id]) {
+                  cartItemsByCartId[item.cart_id] = [];
+                }
+                
+                cartItemsByCartId[item.cart_id].push({
+                  ...item,
+                  options: typeof item.options === 'string' 
+                    ? JSON.parse(item.options) 
+                    : item.options || {}
+                });
+              }
+            });
+            
+            setAllCartItems(cartItemsByCartId);
           }
         }
       } catch (error) {
@@ -146,9 +182,19 @@ const Panel = () => {
         const firstOrder = items[0];
         const customer = getCustomerInfo(firstOrder);
         
-        // Génèrer un label pour le panier basé sur le cart_id
-        const cartLabel = `CA-${cartId.substring(0, 3)}`;
-        const labelColor = generateCustomerColor(cartLabel);
+        // Générer un label pour le panier basé sur le client
+        let cartLabel = cartId.substring(0, 8);
+        let labelColor = generateCustomerColor(cartLabel);
+        
+        // Si nous avons un client, utiliser ses infos pour le label
+        if (customer) {
+          cartLabel = generateCustomerLabel(customer);
+          labelColor = generateCustomerColor(cartLabel);
+        } else {
+          // Si pas de client, utiliser BO + 3 derniers caractères du cartId
+          cartLabel = `BO-${cartId.substring(cartId.length - 3)}`;
+          labelColor = generateCustomerColor(cartLabel);
+        }
         
         // Calculer le prix total
         const totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -193,17 +239,40 @@ const Panel = () => {
     setGroupedCarts(newGroupedCarts);
   }, [orders]);
 
-  const handleOrderClick = (order: CartItem) => {
+  const handleOrderClick = async (order: CartItem) => {
     setSelectedOrder({
       ...order,
       options: typeof order.options === 'string' 
         ? JSON.parse(order.options) 
         : order.options || {}
     });
+
+    // If this order has a cart_id, refresh the all cart items for this cart
+    if (order.cart_id) {
+      const { data, error } = await fetchAllCartItems(order.cart_id);
+      if (!error && data.length > 0) {
+        setAllCartItems(prev => ({
+          ...prev,
+          [order.cart_id as string]: data
+        }));
+      }
+    }
   };
 
-  const handleBasketClick = (basketId: string) => {
-    setSelectedBasket(basketId === selectedBasket ? null : basketId);
+  const handleBasketClick = async (basketId: string) => {
+    const isCurrentlySelected = selectedBasket === basketId;
+    setSelectedBasket(isCurrentlySelected ? null : basketId);
+    
+    if (!isCurrentlySelected && basketId && !basketId.startsWith('legacy-')) {
+      // Fetch the latest cart items for this cart_id
+      const { data, error } = await fetchAllCartItems(basketId);
+      if (!error && data.length > 0) {
+        setAllCartItems(prev => ({
+          ...prev,
+          [basketId]: data
+        }));
+      }
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -244,6 +313,17 @@ const Panel = () => {
         return updated;
       });
 
+      // Also update allCartItems if necessary
+      setAllCartItems(prev => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach(cartId => {
+          updated[cartId] = updated[cartId].map(item => 
+            item.id === orderId ? { ...item, processed: true } : item
+          );
+        });
+        return updated;
+      });
+
       if (selectedOrder?.id === orderId) {
         setSelectedOrder(prev => prev ? { ...prev, processed: true } : null);
       }
@@ -265,8 +345,20 @@ const Panel = () => {
 
   const markBasketAsProcessed = async (basketId: string, productId: string) => {
     try {
-      // Récupérer toutes les commandes du panier
-      const basketOrders = groupedCarts[productId]?.[basketId]?.orders || [];
+      // Get all cart items for this basket
+      let basketOrders: CartItem[] = [];
+      
+      if (basketId.startsWith('legacy-')) {
+        // For legacy baskets (no cart_id)
+        basketOrders = groupedCarts[productId]?.[basketId]?.orders || [];
+      } else {
+        // For regular baskets with cart_id
+        basketOrders = allCartItems[basketId] || [];
+        if (basketOrders.length === 0) {
+          // Fallback to product-specific orders if global list is empty
+          basketOrders = groupedCarts[productId]?.[basketId]?.orders || [];
+        }
+      }
       
       // Récupérer tous les IDs de commandes dans ce panier
       const orderIds = basketOrders.map(order => order.id);
@@ -290,6 +382,18 @@ const Panel = () => {
             return order;
           });
         });
+        return updated;
+      });
+
+      // Update allCartItems
+      setAllCartItems(prev => {
+        const updated = { ...prev };
+        if (updated[basketId]) {
+          updated[basketId] = updated[basketId].map(item => ({
+            ...item,
+            processed: true
+          }));
+        }
         return updated;
       });
 
@@ -344,6 +448,17 @@ const Panel = () => {
         return updated;
       });
 
+      // Update allCartItems if necessary
+      setAllCartItems(prev => {
+        const updated = { ...prev };
+        if (orderToToggle?.cart_id && updated[orderToToggle.cart_id]) {
+          updated[orderToToggle.cart_id] = updated[orderToToggle.cart_id].map(item => 
+            item.id === orderId ? { ...item, hidden: newHiddenState } : item
+          );
+        }
+        return updated;
+      });
+
       if (selectedOrder?.id === orderId) {
         setSelectedOrder(prev => prev ? { ...prev, hidden: newHiddenState } : null);
       }
@@ -367,13 +482,17 @@ const Panel = () => {
     return orders[productId]?.filter(order => !order.hidden)?.length || 0;
   };
 
-  // Fonction pour récupérer tous les éléments du panier pour un cart_id spécifique
+  // Function to get all cart items for a cart_id
   const getAllCartItems = (cartId: string): CartItem[] => {
     if (!cartId) return [];
     
-    const allItems: CartItem[] = [];
+    // Use our cached allCartItems state first
+    if (allCartItems[cartId] && allCartItems[cartId].length > 0) {
+      return allCartItems[cartId];
+    }
     
-    // Parcourir tous les produits pour trouver les éléments avec ce cart_id
+    // Fallback: collect from all products
+    const allItems: CartItem[] = [];
     Object.values(orders).forEach(productOrders => {
       const matchingItems = productOrders.filter(
         order => order.cart_id === cartId && !order.hidden
@@ -623,8 +742,8 @@ const Panel = () => {
                               <h4 className="font-semibold text-lg mb-3">Récapitulatif du panier</h4>
                               <div className="space-y-2">
                                 {(() => {
-                                  // Récupérer tous les éléments du panier, peu importe le produit
-                                  const cartItems = getAllCartItems(selectedOrder.cart_id);
+                                  // Récupérer tous les éléments du panier
+                                  const cartItems = getAllCartItems(selectedOrder.cart_id as string);
                                   const totalBasketPrice = calculateGroupTotal(cartItems);
                                   
                                   return (
@@ -655,11 +774,7 @@ const Panel = () => {
                                         onClick={() => {
                                           if (selectedOrder.cart_id) {
                                             // Marquer tous les articles de ce panier comme traités
-                                            cartItems.forEach(item => {
-                                              if (!item.processed) {
-                                                markAsProcessed(item.id);
-                                              }
-                                            });
+                                            markBasketAsProcessed(selectedOrder.cart_id, product.id);
                                           }
                                         }}
                                       >

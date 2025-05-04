@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchPromoText } from "@/utils/customerUtils";
 
 type PromoBarProps = {
   text?: string;
@@ -12,19 +13,14 @@ const PromoBar = ({ text = "Livraison GRATUITE et Paiement à la livraison !", p
 
   useEffect(() => {
     if (productId) {
-      const fetchPromoSettings = async () => {
-        const { data, error } = await supabase
-          .from("promo_settings")
-          .select("custom_text")
-          .eq("product_id", productId)
-          .maybeSingle();
-        
-        if (!error && data) {
-          setCustomText(data.custom_text);
+      const loadPromoText = async () => {
+        const promoText = await fetchPromoText(productId);
+        if (promoText) {
+          setCustomText(promoText);
         }
       };
       
-      fetchPromoSettings();
+      loadPromoText();
     }
   }, [productId]);
 

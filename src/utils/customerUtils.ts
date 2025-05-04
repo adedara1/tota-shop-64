@@ -38,10 +38,27 @@ export const generateCustomerColor = (label: string) => {
   return colors[index];
 };
 
+// Generate cart label from cart ID
+export const generateCartLabel = (cartId: string) => {
+  if (!cartId) return "";
+  
+  return `CA-${cartId.substring(0, 3)}`;
+};
+
 // Helper function to save promo text to the database
 export const savePromoText = async (productId: string, text: string) => {
   try {
-    const { error } = await supabase
+    if (!productId || !text) {
+      console.error('Missing productId or text for saving promo text');
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Données manquantes pour la sauvegarde"
+      });
+      return { error: new Error('Missing productId or text') };
+    }
+    
+    const { data, error } = await supabase
       .from('promo_settings')
       .upsert({ 
         product_id: productId, 
@@ -63,7 +80,7 @@ export const savePromoText = async (productId: string, text: string) => {
       description: "Paramètres promotionnels enregistrés"
     });
     
-    return { error: null };
+    return { data, error: null };
   } catch (err) {
     console.error('Exception when saving promo text:', err);
     toast({
@@ -78,6 +95,11 @@ export const savePromoText = async (productId: string, text: string) => {
 // Helper function to fetch promo text from the database
 export const fetchPromoText = async (productId: string): Promise<string | null> => {
   try {
+    if (!productId) {
+      console.error('Missing productId for fetching promo text');
+      return null;
+    }
+    
     const { data, error } = await supabase
       .from('promo_settings')
       .select('custom_text')
@@ -93,5 +115,39 @@ export const fetchPromoText = async (productId: string): Promise<string | null> 
   } catch (err) {
     console.error('Exception when fetching promo text:', err);
     return null;
+  }
+};
+
+// Helper function to fetch all cart items for a specific cart ID
+export const fetchAllCartItems = async (cartId: string) => {
+  try {
+    if (!cartId) {
+      console.error('Missing cartId for fetching cart items');
+      return { data: [], error: new Error('Missing cartId') };
+    }
+    
+    const { data, error } = await supabase
+      .from('cart_items')
+      .select('*')
+      .eq('cart_id', cartId)
+      .eq('hidden', false);
+    
+    if (error) {
+      console.error('Error fetching cart items:', error);
+      return { data: [], error };
+    }
+    
+    // Process the options field for each item
+    const processedData = data.map(item => ({
+      ...item,
+      options: typeof item.options === 'string' 
+        ? JSON.parse(item.options) 
+        : item.options || {}
+    }));
+    
+    return { data: processedData, error: null };
+  } catch (err) {
+    console.error('Exception when fetching cart items:', err);
+    return { data: [], error: err };
   }
 };
