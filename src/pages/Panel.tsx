@@ -61,6 +61,8 @@ const Panel = () => {
   const [groupedCarts, setGroupedCarts] = useState<Record<string, Record<string, GroupedCart>>>({});
   // State to store all cart items across products
   const [allCartItems, setAllCartItems] = useState<Record<string, CartItem[]>>({});
+  // State to track whether an order is part of a shared cart
+  const [isPartOfSharedCart, setIsPartOfSharedCart] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -255,7 +257,16 @@ const Panel = () => {
           ...prev,
           [order.cart_id as string]: data
         }));
+        
+        // Check if this is a shared cart with multiple products
+        const isShared = data.some(item => 
+          item.product_id !== order.product_id
+        );
+        setIsPartOfSharedCart(isShared);
       }
+    } else {
+      // If no cart_id, it's not part of a shared cart
+      setIsPartOfSharedCart(false);
     }
   };
 
@@ -501,6 +512,24 @@ const Panel = () => {
     });
     
     return allItems;
+  };
+
+  // Function to save cart item state to Supabase
+  const saveCartItemState = async (orderId: string, isSharedCart: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("cart_items")
+        .update({ 
+          is_shared_cart: isSharedCart 
+        })
+        .eq("id", orderId);
+
+      if (error) throw error;
+      
+      console.log("Cart item state saved:", isSharedCart);
+    } catch (error) {
+      console.error("Error saving cart item state:", error);
+    }
   };
 
   return (
@@ -768,18 +797,20 @@ const Panel = () => {
                                         <span>Total du panier:</span>
                                         <span>{totalBasketPrice} CFA</span>
                                       </div>
-                                      <Button 
-                                        variant="default" 
-                                        className="w-full mt-2"
-                                        onClick={() => {
-                                          if (selectedOrder.cart_id) {
-                                            // Marquer tous les articles de ce panier comme traités
-                                            markBasketAsProcessed(selectedOrder.cart_id, product.id);
-                                          }
-                                        }}
-                                      >
-                                        Marquer panier comme traité
-                                      </Button>
+                                      {!isPartOfSharedCart && (
+                                        <Button 
+                                          variant="default" 
+                                          className="w-full mt-2"
+                                          onClick={() => {
+                                            if (selectedOrder.cart_id) {
+                                              // Marquer tous les articles de ce panier comme traités
+                                              markBasketAsProcessed(selectedOrder.cart_id, product.id);
+                                            }
+                                          }}
+                                        >
+                                          Marquer panier comme traité
+                                        </Button>
+                                      )}
                                     </>
                                   );
                                 })()}
