@@ -1,4 +1,3 @@
-
 // Utility functions for customer-related operations
 
 export interface Customer {

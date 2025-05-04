@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Eye, EyeOff, Home } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { Customer, generateCustomerLabel, generateCustomerColor } from "@/utils/customerUtils";
 
 interface CartItem {
   id: string;
@@ -18,12 +18,7 @@ interface CartItem {
   price: number;
   quantity: number;
   options: {
-    customer?: {
-      name: string;
-      email: string;
-      phone: string;
-      address: string;
-    };
+    customer?: Customer;
     [key: string]: any;
   };
   image: string;
@@ -38,13 +33,6 @@ interface Product {
   id: string;
   name: string;
   images: string[];
-}
-
-interface Customer {
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
 }
 
 // Function to generate a unique customer label
@@ -570,9 +558,26 @@ const Panel = () => {
                                   const customer = getCustomerInfo(selectedOrder);
                                   if (!customer) return null;
                                   
-                                  const customerKey = `${customer.name}-${customer.phone}`;
-                                  const productId = selectedOrder.product_id;
-                                  const basketOrders = groupOrdersByCustomer(productId)[customerKey] || [];
+                                  // If the order has a cart_id, use that to find all items in the same cart
+                                  const cartId = selectedOrder.cart_id;
+                                  let basketOrders: CartItem[] = [];
+                                  
+                                  if (cartId) {
+                                    // Find all items across all products that belong to this cart_id
+                                    Object.values(orders).forEach(productOrders => {
+                                      productOrders.forEach(order => {
+                                        if (order.cart_id === cartId && !order.hidden) {
+                                          basketOrders.push(order);
+                                        }
+                                      });
+                                    });
+                                  } else {
+                                    // Fallback to the old method if no cart_id
+                                    const customerKey = `${customer.name}-${customer.phone}`;
+                                    const productId = selectedOrder.product_id;
+                                    basketOrders = groupOrdersByCustomer(productId)[customerKey] || [];
+                                  }
+                                  
                                   const totalBasketPrice = calculateGroupTotal(basketOrders);
                                   
                                   return (
@@ -598,7 +603,21 @@ const Panel = () => {
                                       <Button 
                                         variant="default" 
                                         className="w-full mt-2"
-                                        onClick={() => markBasketAsProcessed(customerKey, productId)}
+                                        onClick={() => {
+                                          if (cartId) {
+                                            // Mark all items in this cart as processed
+                                            basketOrders.forEach(order => {
+                                              if (!order.processed) {
+                                                markAsProcessed(order.id);
+                                              }
+                                            });
+                                          } else {
+                                            // Fallback to old method
+                                            const customerKey = `${customer.name}-${customer.phone}`;
+                                            const productId = selectedOrder.product_id;
+                                            markBasketAsProcessed(customerKey, productId);
+                                          }
+                                        }}
                                       >
                                         Marquer panier comme traité
                                       </Button>
