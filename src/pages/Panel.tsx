@@ -1,29 +1,11 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription
-} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, ChevronRight, Package2, Calendar } from "lucide-react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 interface CartItem {
   id: string;
@@ -31,224 +13,244 @@ interface CartItem {
   name: string;
   price: number;
   quantity: number;
-  options?: Record<string, any>;
-  image?: string;
+  options: Record<string, any>;
+  image: string;
   created_at: string;
+  updated_at: string;
 }
 
-interface GroupedOrders {
-  [date: string]: CartItem[];
+interface Product {
+  id: string;
+  name: string;
+  images: string[];
 }
 
 const Panel = () => {
-  const [orders, setOrders] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Record<string, CartItem[]>>({});
   const [selectedOrder, setSelectedOrder] = useState<CartItem | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [groupedOrders, setGroupedOrders] = useState<GroupedOrders>({});
-  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchOrders = async () => {
+    const fetchProducts = async () => {
       try {
-        setLoading(true);
         const { data, error } = await supabase
-          .from("cart_items")
-          .select("*")
-          .order("created_at", { ascending: false });
+          .from("products")
+          .select("id, name, images")
+          .eq("use_internal_cart", true);
 
-        if (error) {
-          throw new Error(error.message);
-        }
+        if (error) throw error;
+        if (data) setProducts(data);
 
-        if (data) {
-          setOrders(data);
+        // For each product, fetch its orders
+        if (data && data.length > 0) {
+          for (const product of data) {
+            const { data: orderData, error: orderError } = await supabase
+              .from("cart_items")
+              .select("*")
+              .eq("product_id", product.id);
 
-          // Group orders by date
-          const grouped = data.reduce((acc: GroupedOrders, order) => {
-            const date = new Date(order.created_at).toISOString().split('T')[0];
-            if (!acc[date]) {
-              acc[date] = [];
+            if (orderError) throw orderError;
+            
+            if (orderData && orderData.length > 0) {
+              // Parse options if stored as string
+              const processedOrders = orderData.map(order => ({
+                ...order,
+                options: typeof order.options === 'string' 
+                  ? JSON.parse(order.options) 
+                  : order.options || {}
+              }));
+              
+              setOrders(prev => ({
+                ...prev,
+                [product.id]: processedOrders as CartItem[]
+              }));
             }
-            acc[date].push(order);
-            return acc;
-          }, {});
-
-          setGroupedOrders(grouped);
+          }
         }
       } catch (error) {
-        console.error("Error fetching orders:", error);
-      } finally {
-        setLoading(false);
+        console.error("Error fetching products or orders:", error);
       }
     };
 
-    fetchOrders();
+    fetchProducts();
   }, []);
 
   const handleOrderClick = (order: CartItem) => {
-    setSelectedOrder(order);
-    setDialogOpen(true);
+    setSelectedOrder({
+      ...order,
+      options: typeof order.options === 'string' 
+        ? JSON.parse(order.options) 
+        : order.options || {}
+    });
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return format(date, "dd MMMM yyyy", { locale: fr });
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return format(date, "HH:mm", { locale: fr });
-  };
-
-  const getTotalPrice = (order: CartItem) => {
-    return order.price * order.quantity;
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
+    <div className="container mx-auto p-4 md:p-8">
+      <h1 className="text-3xl font-bold mb-8 text-center">Tableau de bord des commandes</h1>
       
-      <main className="container mx-auto py-8 px-4">
-        <h1 className="text-3xl font-bold mb-8">Tableau de bord des commandes</h1>
-        
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-lg shadow">
-            <ShoppingBag className="mx-auto mb-4 h-16 w-16 text-gray-400" />
-            <h2 className="text-2xl font-medium mb-2">Aucune commande</h2>
-            <p className="text-gray-600 mb-6">Il n'y a pas encore de commandes dans votre boutique</p>
-            <Button onClick={() => navigate('/products')}>
-              Voir les produits
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {Object.entries(groupedOrders).map(([date, dateOrders]) => (
-              <div key={date} className="bg-white rounded-lg shadow-sm overflow-hidden">
-                <div className="p-4 border-b bg-gray-50 flex items-center">
-                  <Calendar className="mr-2 text-gray-500" size={18} />
-                  <h2 className="font-medium">{formatDate(date)}</h2>
-                  <Badge className="ml-2 bg-blue-500">{dateOrders.length} commande(s)</Badge>
-                </div>
-                
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[100px]">Heure</TableHead>
-                        <TableHead>Produit</TableHead>
-                        <TableHead>Quantité</TableHead>
-                        <TableHead>Prix</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {dateOrders.map((order) => (
-                        <TableRow 
-                          key={order.id} 
-                          className="cursor-pointer hover:bg-gray-50"
-                          onClick={() => handleOrderClick(order)}
-                        >
-                          <TableCell className="font-medium">
-                            {formatTime(order.created_at)}
-                          </TableCell>
-                          <TableCell className="flex items-center">
-                            <div className="w-10 h-10 bg-gray-100 rounded-md overflow-hidden mr-3 flex-shrink-0">
-                              {order.image ? (
-                                <img src={order.image} alt={order.name} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                  <Package2 size={20} />
-                                </div>
-                              )}
-                            </div>
-                            <span className="line-clamp-1">{order.name}</span>
-                          </TableCell>
-                          <TableCell>{order.quantity}</TableCell>
-                          <TableCell>{getTotalPrice(order)} CFA</TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm">
-                              <ChevronRight size={16} />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
+      {products.length === 0 ? (
+        <div className="text-center py-12">
+          <h2 className="text-xl mb-4">Aucun produit avec panier interne trouvé</h2>
+          <p className="text-gray-500">
+            Créez des produits avec l'option "panier interne" pour voir les commandes ici.
+          </p>
+        </div>
+      ) : (
+        <Tabs defaultValue={products[0]?.id} className="w-full">
+          <TabsList className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-8">
+            {products.map((product) => (
+              <TabsTrigger key={product.id} value={product.id} className="text-sm md:text-base">
+                {product.name}
+                {orders[product.id] && (
+                  <Badge className="ml-2 bg-red-500">{orders[product.id].length}</Badge>
+                )}
+              </TabsTrigger>
             ))}
-          </div>
-        )}
-      </main>
-      
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Détails de la commande</DialogTitle>
-            <DialogDescription>
-              {selectedOrder && formatDate(selectedOrder.created_at)} à {selectedOrder && formatTime(selectedOrder.created_at)}
-            </DialogDescription>
-          </DialogHeader>
+          </TabsList>
           
-          {selectedOrder && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4 py-2">
-                <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
-                  {selectedOrder.image ? (
-                    <img src={selectedOrder.image} alt={selectedOrder.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      <Package2 size={24} />
-                    </div>
-                  )}
+          {products.map((product) => (
+            <TabsContent key={product.id} value={product.id} className="space-y-4">
+              <div className="flex flex-col md:flex-row gap-6">
+                <div className="w-full md:w-1/2 space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <span>Commandes pour {product.name}</span>
+                        <Badge>{orders[product.id]?.length || 0} commandes</Badge>
+                      </CardTitle>
+                      <CardDescription>
+                        Cliquez sur une commande pour voir les détails
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="max-h-[500px] overflow-y-auto space-y-2">
+                      {!orders[product.id] || orders[product.id].length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          Aucune commande pour ce produit
+                        </div>
+                      ) : (
+                        orders[product.id].map((order) => (
+                          <div 
+                            key={order.id}
+                            onClick={() => handleOrderClick(order)}
+                            className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                              selectedOrder?.id === order.id 
+                                ? 'bg-blue-50 border-blue-300' 
+                                : 'hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center">
+                                {order.image && (
+                                  <Avatar className="h-10 w-10 mr-3">
+                                    <img src={order.image} alt={order.name} />
+                                  </Avatar>
+                                )}
+                                <div>
+                                  <div className="font-medium">{order.quantity}× {order.name}</div>
+                                  <div className="text-sm text-gray-500">
+                                    {formatDate(order.created_at)}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="font-semibold">
+                                {order.price * order.quantity} CFA
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
-                <div>
-                  <h3 className="font-medium">{selectedOrder.name}</h3>
-                  <p className="text-sm text-gray-500">Produit #{selectedOrder.product_id.slice(0, 8)}</p>
+
+                <div className="w-full md:w-1/2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Détails de la commande</CardTitle>
+                      <CardDescription>
+                        {selectedOrder ? formatDate(selectedOrder.created_at) : "Sélectionnez une commande"}
+                      </CardDescription>
+                    </CardHeader>
+                    
+                    {selectedOrder ? (
+                      <>
+                        <CardContent className="space-y-4">
+                          <div className="flex items-center space-x-4">
+                            {selectedOrder.image && (
+                              <Avatar className="h-20 w-20">
+                                <img src={selectedOrder.image} alt={selectedOrder.name} />
+                              </Avatar>
+                            )}
+                            <div>
+                              <h3 className="text-xl font-semibold">{selectedOrder.name}</h3>
+                              <p className="text-gray-500">ID: {selectedOrder.id.substring(0, 8)}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm text-gray-500">Quantité</p>
+                              <p className="font-medium">{selectedOrder.quantity}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">Prix unitaire</p>
+                              <p className="font-medium">{selectedOrder.price} CFA</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">Total</p>
+                              <p className="font-medium">{selectedOrder.price * selectedOrder.quantity} CFA</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">Date</p>
+                              <p className="font-medium">{formatDate(selectedOrder.created_at)}</p>
+                            </div>
+                          </div>
+
+                          {Object.keys(selectedOrder.options).length > 0 && (
+                            <div>
+                              <h4 className="font-medium mb-2">Options sélectionnées:</h4>
+                              <ul className="bg-gray-50 p-3 rounded-md">
+                                {Object.entries(selectedOrder.options).map(([key, value]) => (
+                                  <li key={key} className="flex justify-between py-1 border-b border-gray-100 last:border-0">
+                                    <span className="font-medium">{key}:</span>
+                                    <span>{typeof value === 'object' ? value.value : value}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </CardContent>
+                        <CardFooter>
+                          <Button variant="outline" className="w-full">
+                            Marquer comme traité
+                          </Button>
+                        </CardFooter>
+                      </>
+                    ) : (
+                      <CardContent>
+                        <div className="text-center py-12 text-gray-500">
+                          Sélectionnez une commande pour voir les détails
+                        </div>
+                      </CardContent>
+                    )}
+                  </Card>
                 </div>
               </div>
-              
-              <div className="border rounded-md divide-y">
-                <div className="flex justify-between p-3">
-                  <span className="text-gray-600">Prix unitaire:</span>
-                  <span className="font-medium">{selectedOrder.price} CFA</span>
-                </div>
-                <div className="flex justify-between p-3">
-                  <span className="text-gray-600">Quantité:</span>
-                  <span className="font-medium">{selectedOrder.quantity}</span>
-                </div>
-                <div className="flex justify-between p-3 bg-gray-50">
-                  <span className="font-medium">Total:</span>
-                  <span className="font-bold">{getTotalPrice(selectedOrder)} CFA</span>
-                </div>
-              </div>
-              
-              {selectedOrder.options && Object.keys(selectedOrder.options).length > 0 && (
-                <div className="border rounded-md p-3">
-                  <h3 className="font-medium mb-2">Options sélectionnées:</h3>
-                  <ul className="space-y-2">
-                    {Object.entries(selectedOrder.options).map(([key, value]) => (
-                      <li key={key} className="flex justify-between text-sm">
-                        <span className="text-gray-600">{key}:</span>
-                        <span className="font-medium">
-                          {typeof value === 'object' ? value.value : value}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-      
-      <Footer />
+            </TabsContent>
+          ))}
+        </Tabs>
+      )}
     </div>
   );
 };

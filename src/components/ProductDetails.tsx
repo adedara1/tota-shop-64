@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import ProductOptions from "./ProductOptions";
-import { Plus, Minus, ShoppingBag, Star } from "lucide-react";
+import { Plus, Minus, ShoppingBag, ShoppingCart } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "./ui/badge";
@@ -337,6 +336,7 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
         </div>
       )}
       
+      {/* Updated buttons section - both buttons visible by default */}
       <div className="flex flex-col sm:flex-row gap-3">
         <button 
           onClick={handleButtonClick}
@@ -345,13 +345,13 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
           {buttonText}
         </button>
         
-        {useInternalCart && addedToCart && (
+        {useInternalCart && (
           <button 
             onClick={goToCart}
             className="block flex-1 bg-gray-800 text-white py-3 px-6 rounded hover:bg-gray-900 transition-colors text-center flex items-center justify-center"
           >
-            <ShoppingBag className="mr-2" size={18} />
-            Commander maintenant
+            <ShoppingCart className="mr-2" size={18} />
+            {addedToCart ? "Voir mon panier" : "Commander maintenant"}
           </button>
         )}
       </div>
