@@ -10,6 +10,7 @@ import ProductsSettings from './pages/ProductsSettings';
 import Payment from './pages/Payment';
 import Stats from './pages/Stats';
 import Contact from './pages/Contact';
+import Panel from './pages/Panel';
 import { Toaster } from "@/components/ui/toaster";
 import {
   QueryClient,
@@ -36,6 +37,7 @@ const App = () => {
             <Route path="/stats" element={<Stats />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/home" element={<Home />} />
+            <Route path="/panel" element={<Panel />} />
           </Routes>
         </QueryClientProvider>
       </CartProvider>

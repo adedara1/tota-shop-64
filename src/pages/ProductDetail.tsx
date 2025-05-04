@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -173,6 +174,8 @@ const ProductDetail = () => {
   }
 
   const productImages = product.images;
+  // Check if product has a WhatsApp URL in cart_url
+  const isWhatsApp = product.cart_url && product.cart_url.includes('wa.me');
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color || "#000000" }}>

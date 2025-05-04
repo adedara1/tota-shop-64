@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import ProductOptions from "./ProductOptions";
 import { Plus, Minus, ShoppingBag, Star } from "lucide-react";
@@ -79,6 +80,7 @@ const ProductDetails = ({
   const [totalPrice, setTotalPrice] = useState(discountedPrice);
   const { addToCart } = useCart();
   const navigate = useNavigate();
+  const [addedToCart, setAddedToCart] = useState(false);
   
   const discountPercentage = originalPrice > 0 
     ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100) 
@@ -159,31 +161,59 @@ const ProductDetails = ({
           title: "Produit ajouté au panier",
           description: `${quantity} × ${name} ajouté au panier`,
         });
+        
+        setAddedToCart(true);
       }
       return;
     }
     
-    let finalUrl = cartUrl;
-    const params = new URLSearchParams();
-    
-    params.append('quantity', quantity.toString());
-    
-    Object.entries(selectedOptions).forEach(([key, value]) => {
-      const optValue = typeof value === 'object' ? value.value : value;
-      params.append(key, optValue);
-    });
-    
-    params.append('price', totalPrice.toString());
-    
-    params.append('product', name);
-    
-    if (params.toString()) {
-      finalUrl += (finalUrl.includes('?') ? '&' : '?') + params.toString();
+    // If using custom URL (not internal cart and not whatsapp)
+    if (!cartUrl.includes('wa.me')) {
+      let finalUrl = cartUrl;
+      const params = new URLSearchParams();
+      
+      params.append('quantity', quantity.toString());
+      
+      Object.entries(selectedOptions).forEach(([key, value]) => {
+        const optValue = typeof value === 'object' ? value.value : value;
+        params.append(key, optValue);
+      });
+      
+      params.append('price', totalPrice.toString());
+      params.append('product', name);
+      
+      if (params.toString()) {
+        finalUrl += (finalUrl.includes('?') ? '&' : '?') + params.toString();
+      }
+      
+      console.log("Checkout URL:", finalUrl);
+      window.open(finalUrl, '_blank', 'noopener,noreferrer');
+      return;
     }
     
-    console.log("Checkout URL:", finalUrl);
-    
-    window.open(finalUrl, '_blank', 'noopener,noreferrer');
+    // If using WhatsApp
+    if (cartUrl.includes('wa.me')) {
+      const phoneNumber = cartUrl.split('wa.me/')[1]?.split('?')[0];
+      if (!phoneNumber) return;
+      
+      // Format WhatsApp message
+      const optionsText = Object.entries(selectedOptions)
+        .map(([key, value]) => `${key}: ${typeof value === 'object' ? value.value : value}`)
+        .join('\n');
+      
+      const message = `
+*Nouvelle commande*
+Produit: ${name}
+Prix: ${discountedPrice} ${displayCurrency}
+Quantité: ${quantity}
+Total: ${totalPrice} ${displayCurrency}
+${optionsText ? `\n*Options*:\n${optionsText}` : ''}
+      `.trim();
+      
+      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
   };
 
   const goToCart = () => {
@@ -197,6 +227,10 @@ const ProductDetails = ({
   const decreaseQuantity = () => {
     setQuantity(prev => (prev > 1 ? prev - 1 : 1));
   };
+
+  // Check if using custom URL (not WhatsApp)
+  const isCustomUrl = cartUrl && !cartUrl.includes('wa.me') && !useInternalCart;
+  const isWhatsApp = cartUrl && cartUrl.includes('wa.me');
 
   return (
     <div className="space-y-6 max-w-full">
@@ -244,28 +278,32 @@ const ProductDetails = ({
         </div>
       )}
       
-      <div className="mb-6">
-        <h3 className="text-sm font-medium mb-3" style={{ color: quantityTextColor }}>Quantité</h3>
-        <div className="flex items-center">
-          <button 
-            onClick={decreaseQuantity}
-            className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-300"
-            style={{ color: quantityTextColor }}
-          >
-            <Minus size={16} />
-          </button>
-          <span className="mx-4" style={{ color: quantityTextColor }}>{quantity}</span>
-          <button 
-            onClick={increaseQuantity}
-            className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-300"
-            style={{ color: quantityTextColor }}
-          >
-            <Plus size={16} />
-          </button>
+      {/* Hide quantity selection for custom URL products */}
+      {!isCustomUrl && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium mb-3" style={{ color: quantityTextColor }}>Quantité</h3>
+          <div className="flex items-center">
+            <button 
+              onClick={decreaseQuantity}
+              className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-300"
+              style={{ color: quantityTextColor }}
+            >
+              <Minus size={16} />
+            </button>
+            <span className="mx-4" style={{ color: quantityTextColor }}>{quantity}</span>
+            <button 
+              onClick={increaseQuantity}
+              className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-300"
+              style={{ color: quantityTextColor }}
+            >
+              <Plus size={16} />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
       
-      {Object.entries(options).map(([optionTitle, optionValues]) => (
+      {/* Hide options for custom URL products */}
+      {!isCustomUrl && Object.entries(options).map(([optionTitle, optionValues]) => (
         <ProductOptions
           key={optionTitle}
           title={optionTitle}
@@ -283,7 +321,7 @@ const ProductDetails = ({
         />
       ))}
       
-      {Object.keys(selectedOptions).length > 0 && (
+      {!isCustomUrl && Object.keys(selectedOptions).length > 0 && (
         <div className="bg-white/80 p-3 rounded-md">
           <h3 className="text-sm font-medium mb-2" style={{ color: optionTitleColor }}>Options sélectionnées:</h3>
           <ul className="space-y-1">
@@ -307,13 +345,13 @@ const ProductDetails = ({
           {buttonText}
         </button>
         
-        {useInternalCart && (
+        {useInternalCart && addedToCart && (
           <button 
             onClick={goToCart}
             className="block flex-1 bg-gray-800 text-white py-3 px-6 rounded hover:bg-gray-900 transition-colors text-center flex items-center justify-center"
           >
             <ShoppingBag className="mr-2" size={18} />
-            Voir mon panier
+            Commander maintenant
           </button>
         )}
       </div>
