@@ -47,6 +47,7 @@ export type Database = {
           name: string
           options: Json | null
           price: number
+          processed: boolean | null
           product_id: string | null
           quantity: number
           updated_at: string
@@ -58,6 +59,7 @@ export type Database = {
           name: string
           options?: Json | null
           price: number
+          processed?: boolean | null
           product_id?: string | null
           quantity?: number
           updated_at?: string
@@ -69,6 +71,7 @@ export type Database = {
           name?: string
           options?: Json | null
           price?: number
+          processed?: boolean | null
           product_id?: string | null
           quantity?: number
           updated_at?: string

@@ -26,6 +26,7 @@ interface CartItem {
   image: string;
   created_at: string;
   updated_at: string;
+  processed: boolean | null; // Added processed property
 }
 
 interface Product {
