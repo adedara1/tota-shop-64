@@ -1,5 +1,6 @@
 
 // Utility functions for customer-related operations
+import { supabase } from "@/integrations/supabase/client";
 
 export interface Customer {
   name: string;
