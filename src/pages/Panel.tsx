@@ -503,6 +503,17 @@ const Panel = () => {
     return allItems;
   };
 
+  // New function to get other products in the same cart
+  const getOtherProductsInCart = (cartId: string, currentOrderId: string): CartItem[] => {
+    if (!cartId) return [];
+    
+    // Get all items from the cart
+    const allItems = getAllCartItems(cartId);
+    
+    // Filter out the current item
+    return allItems.filter(item => item.id !== currentOrderId && !item.hidden);
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-8">
       <div className="flex justify-between items-center mb-6">
@@ -768,6 +779,49 @@ const Panel = () => {
                                         <span>Total du panier:</span>
                                         <span>{totalBasketPrice} CFA</span>
                                       </div>
+                                      
+                                      {/* Afficher les autres produits dans le même panier */}
+                                      {selectedOrder.cart_id && (
+                                        <div className="mt-4">
+                                          <h4 className="font-medium mb-2">Autres produits dans ce panier:</h4>
+                                          <div className="space-y-2 mb-4">
+                                            {getOtherProductsInCart(selectedOrder.cart_id, selectedOrder.id).length > 0 ? (
+                                              getOtherProductsInCart(selectedOrder.cart_id, selectedOrder.id).map((item) => (
+                                                <div 
+                                                  key={item.id} 
+                                                  className="bg-white p-3 rounded-lg border border-gray-200 flex justify-between items-center"
+                                                  onClick={() => handleOrderClick(item)}
+                                                >
+                                                  <div className="flex items-center">
+                                                    {item.image && (
+                                                      <Avatar className="h-10 w-10 mr-3">
+                                                        <img src={item.image} alt={item.name} />
+                                                      </Avatar>
+                                                    )}
+                                                    <div>
+                                                      <div className="font-medium">{item.quantity}× {item.name}</div>
+                                                      <div className="text-sm text-gray-500">
+                                                        {formatDate(item.created_at)}
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                  <div className="flex flex-col items-end">
+                                                    <div>{item.price * item.quantity} CFA</div>
+                                                    {item.processed && (
+                                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                                        Traitée
+                                                      </Badge>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              ))
+                                            ) : (
+                                              <p className="text-gray-500 text-center">Aucun autre produit dans ce panier</p>
+                                            )}
+                                          </div>
+                                      </div>
+                                      )}
+                                      
                                       <Button 
                                         variant="default" 
                                         className="w-full mt-2"
