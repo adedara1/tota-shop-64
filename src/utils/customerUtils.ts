@@ -49,7 +49,7 @@ export const generateCartLabel = (cartId: string) => {
 export const savePromoText = async (productId: string, text: string) => {
   try {
     if (!productId || !text) {
-      console.error('Missing productId or text for saving promo text');
+      console.error('Missing productId or text for saving promo text:', { productId, text });
       toast({
         variant: "destructive",
         title: "Erreur",
@@ -57,6 +57,8 @@ export const savePromoText = async (productId: string, text: string) => {
       });
       return { error: new Error('Missing productId or text') };
     }
+    
+    console.log('Attempting to save promo text:', { productId, text });
     
     const { data, error } = await supabase
       .from('promo_settings')
@@ -66,7 +68,7 @@ export const savePromoText = async (productId: string, text: string) => {
       });
     
     if (error) {
-      console.error('Error saving promo text:', error);
+      console.error('Error saving promo text to Supabase:', error);
       toast({
         variant: "destructive",
         title: "Erreur",
@@ -75,6 +77,7 @@ export const savePromoText = async (productId: string, text: string) => {
       return { error };
     }
 
+    console.log('Promo text saved successfully:', data);
     toast({
       title: "Succès",
       description: "Paramètres promotionnels enregistrés"
@@ -100,6 +103,8 @@ export const fetchPromoText = async (productId: string): Promise<string | null> 
       return null;
     }
     
+    console.log('Fetching promo text for product:', productId);
+    
     const { data, error } = await supabase
       .from('promo_settings')
       .select('custom_text')
@@ -107,10 +112,11 @@ export const fetchPromoText = async (productId: string): Promise<string | null> 
       .maybeSingle();
     
     if (error) {
-      console.error('Error fetching promo text:', error);
+      console.error('Error fetching promo text from Supabase:', error);
       return null;
     }
     
+    console.log('Fetched promo text result:', data);
     return data?.custom_text || null;
   } catch (err) {
     console.error('Exception when fetching promo text:', err);
