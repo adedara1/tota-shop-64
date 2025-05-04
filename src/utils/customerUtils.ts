@@ -1,6 +1,7 @@
 
 // Utility functions for customer-related operations
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export interface Customer {
   name: string;
@@ -39,27 +40,58 @@ export const generateCustomerColor = (label: string) => {
 
 // Helper function to save promo text to the database
 export const savePromoText = async (productId: string, text: string) => {
-  const { error } = await supabase
-    .from('promo_settings')
-    .upsert({ 
-      product_id: productId, 
-      custom_text: text
+  try {
+    const { error } = await supabase
+      .from('promo_settings')
+      .upsert({ 
+        product_id: productId, 
+        custom_text: text
+      });
+    
+    if (error) {
+      console.error('Error saving promo text:', error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Échec lors de la sauvegarde des paramètres promotionnels"
+      });
+      return { error };
+    }
+
+    toast({
+      title: "Succès",
+      description: "Paramètres promotionnels enregistrés"
     });
-  
-  return { error };
+    
+    return { error: null };
+  } catch (err) {
+    console.error('Exception when saving promo text:', err);
+    toast({
+      variant: "destructive",
+      title: "Erreur",
+      description: "Échec lors de la sauvegarde des paramètres promotionnels"
+    });
+    return { error: err };
+  }
 };
 
 // Helper function to fetch promo text from the database
 export const fetchPromoText = async (productId: string): Promise<string | null> => {
-  const { data, error } = await supabase
-    .from('promo_settings')
-    .select('custom_text')
-    .eq('product_id', productId)
-    .maybeSingle();
-  
-  if (error || !data) {
+  try {
+    const { data, error } = await supabase
+      .from('promo_settings')
+      .select('custom_text')
+      .eq('product_id', productId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error fetching promo text:', error);
+      return null;
+    }
+    
+    return data?.custom_text || null;
+  } catch (err) {
+    console.error('Exception when fetching promo text:', err);
     return null;
   }
-  
-  return data.custom_text;
 };

@@ -36,7 +36,7 @@ interface Product {
   images: string[];
 }
 
-// Nouvelle interface pour représenter un panier groupé
+// Interface pour représenter un panier groupé
 interface GroupedCart {
   id: string;
   label?: string;
@@ -52,7 +52,7 @@ const Panel = () => {
   const [selectedOrder, setSelectedOrder] = useState<CartItem | null>(null);
   const [selectedBasket, setSelectedBasket] = useState<string | null>(null);
   const [hiddenOrders, setHiddenOrders] = useState<string[]>([]);
-  // Nouveau state pour stocker les paniers groupés
+  // State pour stocker les paniers groupés
   const [groupedCarts, setGroupedCarts] = useState<Record<string, Record<string, GroupedCart>>>({});
 
   useEffect(() => {
@@ -108,37 +108,23 @@ const Panel = () => {
     Object.entries(orders).forEach(([productId, productOrders]) => {
       newGroupedCarts[productId] = {};
       
-      // Groupe temporaire pour les articles sans cart_id
+      // Groupe pour les articles avec cart_id
+      const cartGroups: Record<string, CartItem[]> = {};
+      
+      // Groupe pour les articles sans cart_id
       const noCartIdGroups: Record<string, CartItem[]> = {};
 
-      // Première passe: traiter les articles avec cart_id
+      // Première passe: collecter tous les items par cart_id
       productOrders.forEach(order => {
         if (order.hidden) return; // Ignorer les commandes cachées
         
-        // Si l'article a un cart_id, l'utiliser comme clé de groupe
         if (order.cart_id) {
-          if (!newGroupedCarts[productId][order.cart_id]) {
-            // Initialiser un nouveau groupe de panier
-            const customer = getCustomerInfo(order);
-            const label = customer ? generateCustomerLabel(customer) : `Cart-${order.cart_id.substring(0, 5)}`;
-            const labelColor = generateCustomerColor(label);
-            
-            newGroupedCarts[productId][order.cart_id] = {
-              id: order.cart_id,
-              label,
-              labelColor,
-              customer,
-              orders: [],
-              totalPrice: 0
-            };
+          if (!cartGroups[order.cart_id]) {
+            cartGroups[order.cart_id] = [];
           }
-          
-          // Ajouter la commande au groupe
-          newGroupedCarts[productId][order.cart_id].orders.push(order);
-          newGroupedCarts[productId][order.cart_id].totalPrice += (order.price * order.quantity);
-        } 
-        // Si pas de cart_id, grouper par customerKey 
-        else {
+          cartGroups[order.cart_id].push(order);
+        } else {
+          // Pour les items sans cart_id, grouper par client
           const customer = getCustomerInfo(order);
           if (customer) {
             const customerKey = `${customer.name}-${customer.phone}`;
@@ -147,14 +133,38 @@ const Panel = () => {
             }
             noCartIdGroups[customerKey].push(order);
           } else {
-            // Commandes sans client et sans cart_id sont des groupes individuels
+            // Items sans client et sans cart_id sont des groupes individuels
             const key = `unknown-${order.id}`;
             noCartIdGroups[key] = [order];
           }
         }
       });
-
-      // Deuxième passe: traiter les groupes sans cart_id
+      
+      // Deuxième passe: créer des GroupedCart pour les cart_id
+      Object.entries(cartGroups).forEach(([cartId, items]) => {
+        // On prend le premier item pour obtenir des informations sur le client
+        const firstOrder = items[0];
+        const customer = getCustomerInfo(firstOrder);
+        
+        // Génèrer un label pour le panier basé sur le cart_id
+        const cartLabel = `CA-${cartId.substring(0, 3)}`;
+        const labelColor = generateCustomerColor(cartLabel);
+        
+        // Calculer le prix total
+        const totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        
+        // Créer le panier groupé
+        newGroupedCarts[productId][cartId] = {
+          id: cartId,
+          label: cartLabel,
+          labelColor,
+          customer,
+          orders: items,
+          totalPrice
+        };
+      });
+      
+      // Troisième passe: traiter les groupes sans cart_id
       Object.entries(noCartIdGroups).forEach(([groupKey, groupOrders]) => {
         // Créer un identifiant unique pour ce groupe
         const groupId = `legacy-${groupKey}`;
@@ -347,32 +357,6 @@ const Panel = () => {
     }
   };
 
-  // Ancienne fonction groupOrdersByCustomer (gardée pour compatibilité)
-  const groupOrdersByCustomer = (productId: string) => {
-    const productOrders = orders[productId] || [];
-    const groupedOrders: Record<string, CartItem[]> = {};
-    
-    productOrders.forEach(order => {
-      if (order.hidden) return; // Ignorer les commandes cachées
-      
-      const customer = getCustomerInfo(order);
-      if (!customer) {
-        // Gérer les commandes sans info client
-        const key = `unknown-${order.id}`;
-        groupedOrders[key] = [order];
-        return;
-      }
-      
-      const customerKey = `${customer.name}-${customer.phone}`;
-      if (!groupedOrders[customerKey]) {
-        groupedOrders[customerKey] = [];
-      }
-      groupedOrders[customerKey].push(order);
-    });
-    
-    return groupedOrders;
-  };
-
   // Fonction pour calculer le prix total d'un groupe de commandes
   const calculateGroupTotal = (orderGroup: CartItem[]) => {
     return orderGroup.reduce((total, order) => total + (order.price * order.quantity), 0);
@@ -381,6 +365,23 @@ const Panel = () => {
   // Compter les commandes visibles (non cachées)
   const countVisibleOrders = (productId: string) => {
     return orders[productId]?.filter(order => !order.hidden)?.length || 0;
+  };
+
+  // Fonction pour récupérer tous les éléments du panier pour un cart_id spécifique
+  const getAllCartItems = (cartId: string): CartItem[] => {
+    if (!cartId) return [];
+    
+    const allItems: CartItem[] = [];
+    
+    // Parcourir tous les produits pour trouver les éléments avec ce cart_id
+    Object.values(orders).forEach(productOrders => {
+      const matchingItems = productOrders.filter(
+        order => order.cart_id === cartId && !order.hidden
+      );
+      allItems.push(...matchingItems);
+    });
+    
+    return allItems;
   };
 
   return (
@@ -439,7 +440,7 @@ const Panel = () => {
                           Aucune commande pour ce produit
                         </div>
                       ) : (
-                        // Utiliser les paniers groupés plutôt que groupOrdersByCustomer
+                        // Utiliser les paniers groupés pour afficher les commandes
                         Object.entries(groupedCarts[product.id] || {}).map(([basketId, basket]) => {
                           const isSelected = selectedBasket === basketId;
                           
@@ -622,37 +623,25 @@ const Panel = () => {
                               <h4 className="font-semibold text-lg mb-3">Récapitulatif du panier</h4>
                               <div className="space-y-2">
                                 {(() => {
-                                  // Trouver le panier correspondant à l'article sélectionné
-                                  const cartId = selectedOrder.cart_id;
-                                  if (!cartId) return null;
-                                  
-                                  // Trouver tous les articles du même panier (cart_id)
-                                  let basketOrders: CartItem[] = [];
-                                  
-                                  // Chercher dans tous les produits les items avec ce cart_id
-                                  Object.values(orders).forEach(productOrders => {
-                                    productOrders.forEach(order => {
-                                      if (order.cart_id === cartId && !order.hidden) {
-                                        basketOrders.push(order);
-                                      }
-                                    });
-                                  });
-                                  
-                                  const totalBasketPrice = calculateGroupTotal(basketOrders);
+                                  // Récupérer tous les éléments du panier, peu importe le produit
+                                  const cartItems = getAllCartItems(selectedOrder.cart_id);
+                                  const totalBasketPrice = calculateGroupTotal(cartItems);
                                   
                                   return (
                                     <>
-                                      <p className="mb-2">Ce produit fait partie d'un panier contenant {basketOrders.length} article{basketOrders.length > 1 ? 's' : ''}:</p>
+                                      <p className="mb-2">
+                                        Ce produit fait partie d'un panier contenant {cartItems.length} article{cartItems.length > 1 ? 's' : ''}:
+                                      </p>
                                       <ul className="mb-4 space-y-1">
-                                        {basketOrders.map((order) => (
-                                          <li key={order.id} className="flex justify-between items-center">
+                                        {cartItems.map((item) => (
+                                          <li key={item.id} className="flex justify-between items-center">
                                             <span>
-                                              {order.quantity}× {order.name}
-                                              {order.id === selectedOrder.id && 
+                                              {item.quantity}× {item.name}
+                                              {item.id === selectedOrder.id && 
                                                 <Badge variant="outline" className="ml-2 text-xs">actuel</Badge>
                                               }
                                             </span>
-                                            <span className="font-medium">{order.price * order.quantity} CFA</span>
+                                            <span className="font-medium">{item.price * item.quantity} CFA</span>
                                           </li>
                                         ))}
                                       </ul>
@@ -664,11 +653,11 @@ const Panel = () => {
                                         variant="default" 
                                         className="w-full mt-2"
                                         onClick={() => {
-                                          if (cartId) {
+                                          if (selectedOrder.cart_id) {
                                             // Marquer tous les articles de ce panier comme traités
-                                            basketOrders.forEach(order => {
-                                              if (!order.processed) {
-                                                markAsProcessed(order.id);
+                                            cartItems.forEach(item => {
+                                              if (!item.processed) {
+                                                markAsProcessed(item.id);
                                               }
                                             });
                                           }
@@ -724,4 +713,3 @@ const Panel = () => {
 };
 
 export default Panel;
-
