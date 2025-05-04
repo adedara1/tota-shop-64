@@ -1,12 +1,66 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Home, PlusCircle, Mail, BarChart, Layers, LayoutDashboard } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
+
+const MenuPanel = ({ title, description, icon, url }: { title: string, description: string, icon: React.ReactNode, url: string }) => {
+  return (
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-xl">{title}</CardTitle>
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+            {icon}
+          </div>
+        </div>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Link to={url}>
+          <Button className="w-full">Accéder</Button>
+        </Link>
+      </CardContent>
+    </Card>
+  );
+};
 
 const Dashboard = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      toast({
+        title: "Accès non autorisé",
+        description: "Vous devez être connecté pour accéder à cette page.",
+        variant: "destructive"
+      });
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin h-10 w-10 border-4 border-primary rounded-full border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  const menuItems = [
+    { title: "Accueil", description: "Retourner à la page d'accueil", icon: <Home className="w-6 h-6" />, url: "/home" },
+    { title: "Dashboard", description: "Vue d'ensemble de votre activité", icon: <LayoutDashboard className="w-6 h-6" />, url: "/dashboard" },
+    { title: "Créer un produit", description: "Ajouter un nouveau produit", icon: <PlusCircle className="w-6 h-6" />, url: "/product-form" },
+    { title: "Statistiques", description: "Consulter les statistiques des produits", icon: <BarChart className="w-6 h-6" />, url: "/stats" },
+    { title: "Panel", description: "Gérer les paramètres avancés", icon: <Layers className="w-6 h-6" />, url: "/panel" },
+    { title: "Contact", description: "Nous contacter pour toute demande", icon: <Mail className="w-6 h-6" />, url: "/contact" },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -21,7 +75,7 @@ const Dashboard = () => {
           </Link>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
           <Card>
             <CardHeader>
               <CardTitle>Gestion des produits</CardTitle>
@@ -45,6 +99,20 @@ const Dashboard = () => {
               </Link>
             </CardContent>
           </Card>
+        </div>
+        
+        <h2 className="text-2xl font-bold mb-6">Menu Principal</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {menuItems.map((item) => (
+            <MenuPanel 
+              key={item.title} 
+              title={item.title} 
+              description={item.description} 
+              icon={item.icon} 
+              url={item.url} 
+            />
+          ))}
         </div>
       </div>
     </div>

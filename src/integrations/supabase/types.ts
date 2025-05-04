@@ -430,6 +430,33 @@ export type Database = {
           },
         ]
       }
+      ui_preferences: {
+        Row: {
+          created_at: string | null
+          hidden_menu_items: Json | null
+          id: string
+          sidebar_collapsed: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          hidden_menu_items?: Json | null
+          id?: string
+          sidebar_collapsed?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          hidden_menu_items?: Json | null
+          id?: string
+          sidebar_collapsed?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

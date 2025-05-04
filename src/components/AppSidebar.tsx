@@ -1,5 +1,5 @@
 
-import { Home, PlusCircle, Mail, BarChart, Settings, LayoutDashboard, Layers } from "lucide-react"
+import { Home, PlusCircle, Mail, BarChart, Settings, LayoutDashboard, Layers, LogOut, LogIn } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 import {
   Sidebar,
@@ -14,8 +14,11 @@ import {
 } from "@/components/ui/sidebar"
 import { useEffect, useState } from "react"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/integrations/supabase/client"
+import { toast } from "@/hooks/use-toast"
 
-const items = [
+const defaultItems = [
   {
     title: "Accueil",
     url: "/home",
@@ -52,6 +55,9 @@ export function AppSidebar() {
   const location = useLocation();
   const isMobile = useIsMobile();
   const [mobileClass, setMobileClass] = useState("");
+  const { user, signOut, loading } = useAuth();
+  const [visibleItems, setVisibleItems] = useState(defaultItems);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (isMobile) {
@@ -61,6 +67,72 @@ export function AppSidebar() {
     }
   }, [isMobile]);
 
+  useEffect(() => {
+    const fetchUserPreferences = async () => {
+      if (!user) {
+        setVisibleItems([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        // Fetch user preferences from Supabase
+        const { data, error } = await supabase
+          .from('ui_preferences')
+          .select('hidden_menu_items')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching user preferences:", error);
+          // If no preferences found, create default preferences
+          if (error.code === 'PGRST116') {
+            const { error: insertError } = await supabase
+              .from('ui_preferences')
+              .insert({
+                user_id: user.id,
+                hidden_menu_items: ["Accueil", "Dashboard", "Créer un produit", "Statistiques", "Panel", "Contact"]
+              });
+            
+            if (insertError) {
+              console.error("Error creating user preferences:", insertError);
+            } else {
+              // All menus should be hidden by default
+              setVisibleItems([]);
+            }
+          }
+        } else if (data) {
+          // Filter out hidden menu items
+          const hiddenMenus = data.hidden_menu_items || [];
+          const filtered = defaultItems.filter(item => !hiddenMenus.includes(item.title));
+          setVisibleItems(filtered);
+        }
+      } catch (err) {
+        console.error("Failed to fetch user preferences:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserPreferences();
+  }, [user]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Déconnexion réussie",
+        description: "Vous avez été déconnecté avec succès."
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur de déconnexion",
+        description: "Une erreur est survenue lors de la déconnexion.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <>
       <Sidebar className={mobileClass}>
@@ -69,7 +141,7 @@ export function AppSidebar() {
             <SidebarGroupLabel className={isMobile ? "text-black" : ""}>Navigation</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {items.map((item) => (
+                {!isLoading && visibleItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton 
                       asChild
@@ -84,6 +156,31 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
+                
+                {/* Authentication button */}
+                <SidebarMenuItem>
+                  {user ? (
+                    <SidebarMenuButton 
+                      tooltip="Déconnexion"
+                      className={isMobile ? "text-black hover:text-gray-700" : ""}
+                      onClick={handleLogout}
+                    >
+                      <LogOut className={isMobile ? "text-black" : ""} />
+                      <span className={isMobile ? "text-black" : ""}>Déconnexion</span>
+                    </SidebarMenuButton>
+                  ) : (
+                    <SidebarMenuButton 
+                      asChild
+                      tooltip="Connexion"
+                      className={isMobile ? "text-black hover:text-gray-700" : ""}
+                    >
+                      <Link to="/auth">
+                        <LogIn className={isMobile ? "text-black" : ""} />
+                        <span className={isMobile ? "text-black" : ""}>Connexion</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  )}
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
