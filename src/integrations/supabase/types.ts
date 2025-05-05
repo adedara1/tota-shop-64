@@ -85,22 +85,7 @@ export type Database = {
           quantity?: number
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "cart_items_cart_id_fkey"
-            columns: ["cart_id"]
-            isOneToOne: false
-            referencedRelation: "carts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cart_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       carts: {
         Row: {
@@ -208,15 +193,7 @@ export type Database = {
           view_date?: string
           views_count?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "product_stats_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       products: {
         Row: {
@@ -423,15 +400,7 @@ export type Database = {
           product_id?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "promo_settings_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: true
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       ui_preferences: {
         Row: {
@@ -488,18 +457,18 @@ export type Database = {
     }
     Enums: {
       currency_code:
-        | "XOF"
-        | "XAF"
-        | "ZAR"
-        | "MAD"
         | "EGP"
-        | "NGN"
+        | "EUR"
+        | "GHS"
         | "KES"
+        | "MAD"
+        | "NGN"
         | "TND"
         | "UGX"
-        | "GHS"
         | "USD"
-        | "EUR"
+        | "XAF"
+        | "XOF"
+        | "ZAR"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -616,18 +585,18 @@ export const Constants = {
   public: {
     Enums: {
       currency_code: [
-        "XOF",
-        "XAF",
-        "ZAR",
-        "MAD",
         "EGP",
-        "NGN",
+        "EUR",
+        "GHS",
         "KES",
+        "MAD",
+        "NGN",
         "TND",
         "UGX",
-        "GHS",
         "USD",
-        "EUR",
+        "XAF",
+        "XOF",
+        "ZAR",
       ],
     },
   },
