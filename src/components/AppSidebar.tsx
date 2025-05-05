@@ -91,20 +91,20 @@ export function AppSidebar() {
               .from('ui_preferences')
               .insert({
                 user_id: user.id,
-                hidden_menu_items: ["Accueil", "Dashboard", "Créer un produit", "Statistiques", "Panel", "Contact"]
+                hidden_menu_items: []
               });
             
             if (insertError) {
               console.error("Error creating user preferences:", insertError);
             } else {
-              // All menus should be hidden by default
-              setVisibleItems([]);
+              // Show all menus by default
+              setVisibleItems(defaultItems);
             }
           }
         } else if (data) {
           // Filter out hidden menu items
           const hiddenMenus = Array.isArray(data.hidden_menu_items) ? data.hidden_menu_items : [];
-          const filtered = defaultItems.filter(item => !hiddenMenus.includes(item.title));
+          const filtered = defaultItems.filter(menuItem => !hiddenMenus.includes(menuItem.title));
           setVisibleItems(filtered);
         }
       } catch (err) {
@@ -141,17 +141,17 @@ export function AppSidebar() {
             <SidebarGroupLabel className={isMobile ? "text-black" : ""}>Navigation</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {!isLoading && visibleItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
+                {!isLoading && visibleItems.map((menuItem) => (
+                  <SidebarMenuItem key={menuItem.title}>
                     <SidebarMenuButton 
                       asChild
-                      isActive={location.pathname === item.url}
-                      tooltip={item.title}
+                      isActive={location.pathname === menuItem.url}
+                      tooltip={menuItem.title}
                       className={isMobile ? "text-black hover:text-gray-700" : ""}
                     >
-                      <Link to={item.url}>
-                        <item.icon className={isMobile ? "text-black" : ""} />
-                        <span className={isMobile ? "text-black" : ""}>{item.title}</span>
+                      <Link to={menuItem.url}>
+                        <menuItem.icon className={isMobile ? "text-black" : ""} />
+                        <span className={isMobile ? "text-black" : ""}>{menuItem.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

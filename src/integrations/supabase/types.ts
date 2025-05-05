@@ -242,6 +242,7 @@ export type Database = {
           product_trademark_color: string | null
           quantity_text_color: string | null
           review_count: number | null
+          review_count_color: string | null
           secondary_button: Json | null
           show_product_trademark: boolean | null
           show_similar_products: boolean | null
@@ -280,6 +281,7 @@ export type Database = {
           product_trademark_color?: string | null
           quantity_text_color?: string | null
           review_count?: number | null
+          review_count_color?: string | null
           secondary_button?: Json | null
           show_product_trademark?: boolean | null
           show_similar_products?: boolean | null
@@ -318,6 +320,7 @@ export type Database = {
           product_trademark_color?: string | null
           quantity_text_color?: string | null
           review_count?: number | null
+          review_count_color?: string | null
           secondary_button?: Json | null
           show_product_trademark?: boolean | null
           show_similar_products?: boolean | null
