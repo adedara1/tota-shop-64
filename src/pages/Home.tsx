@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/AppSidebar"
 import Navbar from "@/components/Navbar"
 import PromoBar from "@/components/PromoBar"
 import Panel from "@/pages/Panel"
+import { Link } from "react-router-dom"
 
 const Home = () => {
   return (
@@ -19,10 +20,12 @@ const Home = () => {
               Gérez vos produits et suivez vos ventes depuis votre tableau de bord.
             </p>
             
-            {/* Ajout du panel Dashboard */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-              <Panel />
-            </div>
+            {/* Dashboard panel with link to /dashboard */}
+            <Link to="/dashboard" className="block">
+              <div className="bg-white rounded-lg shadow-md p-6 mb-8 hover:shadow-lg transition-shadow cursor-pointer">
+                <Panel />
+              </div>
+            </Link>
           </main>
         </div>
       </div>
