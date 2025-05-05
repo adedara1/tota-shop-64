@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useState, useEffect } from "react";
 import { supabase, isSupabaseConnected } from "@/integrations/supabase/client";
@@ -7,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { DatabaseOff } from "lucide-react";
+import { Database } from "lucide-react";
 
 interface ProductType {
   id: string;
@@ -69,7 +68,7 @@ export default function Panel() {
         <h1 className="text-3xl font-bold mb-8">Tableau de bord</h1>
         
         <div className="flex flex-col items-center justify-center space-y-6 py-20">
-          <DatabaseOff size={64} className="text-gray-400" />
+          <Database size={64} className="text-gray-400" />
           <h2 className="text-2xl font-bold">Base de données déconnectée</h2>
           <p className="text-gray-600 max-w-md text-center">
             La connexion à la base de données a été interrompue. Veuillez reconnecter votre projet à une base de données Supabase pour accéder au tableau de bord.

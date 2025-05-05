@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,24 +28,28 @@ const Stats = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("product_stats")
-        .select(`
-          view_date,
-          views_count,
-          clicks_count,
-          products (
-            name
-          )
-        `)
+        .select("view_date, views_count, clicks_count, product_id")
         .order("view_date", { ascending: false });
 
       if (error) throw error;
 
-      return data.map((stat) => ({
-        product_name: stat.products?.name,
-        views_count: stat.views_count,
-        clicks_count: stat.clicks_count,
-        view_date: new Date(stat.view_date).toLocaleDateString(),
-      }));
+      // Fetch product names in a separate query
+      const productIds = data.map(stat => stat.product_id).filter(Boolean);
+      const productsResponse = await supabase
+        .from("products")
+        .select("id, name")
+        .in("id", productIds);
+
+      // Map product names to stats
+      return data.map((stat) => {
+        const product = productsResponse.data?.find(p => p.id === stat.product_id);
+        return {
+          product_name: product?.name || "Unknown product",
+          views_count: stat.views_count,
+          clicks_count: stat.clicks_count,
+          view_date: new Date(stat.view_date).toLocaleDateString(),
+        };
+      });
     },
   });
 

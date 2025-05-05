@@ -12,7 +12,7 @@ import { Database } from "@/integrations/supabase/types";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
-import { DatabaseOff } from "lucide-react";
+import { Database as DatabaseIcon } from "lucide-react";
 
 interface Product {
   id: string;
@@ -163,7 +163,7 @@ const ProductDetail = () => {
         </div>
         <div className="container mx-auto py-12 px-4 text-center">
           <div className="flex flex-col items-center justify-center space-y-6 py-20">
-            <DatabaseOff size={64} className="text-gray-400" />
+            <DatabaseIcon size={64} className="text-gray-400" />
             <h2 className="text-3xl font-bold text-white">Base de données déconnectée</h2>
             <p className="text-gray-400 max-w-md">
               La connexion à la base de données a été interrompue. Impossible d'afficher les détails du produit.

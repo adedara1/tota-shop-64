@@ -5,7 +5,7 @@ import { supabase, isSupabaseConnected } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import PromoBar from "@/components/PromoBar";
 import { Input } from "@/components/ui/input";
-import { Search, Star, DatabaseOff } from "lucide-react";
+import { Search, Star, Database } from "lucide-react";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -180,7 +180,7 @@ const Products = () => {
         <Navbar />
         <div className="container mx-auto py-12 px-4 text-center">
           <div className="flex flex-col items-center justify-center space-y-6 py-20">
-            <DatabaseOff size={64} className="text-gray-400" />
+            <Database size={64} className="text-gray-400" />
             <h2 className="text-3xl font-bold">Base de données déconnectée</h2>
             <p className="text-gray-600 max-w-md">
               La connexion à la base de données a été interrompue. Veuillez reconnecter votre projet à une base de données Supabase pour afficher les produits.
