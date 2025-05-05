@@ -8,6 +8,22 @@ export const initSupabase = async () => {
   try {
     console.log("Initializing Supabase...");
     
+    // Check if the storage bucket exists
+    try {
+      const { data: bucketData, error: bucketError } = await supabase.storage.getBucket('products');
+      
+      if (bucketError) {
+        if (bucketError.message.includes("Bucket not found")) {
+          console.error("Products storage bucket not found. Please create it in Supabase.");
+          return false;
+        }
+      } else {
+        console.log("Products storage bucket exists");
+      }
+    } catch (err) {
+      console.error("Error checking storage bucket:", err);
+    }
+    
     // Check if the products_page_settings table exists
     try {
       // Use table_exists function if available

@@ -20,8 +20,15 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Function to check if the connection to Supabase is active
 export const isSupabaseConnected = async (): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.from('products').select('id').limit(1);
-    return !error;
+    // Check if the products bucket exists
+    const { data, error } = await supabase.storage.getBucket('products');
+    if (error) {
+      if (error.message.includes("Bucket not found")) {
+        console.error("Products bucket not found. Please initialize the storage bucket.");
+      }
+      return false;
+    }
+    return true;
   } catch (error) {
     console.error("Error checking Supabase connection:", error);
     return false;
@@ -36,7 +43,14 @@ export const handleSupabaseError = (error: any, toast?: any) => {
   let errorMessage = "Une erreur s'est produite. Veuillez réessayer.";
   
   if (error?.message) {
-    errorMessage = `Erreur: ${error.message}`;
+    // Handle specific storage errors
+    if (error.message.includes("Bucket not found")) {
+      errorMessage = "Erreur: Le bucket de stockage 'products' n'existe pas. Veuillez contacter l'administrateur.";
+    } else if (error.message.includes("storage")) {
+      errorMessage = "Erreur de stockage: Impossible de télécharger l'image. Veuillez réessayer.";
+    } else {
+      errorMessage = `Erreur: ${error.message}`;
+    }
   }
   
   // If toast is provided, show the error message
