@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import ProductDetail from './pages/ProductDetail';
 import Products from './pages/Products';
@@ -12,7 +12,7 @@ import Stats from './pages/Stats';
 import Contact from './pages/Contact';
 import Panel from './pages/Panel';
 import Auth from './pages/Auth';
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/sonner";
 import {
   QueryClient,
   QueryClientProvider,
@@ -20,9 +20,18 @@ import {
 import { CartProvider } from "@/hooks/use-cart";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { initSupabase } from "@/utils/supabaseInit";
+import Index from './pages/Index';
 
 const App = () => {
-  const queryClient = new QueryClient()
+  const queryClient = new QueryClient();
+  
+  useEffect(() => {
+    // Initialize Supabase when the app starts
+    initSupabase().then(success => {
+      console.log("Supabase initialization:", success ? "successful" : "failed");
+    });
+  }, []);
 
   return (
     <Router>
@@ -32,7 +41,7 @@ const App = () => {
           <QueryClientProvider client={queryClient}>
             <Routes>
               {/* Public routes */}
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<Index />} />
               <Route path="/products" element={<Products />} />
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/paiement" element={<Payment />} />
