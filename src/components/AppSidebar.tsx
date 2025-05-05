@@ -166,7 +166,7 @@ export function AppSidebar() {
                       onClick={handleLogout}
                     >
                       <LogOut className={isMobile ? "text-black" : ""} />
-                      <span className={isMobile ? "text-black" : ""}>{item.title}Déconnexion</span>
+                      <span className={isMobile ? "text-black" : ""}>Déconnexion</span>
                     </SidebarMenuButton>
                   ) : (
                     <SidebarMenuButton 
@@ -176,7 +176,7 @@ export function AppSidebar() {
                     >
                       <Link to="/auth">
                         <LogIn className={isMobile ? "text-black" : ""} />
-                        <span className={isMobile ? "text-black" : ""}>{item.title}Connexion</span>
+                        <span className={isMobile ? "text-black" : ""}>Connexion</span>
                       </Link>
                     </SidebarMenuButton>
                   )}

@@ -37,6 +37,7 @@ interface ProductDetailsProps {
   showStarReviews?: boolean;
   starReviewsColor?: string;
   reviewCount?: number;
+  reviewCountColor?: string;
   starCount?: number;
   showStockStatus?: boolean;
   stockStatusText?: string;
@@ -68,6 +69,7 @@ const ProductDetails = ({
   showStarReviews = true,
   starReviewsColor = "#FFCC00",
   reviewCount = 1238,
+  reviewCountColor = "#000000",
   starCount = 5,
   showStockStatus = true,
   stockStatusText = "In stock, ready to ship",
@@ -273,7 +275,7 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
               />
             ))}
           </div>
-          <span className="text-xs ml-2">{reviewCount} reviews</span>
+          <span className="text-xs ml-2" style={{ color: reviewCountColor }}>{reviewCount} reviews</span>
         </div>
       )}
       

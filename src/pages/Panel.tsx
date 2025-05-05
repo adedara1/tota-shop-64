@@ -1,860 +1,114 @@
+
 import React from "react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Avatar } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye, EyeOff, Home } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
-import { toast } from "@/hooks/use-toast";
-import { 
-  Customer, 
-  generateCustomerLabel, 
-  generateCustomerColor, 
-  generateCartLabel, 
-  fetchAllCartItems,
-  updateSharedCartStatus
-} from "@/utils/customerUtils";
 
-interface CartItem {
+interface ProductType {
   id: string;
-  product_id: string;
   name: string;
-  price: number;
-  quantity: number;
-  options: {
-    customer?: Customer;
-    [key: string]: any;
-  };
-  image: string;
-  created_at: string;
-  updated_at: string;
-  processed: boolean | null;
-  hidden: boolean;
-  cart_id: string | null;
-  is_shared_cart?: boolean;
+  images: string[];
+  original_price: number;
+  discounted_price: number;
+  currency: string;
 }
 
-// Interface pour représenter un panier groupé
-interface GroupedCart {
-  id: string;
-  label?: string;
-  labelColor?: string;
-  customer?: Customer | null;
-  orders: CartItem[];
-  totalPrice: number;
-}
-
-const Panel = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [orders, setOrders] = useState<Record<string, CartItem[]>>({});
-  const [selectedOrder, setSelectedOrder] = useState<CartItem | null>(null);
-  const [selectedBasket, setSelectedBasket] = useState<string | null>(null);
-  const [hiddenOrders, setHiddenOrders] = useState<string[]>([]);
-  // State pour stocker les paniers groupés
-  const [groupedCarts, setGroupedCarts] = useState<Record<string, Record<string, GroupedCart>>>({});
-  // State to store all cart items across products
-  const [allCartItems, setAllCartItems] = useState<Record<string, CartItem[]>>({});
-  // State to track whether an order is part of a shared cart
-  const [isPartOfSharedCart, setIsPartOfSharedCart] = useState<boolean>(false);
+export default function Panel() {
+  const [products, setProducts] = useState<ProductType[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("products")
-          .select("id, name, images")
-          .eq("use_internal_cart", true);
-
-        if (error) throw error;
-        if (data) setProducts(data);
-
-        // Pour chaque produit, récupérer ses commandes
-        if (data && data.length > 0) {
-          for (const product of data) {
-            const { data: orderData, error: orderError } = await supabase
-              .from("cart_items")
-              .select("*")
-              .eq("product_id", product.id);
-
-            if (orderError) throw orderError;
-            
-            if (orderData && orderData.length > 0) {
-              // Traitement des commandes
-              const processedOrders = orderData.map(order => ({
-                ...order,
-                options: typeof order.options === 'string' 
-                  ? JSON.parse(order.options) 
-                  : order.options || {}
-              }));
-              
-              setOrders(prev => ({
-                ...prev,
-                [product.id]: processedOrders as CartItem[]
-              }));
-            }
-          }
-
-          // Also fetch all cart items
-          const { data: allCartData, error: allCartError } = await supabase
-            .from("cart_items")
-            .select("*")
-            .not("cart_id", "is", null)
-            .eq("hidden", false);
-
-          if (!allCartError && allCartData) {
-            // Group by cart_id
-            const cartItemsByCartId: Record<string, CartItem[]> = {};
-            
-            allCartData.forEach(item => {
-              if (item.cart_id) {
-                if (!cartItemsByCartId[item.cart_id]) {
-                  cartItemsByCartId[item.cart_id] = [];
-                }
-                
-                cartItemsByCartId[item.cart_id].push({
-                  ...item,
-                  options: typeof item.options === 'string' 
-                    ? JSON.parse(item.options) 
-                    : item.options || {}
-                });
-              }
-            });
-            
-            setAllCartItems(cartItemsByCartId);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching products or orders:", error);
-      }
-    };
-
     fetchProducts();
   }, []);
 
-  // Effet pour grouper les commandes par panier lorsque orders change
-  useEffect(() => {
-    const newGroupedCarts: Record<string, Record<string, GroupedCart>> = {};
-    
-    // Pour chaque produit
-    Object.entries(orders).forEach(([productId, productOrders]) => {
-      newGroupedCarts[productId] = {};
-      
-      // Groupe pour les articles avec cart_id
-      const cartGroups: Record<string, CartItem[]> = {};
-      
-      // Groupe pour les articles sans cart_id
-      const noCartIdGroups: Record<string, CartItem[]> = {};
+  async function fetchProducts() {
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-      // Première passe: collecter tous les items par cart_id
-      productOrders.forEach(order => {
-        if (order.hidden) return; // Ignorer les commandes cachées
-        
-        if (order.cart_id) {
-          if (!cartGroups[order.cart_id]) {
-            cartGroups[order.cart_id] = [];
-          }
-          cartGroups[order.cart_id].push(order);
-        } else {
-          // Pour les items sans cart_id, grouper par client
-          const customer = getCustomerInfo(order);
-          if (customer) {
-            const customerKey = `${customer.name}-${customer.phone}`;
-            if (!noCartIdGroups[customerKey]) {
-              noCartIdGroups[customerKey] = [];
-            }
-            noCartIdGroups[customerKey].push(order);
-          } else {
-            // Items sans client et sans cart_id sont des groupes individuels
-            const key = `unknown-${order.id}`;
-            noCartIdGroups[key] = [order];
-          }
-        }
-      });
-      
-      // Deuxième passe: créer des GroupedCart pour les cart_id
-      Object.entries(cartGroups).forEach(([cartId, items]) => {
-        // On prend le premier item pour obtenir des informations sur le client
-        const firstOrder = items[0];
-        const customer = getCustomerInfo(firstOrder);
-        
-        // Générer un label pour le panier basé sur le client
-        let cartLabel = cartId.substring(0, 8);
-        let labelColor = generateCustomerColor(cartLabel);
-        
-        // Si nous avons un client, utiliser ses infos pour le label
-        if (customer) {
-          cartLabel = generateCustomerLabel(customer);
-          labelColor = generateCustomerColor(cartLabel);
-        } else {
-          // Si pas de client, utiliser BO + 3 derniers caractères du cartId
-          cartLabel = `BO-${cartId.substring(cartId.length - 3)}`;
-          labelColor = generateCustomerColor(cartLabel);
-        }
-        
-        // Calculer le prix total
-        const totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        
-        // Créer le panier groupé
-        newGroupedCarts[productId][cartId] = {
-          id: cartId,
-          label: cartLabel,
-          labelColor,
-          customer,
-          orders: items,
-          totalPrice
-        };
-      });
-      
-      // Troisième passe: traiter les groupes sans cart_id
-      Object.entries(noCartIdGroups).forEach(([groupKey, groupOrders]) => {
-        // Créer un identifiant unique pour ce groupe
-        const groupId = `legacy-${groupKey}`;
-        
-        // Obtenir les informations du client à partir du premier ordre
-        const firstOrder = groupOrders[0];
-        const customer = getCustomerInfo(firstOrder);
-        const label = customer ? generateCustomerLabel(customer) : `Unknown-${groupId.substring(0, 5)}`;
-        const labelColor = generateCustomerColor(label);
-        
-        // Calculer le prix total
-        const totalPrice = groupOrders.reduce((total, order) => total + (order.price * order.quantity), 0);
-        
-        // Ajouter le groupe
-        newGroupedCarts[productId][groupId] = {
-          id: groupId,
-          label,
-          labelColor,
-          customer,
-          orders: groupOrders,
-          totalPrice
-        };
-      });
-    });
-    
-    setGroupedCarts(newGroupedCarts);
-  }, [orders]);
-
-  const handleOrderClick = async (order: CartItem) => {
-    // Process order options
-    const processedOrder = {
-      ...order,
-      options: typeof order.options === 'string' 
-        ? JSON.parse(order.options) 
-        : order.options || {}
-    };
-    
-    setSelectedOrder(processedOrder);
-
-    // If this order has a cart_id, refresh the cart items and check shared status
-    if (order.cart_id) {
-      const { data, error } = await fetchAllCartItems(order.cart_id);
-      if (!error && data.length > 0) {
-        setAllCartItems(prev => ({
-          ...prev,
-          [order.cart_id as string]: data
-        }));
-        
-        // Check if this is a shared cart with multiple products
-        const isShared = data.some(item => item.product_id !== order.product_id);
-        setIsPartOfSharedCart(isShared);
-        
-        // If the shared status in the database doesn't match our calculation,
-        // update it in the database for all items in this cart
-        if (order.is_shared_cart !== isShared) {
-          await updateSharedCartStatus(order.cart_id);
-        }
+      if (error) {
+        console.error("Error fetching products:", error);
       } else {
-        setIsPartOfSharedCart(false);
-      }
-    } else {
-      // If no cart_id, it's not part of a shared cart
-      setIsPartOfSharedCart(false);
-    }
-  };
-
-  const handleBasketClick = async (basketId: string) => {
-    const isCurrentlySelected = selectedBasket === basketId;
-    setSelectedBasket(isCurrentlySelected ? null : basketId);
-    
-    if (!isCurrentlySelected && basketId && !basketId.startsWith('legacy-')) {
-      // Fetch the latest cart items for this cart_id
-      const { data, error } = await fetchAllCartItems(basketId);
-      if (!error && data.length > 0) {
-        setAllCartItems(prev => ({
-          ...prev,
-          [basketId]: data
-        }));
-        
-        // Check if this is a shared cart and update the database if needed
-        await updateSharedCartStatus(basketId);
-      }
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
-  };
-
-  const getCustomerInfo = (order: CartItem): Customer | null => {
-    if (order?.options?.customer) {
-      return order.options.customer;
-    }
-    return null;
-  };
-
-  const markAsProcessed = async (orderId: string) => {
-    try {
-      const { error } = await supabase
-        .from("cart_items")
-        .update({ processed: true })
-        .eq("id", orderId);
-
-      if (error) throw error;
-
-      // Mise à jour du state local
-      setOrders(prev => {
-        const updated = { ...prev };
-        Object.keys(updated).forEach(productId => {
-          updated[productId] = updated[productId].map(order => 
-            order.id === orderId ? { ...order, processed: true } : order
-          );
-        });
-        return updated;
-      });
-
-      // Also update allCartItems if necessary
-      setAllCartItems(prev => {
-        const updated = { ...prev };
-        Object.keys(updated).forEach(cartId => {
-          updated[cartId] = updated[cartId].map(item => 
-            item.id === orderId ? { ...item, processed: true } : item
-          );
-        });
-        return updated;
-      });
-
-      if (selectedOrder?.id === orderId) {
-        setSelectedOrder(prev => prev ? { ...prev, processed: true } : null);
-      }
-
-      // Afficher un message de succès
-      toast({
-        title: "Commande traitée",
-        description: "La commande a été marquée comme traitée"
-      });
-    } catch (error) {
-      console.error("Error marking order as processed:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de marquer la commande comme traitée"
-      });
-    }
-  };
-
-  const markBasketAsProcessed = async (basketId: string, productId: string) => {
-    try {
-      // Get all cart items for this basket
-      let basketOrders: CartItem[] = [];
-      
-      if (basketId.startsWith('legacy-')) {
-        // For legacy baskets (no cart_id)
-        basketOrders = groupedCarts[productId]?.[basketId]?.orders || [];
-      } else {
-        // For regular baskets with cart_id
-        basketOrders = allCartItems[basketId] || [];
-        if (basketOrders.length === 0) {
-          // Fallback to product-specific orders if global list is empty
-          basketOrders = groupedCarts[productId]?.[basketId]?.orders || [];
-        }
-      }
-      
-      // Récupérer tous les IDs de commandes dans ce panier
-      const orderIds = basketOrders.map(order => order.id);
-      
-      // Mettre à jour toutes les commandes du panier
-      for (const orderId of orderIds) {
-        await supabase
-          .from("cart_items")
-          .update({ processed: true })
-          .eq("id", orderId);
-      }
-
-      // Mise à jour du state local
-      setOrders(prev => {
-        const updated = { ...prev };
-        Object.keys(updated).forEach(pid => {
-          updated[pid] = updated[pid].map(order => {
-            if (orderIds.includes(order.id)) {
-              return { ...order, processed: true };
-            }
-            return order;
-          });
-        });
-        return updated;
-      });
-
-      // Update allCartItems
-      setAllCartItems(prev => {
-        const updated = { ...prev };
-        if (updated[basketId]) {
-          updated[basketId] = updated[basketId].map(item => ({
-            ...item,
-            processed: true
-          }));
-        }
-        return updated;
-      });
-
-      // Afficher un message de succès
-      toast({
-        title: "Panier traité",
-        description: "Toutes les commandes du panier ont été marquées comme traitées"
-      });
-    } catch (error) {
-      console.error("Error marking basket as processed:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de marquer le panier comme traité"
-      });
-    }
-  };
-
-  const toggleHideOrder = async (orderId: string) => {
-    try {
-      // Trouver la commande à basculer
-      let orderToToggle: CartItem | null = null;
-      let productId: string | null = null;
-      
-      Object.entries(orders).forEach(([pid, productOrders]) => {
-        const order = productOrders.find(o => o.id === orderId);
-        if (order) {
-          orderToToggle = order;
-          productId = pid;
-        }
-      });
-      
-      if (!orderToToggle) return;
-      
-      // Basculer l'état caché dans la base de données
-      const newHiddenState = !orderToToggle.hidden;
-      const { error } = await supabase
-        .from("cart_items")
-        .update({ hidden: newHiddenState })
-        .eq("id", orderId);
-
-      if (error) throw error;
-
-      // Mise à jour du state local
-      setOrders(prev => {
-        const updated = { ...prev };
-        Object.keys(updated).forEach(pid => {
-          updated[pid] = updated[pid].map(order => 
-            order.id === orderId ? { ...order, hidden: newHiddenState } : order
-          );
-        });
-        return updated;
-      });
-
-      // Update allCartItems if necessary
-      setAllCartItems(prev => {
-        const updated = { ...prev };
-        if (orderToToggle?.cart_id && updated[orderToToggle.cart_id]) {
-          updated[orderToToggle.cart_id] = updated[orderToToggle.cart_id].map(item => 
-            item.id === orderId ? { ...item, hidden: newHiddenState } : item
-          );
-        }
-        return updated;
-      });
-
-      if (selectedOrder?.id === orderId) {
-        setSelectedOrder(prev => prev ? { ...prev, hidden: newHiddenState } : null);
+        setProducts(data || []);
       }
     } catch (error) {
-      console.error("Error toggling order visibility:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de modifier la visibilité de la commande"
-      });
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  // Fonction pour calculer le prix total d'un groupe de commandes
-  const calculateGroupTotal = (orderGroup: CartItem[]) => {
-    return orderGroup.reduce((total, order) => total + (order.price * order.quantity), 0);
-  };
-
-  // Compter les commandes visibles (non cachées)
-  const countVisibleOrders = (productId: string) => {
-    return orders[productId]?.filter(order => !order.hidden)?.length || 0;
-  };
-
-  // Function to get all cart items for a cart_id
-  const getAllCartItems = (cartId: string): CartItem[] => {
-    if (!cartId) return [];
-    
-    // Use our cached allCartItems state first
-    if (allCartItems[cartId] && allCartItems[cartId].length > 0) {
-      return allCartItems[cartId];
-    }
-    
-    // Fallback: collect from all products
-    const allItems: CartItem[] = [];
-    Object.values(orders).forEach(productOrders => {
-      const matchingItems = productOrders.filter(
-        order => order.cart_id === cartId && !order.hidden
-      );
-      allItems.push(...matchingItems);
-    });
-    
-    return allItems;
-  };
+  }
 
   return (
-    <div className="container mx-auto p-4 md:p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-center">Tableau de bord des commandes</h1>
-        <Button variant="outline" asChild className="flex items-center gap-2">
-          <Link to="/home">
-            <Home size={16} />
-            <span>Retour à l'accueil</span>
-          </Link>
-        </Button>
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-8">Tableau de bord</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">
+              Produits
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {loading ? <Skeleton className="h-8 w-20" /> : products.length}
+            </div>
+          </CardContent>
+        </Card>
       </div>
-      
-      {products.length === 0 ? (
-        <div className="text-center py-12">
-          <h2 className="text-xl mb-4">Aucun produit avec panier interne trouvé</h2>
-          <p className="text-gray-500">
-            Créez des produits avec l'option "panier interne" pour voir les commandes ici.
-          </p>
-        </div>
-      ) : (
-        <Tabs defaultValue={products[0]?.id} className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-8">
-            {products.map((product) => {
-              // Compter uniquement les commandes non cachées
-              const orderCount = countVisibleOrders(product.id);
-              return (
-                <TabsTrigger key={product.id} value={product.id} className="text-sm md:text-base">
-                  {product.name}
-                  {orderCount > 0 && (
-                    <Badge className="ml-2 bg-red-500">{orderCount}</Badge>
-                  )}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-          
-          {products.map((product) => (
-            <TabsContent key={product.id} value={product.id} className="space-y-4">
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="w-full md:w-1/2 space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        <span>Commandes pour {product.name}</span>
-                        <Badge>{countVisibleOrders(product.id)} commandes</Badge>
-                      </CardTitle>
-                      <CardDescription>
-                        Cliquez sur une étiquette pour voir les détails du panier
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="max-h-[500px] overflow-y-auto space-y-2">
-                      {!orders[product.id] || countVisibleOrders(product.id) === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                          Aucune commande pour ce produit
-                        </div>
-                      ) : (
-                        // Utiliser les paniers groupés pour afficher les commandes
-                        Object.entries(groupedCarts[product.id] || {}).map(([basketId, basket]) => {
-                          const isSelected = selectedBasket === basketId;
-                          
-                          return (
-                            <div key={basketId} className={`mb-4 border rounded-lg overflow-hidden ${isSelected ? 'border-blue-500 shadow-md' : ''}`}>
-                              <div 
-                                className={`${isSelected ? 'bg-blue-50' : 'bg-gray-100'} p-2 flex justify-between items-center cursor-pointer`}
-                                onClick={() => handleBasketClick(basketId)}
-                              >
-                                <div className="flex items-center">
-                                  <Badge className={`${basket.labelColor} text-white cursor-pointer`}>
-                                    {basket.label}
-                                  </Badge>
-                                  {basket.customer && (
-                                    <>
-                                      <span className="ml-2 font-medium">{basket.customer.name}</span>
-                                      <span className="ml-2 text-sm text-gray-500">{basket.customer.phone}</span>
-                                    </>
-                                  )}
-                                </div>
-                                <div className="font-semibold">
-                                  Total: {basket.totalPrice} CFA
-                                </div>
-                              </div>
-                              
-                              {isSelected && basket.orders.map((order) => (
-                                <div 
-                                  key={order.id}
-                                  onClick={() => handleOrderClick(order)}
-                                  className={`p-4 cursor-pointer transition-colors ${
-                                    selectedOrder?.id === order.id 
-                                      ? 'bg-blue-50 border-blue-300' 
-                                      : 'hover:bg-gray-50'
-                                  } ${order.processed ? 'opacity-60' : ''}`}
-                                >
-                                  <div className="flex justify-between items-center">
-                                    <div className="flex items-center">
-                                      {order.image && (
-                                        <Avatar className="h-10 w-10 mr-3">
-                                          <img src={order.image} alt={order.name} />
-                                        </Avatar>
-                                      )}
-                                      <div>
-                                        <div className="font-medium">{order.quantity}× {order.name}</div>
-                                        <div className="text-sm text-gray-500">
-                                          {formatDate(order.created_at)}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div className="flex flex-col items-end">
-                                      <div className="font-semibold">
-                                        {order.price * order.quantity} CFA
-                                      </div>
-                                      {order.processed && (
-                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                          Traitée
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                              
-                              {isSelected && (
-                                <CardFooter className="bg-gray-50 p-2 flex justify-end">
-                                  <Button 
-                                    variant="default"
-                                    size="sm"
-                                    className="bg-blue-500 hover:bg-blue-600"
-                                    onClick={() => markBasketAsProcessed(basketId, product.id)}
-                                  >
-                                    Marquer panier comme traité
-                                  </Button>
-                                </CardFooter>
-                              )}
-                            </div>
-                          );
-                        })
-                      )}
-                    </CardContent>
-                  </Card>
+
+      <Tabs defaultValue="products">
+        <TabsList>
+          <TabsTrigger value="products">Produits</TabsTrigger>
+        </TabsList>
+        <TabsContent value="products" className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {loading ? (
+              Array(8).fill(0).map((_, i) => (
+                <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden">
+                  <Skeleton className="h-48 w-full" />
+                  <div className="p-4">
+                    <Skeleton className="h-6 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
                 </div>
-
-                <div className="w-full md:w-1/2">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Détails de la commande</CardTitle>
-                      <CardDescription>
-                        {selectedOrder ? formatDate(selectedOrder.created_at) : "Sélectionnez une commande"}
-                      </CardDescription>
-                    </CardHeader>
-                    
-                    {selectedOrder ? (
-                      <>
-                        <CardContent className="space-y-6">
-                          <div className="flex items-center space-x-4">
-                            {selectedOrder.image && (
-                              <Avatar className="h-20 w-20">
-                                <img src={selectedOrder.image} alt={selectedOrder.name} />
-                              </Avatar>
-                            )}
-                            <div>
-                              <h3 className="text-xl font-semibold">{selectedOrder.name}</h3>
-                              <p className="text-gray-500">ID: {selectedOrder.id.substring(0, 8)}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm text-gray-500">Quantité</p>
-                              <p className="font-medium">{selectedOrder.quantity}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Prix unitaire</p>
-                              <p className="font-medium">{selectedOrder.price} CFA</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Total</p>
-                              <p className="font-medium">{selectedOrder.price * selectedOrder.quantity} CFA</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-500">Date</p>
-                              <p className="font-medium">{formatDate(selectedOrder.created_at)}</p>
-                            </div>
-                          </div>
-
-                          {/* Section d'information client */}
-                          {getCustomerInfo(selectedOrder) && (
-                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                              <h4 className="font-semibold text-lg mb-3">Informations Client</h4>
-                              <Table>
-                                <TableBody>
-                                  <TableRow>
-                                    <TableCell className="font-medium">Nom</TableCell>
-                                    <TableCell>{getCustomerInfo(selectedOrder)?.name}</TableCell>
-                                  </TableRow>
-                                  {getCustomerInfo(selectedOrder)?.email && (
-                                    <TableRow>
-                                      <TableCell className="font-medium">Email</TableCell>
-                                      <TableCell>{getCustomerInfo(selectedOrder)?.email}</TableCell>
-                                    </TableRow>
-                                  )}
-                                  <TableRow>
-                                    <TableCell className="font-medium">Téléphone</TableCell>
-                                    <TableCell>{getCustomerInfo(selectedOrder)?.phone}</TableCell>
-                                  </TableRow>
-                                  {getCustomerInfo(selectedOrder)?.address && (
-                                    <TableRow>
-                                      <TableCell className="font-medium">Adresse</TableCell>
-                                      <TableCell>{getCustomerInfo(selectedOrder)?.address}</TableCell>
-                                    </TableRow>
-                                  )}
-                                </TableBody>
-                              </Table>
-                            </div>
-                          )}
-
-                          {/* Section des options du produit */}
-                          {Object.keys(selectedOrder.options).length > 0 && 
-                           Object.keys(selectedOrder.options).filter(key => key !== 'customer').length > 0 && (
-                            <div>
-                              <h4 className="font-medium mb-2">Options sélectionnées:</h4>
-                              <ul className="bg-gray-50 p-3 rounded-md">
-                                {Object.entries(selectedOrder.options)
-                                  .filter(([key]) => key !== 'customer')
-                                  .map(([key, value]) => (
-                                    <li key={key} className="flex justify-between py-1 border-b border-gray-100 last:border-0">
-                                      <span className="font-medium">{key}:</span>
-                                      <span>{typeof value === 'object' ? value.value : value}</span>
-                                    </li>
-                                  ))
-                                }
-                              </ul>
-                            </div>
-                          )}
-
-                          {/* Si cette commande fait partie d'un panier, afficher le récapitulatif du panier */}
-                          {selectedOrder?.cart_id && (
-                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                              <h4 className="font-semibold text-lg mb-3">Récapitulatif du panier</h4>
-                              <div className="space-y-2">
-                                {(() => {
-                                  // Récupérer tous les éléments du panier
-                                  const cartItems = getAllCartItems(selectedOrder.cart_id as string);
-                                  const totalBasketPrice = calculateGroupTotal(cartItems);
-                                  
-                                  return (
-                                    <>
-                                      <p className="mb-2">
-                                        Ce produit fait partie d'un panier contenant {cartItems.length} article{cartItems.length > 1 ? 's' : ''}:
-                                      </p>
-                                      <ul className="mb-4 space-y-1">
-                                        {cartItems.map((item) => (
-                                          <li key={item.id} className="flex justify-between items-center">
-                                            <span>
-                                              {item.quantity}× {item.name}
-                                              {item.id === selectedOrder.id && 
-                                                <Badge variant="outline" className="ml-2 text-xs">actuel</Badge>
-                                              }
-                                            </span>
-                                            <span className="font-medium">{item.price * item.quantity} CFA</span>
-                                          </li>
-                                        ))}
-                                      </ul>
-                                      <div className="flex justify-between font-semibold text-lg pt-2 border-t">
-                                        <span>Total du panier:</span>
-                                        <span>{totalBasketPrice} CFA</span>
-                                      </div>
-                                      {!isPartOfSharedCart && selectedOrder.cart_id && (
-                                        <Button 
-                                          variant="default" 
-                                          className="w-full mt-2"
-                                          onClick={() => {
-                                            if (selectedOrder.cart_id) {
-                                              // Marquer tous les articles de ce panier comme traités
-                                              markBasketAsProcessed(selectedOrder.cart_id, product.id);
-                                            }
-                                          }}
-                                        >
-                                          Marquer panier comme traité
-                                        </Button>
-                                      )}
-                                      {isPartOfSharedCart && (
-                                        <div className="bg-yellow-50 p-3 rounded-md border border-yellow-200 mt-2">
-                                          <p className="text-amber-600 text-sm">
-                                            Ce produit fait partie d'un panier partagé avec d'autres produits. 
-                                            Utilisez le bouton de traitement individuel ci-dessous.
-                                          </p>
-                                        </div>
-                                      )}
-                                    </>
-                                  );
-                                })()}
-                              </div>
-                            </div>
-                          )}
-                        </CardContent>
-                        <CardFooter className="flex flex-col space-y-2">
-                          <Button 
-                            variant={selectedOrder.processed ? "outline" : "default"} 
-                            className="w-full"
-                            onClick={() => markAsProcessed(selectedOrder.id)}
-                            disabled={selectedOrder.processed}
-                          >
-                            {selectedOrder.processed ? "Déjà traitée" : "Marquer comme traitée"}
-                          </Button>
-                          
-                          {selectedOrder.processed && (
-                            <Button 
-                              variant="outline" 
-                              className="w-full flex items-center gap-2"
-                              onClick={() => toggleHideOrder(selectedOrder.id)}
-                            >
-                              {selectedOrder.hidden ? <Eye size={16} /> : <EyeOff size={16} />}
-                              {selectedOrder.hidden ? "Afficher la commande" : "Masquer la commande"}
-                            </Button>
-                          )}
-                        </CardFooter>
-                      </>
-                    ) : (
-                      <CardContent>
-                        <div className="text-center py-12 text-gray-500">
-                          Sélectionnez une commande pour voir les détails
-                        </div>
-                      </CardContent>
-                    )}
-                  </Card>
-                </div>
-              </div>
-            </TabsContent>
-          ))}
-        </Tabs>
-      )}
+              ))
+            ) : (
+              products.map((product) => (
+                <Link to={`/product/${product.id}`} key={product.id}>
+                  <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                    <div className="h-48 overflow-hidden">
+                      <img 
+                        src={product.images?.[0] || '/placeholder.svg'} 
+                        alt={product.name} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-medium text-lg mb-1 truncate">{product.name}</h3>
+                      <div className="flex items-center">
+                        <span className="text-orange-600 font-bold">
+                          {product.discounted_price} {product.currency}
+                        </span>
+                        {product.original_price > product.discounted_price && (
+                          <span className="text-gray-400 line-through ml-2 text-sm">
+                            {product.original_price} {product.currency}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
-};
-
-export default Panel;
+}
