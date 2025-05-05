@@ -1,11 +1,13 @@
 
 import React from "react";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConnected } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { DatabaseOff } from "lucide-react";
 
 interface ProductType {
   id: string;
@@ -19,12 +21,29 @@ interface ProductType {
 export default function Panel() {
   const [products, setProducts] = useState<ProductType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState<boolean | null>(null);
 
   useEffect(() => {
-    fetchProducts();
+    const checkConnection = async () => {
+      const connected = await isSupabaseConnected();
+      setIsConnected(connected);
+      if (!connected) {
+        setLoading(false);
+      }
+    };
+    
+    checkConnection();
   }, []);
 
+  useEffect(() => {
+    if (isConnected) {
+      fetchProducts();
+    }
+  }, [isConnected]);
+
   async function fetchProducts() {
+    if (!isConnected) return;
+    
     try {
       const { data, error } = await supabase
         .from("products")
@@ -41,6 +60,26 @@ export default function Panel() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // Afficher un message si la base de données est déconnectée
+  if (isConnected === false) {
+    return (
+      <div className="container mx-auto py-8">
+        <h1 className="text-3xl font-bold mb-8">Tableau de bord</h1>
+        
+        <div className="flex flex-col items-center justify-center space-y-6 py-20">
+          <DatabaseOff size={64} className="text-gray-400" />
+          <h2 className="text-2xl font-bold">Base de données déconnectée</h2>
+          <p className="text-gray-600 max-w-md text-center">
+            La connexion à la base de données a été interrompue. Veuillez reconnecter votre projet à une base de données Supabase pour accéder au tableau de bord.
+          </p>
+          <Button variant="outline" asChild>
+            <Link to="/" className="mt-4">Retour à l'accueil</Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (

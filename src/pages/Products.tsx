@@ -1,19 +1,20 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConnected } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import PromoBar from "@/components/PromoBar";
 import { Input } from "@/components/ui/input";
-import { Search, Star } from "lucide-react";
+import { Search, Star, DatabaseOff } from "lucide-react";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import Footer from "@/components/Footer";
 import { defaultSettings, ProductsPageSettings } from "@/models/products-page-settings";
+import { Button } from "@/components/ui/button";
 
-// Workaround interface for raw Supabase response
+// Reste de l'interface inchangée
 interface RawSettingsResponse {
   id?: string;
   hero_banner_image?: string;
@@ -36,11 +37,24 @@ const Products = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [settings, setSettings] = useState<ProductsPageSettings>(defaultSettings);
+  const [isConnected, setIsConnected] = useState<boolean | null>(null);
   
+  // Vérifier si la connexion à Supabase est active
+  useEffect(() => {
+    const checkConnection = async () => {
+      const connected = await isSupabaseConnected();
+      setIsConnected(connected);
+    };
+    
+    checkConnection();
+  }, []);
+
   // Fetch page settings - use a fetch function that doesn't rely on the database schema
   const { data: pageSettings } = useQuery({
     queryKey: ["products-page-settings"],
     queryFn: async () => {
+      if (!isConnected) return defaultSettings;
+      
       try {
         // Use raw query without type checking
         const { data, error } = await supabase
@@ -80,6 +94,7 @@ const Products = () => {
         return defaultSettings;
       }
     },
+    enabled: isConnected !== null
   });
 
   useEffect(() => {
@@ -95,6 +110,8 @@ const Products = () => {
   } = useQuery({
     queryKey: ["products", searchQuery, selectedCategory],
     queryFn: async () => {
+      if (!isConnected) return [];
+      
       let query = supabase.from("products").select("*").eq('is_visible', true).order("created_at", {
         ascending: false
       });
@@ -110,7 +127,8 @@ const Products = () => {
       const { data, error } = await query;
       if (error) throw error;
       return data;
-    }
+    },
+    enabled: isConnected !== null
   });
 
   // Filter products based on search and category
@@ -154,7 +172,30 @@ const Products = () => {
     return stars;
   };
 
-  if (isLoading) {
+  // Afficher un message si la base de données est déconnectée
+  if (isConnected === false) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
+        <PromoBar />
+        <Navbar />
+        <div className="container mx-auto py-12 px-4 text-center">
+          <div className="flex flex-col items-center justify-center space-y-6 py-20">
+            <DatabaseOff size={64} className="text-gray-400" />
+            <h2 className="text-3xl font-bold">Base de données déconnectée</h2>
+            <p className="text-gray-600 max-w-md">
+              La connexion à la base de données a été interrompue. Veuillez reconnecter votre projet à une base de données Supabase pour afficher les produits.
+            </p>
+            <Button variant="outline" asChild>
+              <a href="/" className="mt-4">Retour à l'accueil</a>
+            </Button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (isLoading || isConnected === null) {
     return (
       <div className="min-h-screen bg-white">
         <PromoBar />

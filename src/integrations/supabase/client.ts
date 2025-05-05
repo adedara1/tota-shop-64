@@ -10,3 +10,13 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 // Le client ne se connectera à aucune base de données
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// Fonction pour vérifier si la connexion à Supabase est active
+export const isSupabaseConnected = async (): Promise<boolean> => {
+  try {
+    const { error } = await supabase.from('products').select('id').limit(1);
+    return !error;
+  } catch (error) {
+    return false;
+  }
+};

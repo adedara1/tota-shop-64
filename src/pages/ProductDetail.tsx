@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import PromoBar from "@/components/PromoBar";
 import ProductGallery from "@/components/ProductGallery";
 import ProductDetails from "@/components/ProductDetails";
 import SimilarProducts from "@/components/SimilarProducts";
 import Footer from "@/components/Footer";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConnected } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCart } from "@/hooks/use-cart";
+import { Button } from "@/components/ui/button";
+import { DatabaseOff } from "lucide-react";
 
 interface Product {
   id: string;
@@ -54,12 +56,25 @@ const ProductDetail = () => {
   const [selectedOptionImages, setSelectedOptionImages] = useState<string[]>([]);
   const isMobile = useIsMobile();
   const { addToCart } = useCart();
+  const [isConnected, setIsConnected] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkConnection = async () => {
+      const connected = await isSupabaseConnected();
+      setIsConnected(connected);
+      if (!connected) {
+        setLoading(false);
+      }
+    };
+    
+    checkConnection();
+  }, []);
 
   useEffect(() => {
     const fetchProduct = async () => {
+      if (!isConnected || !id) return;
+      
       try {
-        if (!id) return;
-        
         const { data, error } = await supabase
           .from("products")
           .select("*")
@@ -104,10 +119,10 @@ const ProductDetail = () => {
       }
     };
 
-    if (id) {
+    if (isConnected !== null && id) {
       fetchProduct();
     }
-  }, [id]);
+  }, [id, isConnected]);
 
   const handleProductClick = async () => {
     if (id) {
@@ -137,6 +152,31 @@ const ProductDetail = () => {
       image: product.images && product.images.length > 0 ? product.images[0] : null
     });
   };
+
+  // Afficher un message si la base de données est déconnectée
+  if (isConnected === false) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: "#000000" }}>
+        <PromoBar />
+        <div className="bg-white">
+          <Navbar />
+        </div>
+        <div className="container mx-auto py-12 px-4 text-center">
+          <div className="flex flex-col items-center justify-center space-y-6 py-20">
+            <DatabaseOff size={64} className="text-gray-400" />
+            <h2 className="text-3xl font-bold text-white">Base de données déconnectée</h2>
+            <p className="text-gray-400 max-w-md">
+              La connexion à la base de données a été interrompue. Impossible d'afficher les détails du produit.
+            </p>
+            <Button variant="outline" asChild>
+              <Link to="/" className="mt-4">Retour à l'accueil</Link>
+            </Button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (loading) {
     return (
