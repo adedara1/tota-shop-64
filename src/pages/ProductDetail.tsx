@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import Navbar from "@/components/Navbar";
+import React, { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
 import PromoBar from "@/components/PromoBar";
-import ProductGallery from "@/components/ProductGallery";
+import Navbar from "@/components/Navbar";
 import ProductDetails from "@/components/ProductDetails";
+import SimilarProducts from "@/components/SimilarProducts";
 import Footer from "@/components/Footer";
 import { supabase, isSupabaseConnected } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";

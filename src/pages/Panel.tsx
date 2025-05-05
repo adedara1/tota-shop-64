@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useState, useEffect } from "react";
 import { supabase, isSupabaseConnected } from "@/integrations/supabase/client";
@@ -6,20 +7,31 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Database } from "lucide-react";
+import { Database, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-interface ProductType {
+interface CartType {
   id: string;
-  name: string;
-  images: string[];
-  original_price: number;
-  discounted_price: number;
-  currency: string;
+  created_at: string;
+  total_amount: number;
+  processed: boolean;
+  customer_name: string | null;
+  customer_email: string | null;
+  customer_phone: string | null;
+  customer_address: string | null;
+  label: string | null;
 }
 
 export default function Panel() {
-  const [products, setProducts] = useState<ProductType[]>([]);
+  const [carts, setCarts] = useState<CartType[]>([]);
   const [loading, setLoading] = useState(true);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
 
@@ -46,42 +58,63 @@ export default function Panel() {
 
   useEffect(() => {
     if (isConnected) {
-      fetchProducts();
+      fetchCarts();
     }
   }, [isConnected]);
 
-  async function fetchProducts() {
+  async function fetchCarts() {
     if (!isConnected) return;
     
     try {
       const { data, error } = await supabase
-        .from("products")
+        .from("carts")
         .select("*")
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Error fetching products:", error);
+        console.error("Error fetching carts:", error);
+        toast.error("Erreur lors du chargement des commandes");
       } else {
-        setProducts(data || []);
+        setCarts(data || []);
       }
     } catch (error) {
       console.error("Error:", error);
+      toast.error("Une erreur s'est produite");
     } finally {
       setLoading(false);
     }
   }
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'XOF',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
+
   // Afficher un message si la base de données est déconnectée
   if (isConnected === false) {
     return (
       <div className="container mx-auto py-8">
-        <h1 className="text-3xl font-bold mb-8">Tableau de bord</h1>
+        <h1 className="text-3xl font-bold mb-8">Gestion des commandes</h1>
         
         <div className="flex flex-col items-center justify-center space-y-6 py-20">
           <Database size={64} className="text-gray-400" />
           <h2 className="text-2xl font-bold">Base de données déconnectée</h2>
           <p className="text-gray-600 max-w-md text-center">
-            La connexion à la base de données a été interrompue. Veuillez reconnecter votre projet à une base de données Supabase pour accéder au tableau de bord.
+            La connexion à la base de données a été interrompue. Veuillez reconnecter votre projet à une base de données Supabase pour accéder aux commandes.
           </p>
           <Button variant="outline" asChild>
             <Link to="/" className="mt-4">Retour à l'accueil</Link>
@@ -93,66 +126,258 @@ export default function Panel() {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">Tableau de bord</h1>
+      <h1 className="text-3xl font-bold mb-8">Gestion des commandes</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">
-              Produits
+              Commandes totales
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {loading ? <Skeleton className="h-8 w-20" /> : products.length}
+              {loading ? <Skeleton className="h-8 w-20" /> : carts.length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">
+              Commandes en attente
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {loading ? <Skeleton className="h-8 w-20" /> : carts.filter(cart => !cart.processed).length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">
+              Commandes traitées
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {loading ? <Skeleton className="h-8 w-20" /> : carts.filter(cart => cart.processed).length}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="products">
+      <Tabs defaultValue="all">
         <TabsList>
-          <TabsTrigger value="products">Produits</TabsTrigger>
+          <TabsTrigger value="all">Toutes les commandes</TabsTrigger>
+          <TabsTrigger value="pending">Commandes en attente</TabsTrigger>
+          <TabsTrigger value="processed">Commandes traitées</TabsTrigger>
         </TabsList>
-        <TabsContent value="products" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        
+        <TabsContent value="all" className="mt-6">
+          <div className="bg-white rounded-lg shadow overflow-hidden">
             {loading ? (
-              Array(8).fill(0).map((_, i) => (
-                <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden">
-                  <Skeleton className="h-48 w-full" />
-                  <div className="p-4">
-                    <Skeleton className="h-6 w-3/4 mb-2" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </div>
-                </div>
-              ))
+              <div className="p-6">
+                <Skeleton className="h-8 w-full mb-4" />
+                <Skeleton className="h-8 w-full mb-4" />
+                <Skeleton className="h-8 w-full mb-4" />
+                <Skeleton className="h-8 w-full mb-4" />
+              </div>
+            ) : carts.length === 0 ? (
+              <div className="p-6 text-center">
+                <ShoppingBag className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900">Aucune commande trouvée</h3>
+                <p className="mt-1 text-gray-500">
+                  Vous n'avez pas encore reçu de commandes.
+                </p>
+              </div>
             ) : (
-              products.map((product) => (
-                <Link to={`/product/${product.id}`} key={product.id}>
-                  <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                    <div className="h-48 overflow-hidden">
-                      <img 
-                        src={product.images?.[0] || '/placeholder.svg'} 
-                        alt={product.name} 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-medium text-lg mb-1 truncate">{product.name}</h3>
-                      <div className="flex items-center">
-                        <span className="text-orange-600 font-bold">
-                          {product.discounted_price} {product.currency}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead className="text-right">Montant</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {carts.map((cart) => (
+                    <TableRow key={cart.id}>
+                      <TableCell className="font-medium">{formatDate(cart.created_at)}</TableCell>
+                      <TableCell>{cart.customer_name || 'Non renseigné'}</TableCell>
+                      <TableCell>
+                        {cart.customer_email && <div>{cart.customer_email}</div>}
+                        {cart.customer_phone && <div>{cart.customer_phone}</div>}
+                      </TableCell>
+                      <TableCell className="text-right">{formatCurrency(cart.total_amount)}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          cart.processed 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {cart.processed ? 'Traitée' : 'En attente'}
                         </span>
-                        {product.original_price > product.discounted_price && (
-                          <span className="text-gray-400 line-through ml-2 text-sm">
-                            {product.original_price} {product.currency}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))
+                      </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            // Logique pour voir les détails à implémenter
+                            toast.info("Affichage des détails de la commande à venir");
+                          }}
+                        >
+                          Détails
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="pending" className="mt-6">
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            {loading ? (
+              <div className="p-6">
+                <Skeleton className="h-8 w-full mb-4" />
+                <Skeleton className="h-8 w-full mb-4" />
+              </div>
+            ) : carts.filter(cart => !cart.processed).length === 0 ? (
+              <div className="p-6 text-center">
+                <ShoppingBag className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900">Aucune commande en attente</h3>
+                <p className="mt-1 text-gray-500">
+                  Toutes les commandes ont été traitées.
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead className="text-right">Montant</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {carts
+                    .filter(cart => !cart.processed)
+                    .map((cart) => (
+                      <TableRow key={cart.id}>
+                        <TableCell className="font-medium">{formatDate(cart.created_at)}</TableCell>
+                        <TableCell>{cart.customer_name || 'Non renseigné'}</TableCell>
+                        <TableCell>
+                          {cart.customer_email && <div>{cart.customer_email}</div>}
+                          {cart.customer_phone && <div>{cart.customer_phone}</div>}
+                        </TableCell>
+                        <TableCell className="text-right">{formatCurrency(cart.total_amount)}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                // Logique pour voir les détails à implémenter
+                                toast.info("Affichage des détails de la commande à venir");
+                              }}
+                            >
+                              Détails
+                            </Button>
+                            <Button 
+                              variant="default"
+                              size="sm"
+                              onClick={async () => {
+                                try {
+                                  const { error } = await supabase
+                                    .from('carts')
+                                    .update({ processed: true })
+                                    .eq('id', cart.id);
+                                    
+                                  if (error) throw error;
+                                  
+                                  toast.success("Commande marquée comme traitée");
+                                  fetchCarts(); // Recharger les données
+                                } catch (error) {
+                                  console.error("Erreur lors de la mise à jour:", error);
+                                  toast.error("Erreur lors de la mise à jour du statut");
+                                }
+                              }}
+                            >
+                              Marquer comme traitée
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="processed" className="mt-6">
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            {loading ? (
+              <div className="p-6">
+                <Skeleton className="h-8 w-full mb-4" />
+                <Skeleton className="h-8 w-full mb-4" />
+              </div>
+            ) : carts.filter(cart => cart.processed).length === 0 ? (
+              <div className="p-6 text-center">
+                <ShoppingBag className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900">Aucune commande traitée</h3>
+                <p className="mt-1 text-gray-500">
+                  Vous n'avez pas encore traité de commandes.
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead className="text-right">Montant</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {carts
+                    .filter(cart => cart.processed)
+                    .map((cart) => (
+                      <TableRow key={cart.id}>
+                        <TableCell className="font-medium">{formatDate(cart.created_at)}</TableCell>
+                        <TableCell>{cart.customer_name || 'Non renseigné'}</TableCell>
+                        <TableCell>
+                          {cart.customer_email && <div>{cart.customer_email}</div>}
+                          {cart.customer_phone && <div>{cart.customer_phone}</div>}
+                        </TableCell>
+                        <TableCell className="text-right">{formatCurrency(cart.total_amount)}</TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              // Logique pour voir les détails à implémenter
+                              toast.info("Affichage des détails de la commande à venir");
+                            }}
+                          >
+                            Détails
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
             )}
           </div>
         </TabsContent>
