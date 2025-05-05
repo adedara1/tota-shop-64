@@ -72,7 +72,9 @@ const SimilarProducts = ({ productId, similarProducts, titleColor = "#FFFFFF" }:
                 )}
               </div>
               <div className="p-3">
-                <h3 className="text-sm font-medium truncate">{product.name}</h3>
+                <h3 className="text-sm font-medium truncate text-black">
+                  {product.name}
+                </h3>
                 <div className="flex items-center mt-1">
                   {[...Array(5)].map((_, i) => (
                     <Star 

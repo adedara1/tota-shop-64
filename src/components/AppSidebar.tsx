@@ -103,7 +103,7 @@ export function AppSidebar() {
           }
         } else if (data) {
           // Filter out hidden menu items
-          const hiddenMenus = data.hidden_menu_items || [];
+          const hiddenMenus = Array.isArray(data.hidden_menu_items) ? data.hidden_menu_items : [];
           const filtered = defaultItems.filter(item => !hiddenMenus.includes(item.title));
           setVisibleItems(filtered);
         }
@@ -166,7 +166,7 @@ export function AppSidebar() {
                       onClick={handleLogout}
                     >
                       <LogOut className={isMobile ? "text-black" : ""} />
-                      <span className={isMobile ? "text-black" : ""}>Déconnexion</span>
+                      <span className={isMobile ? "text-black" : ""}>{item.title}Déconnexion</span>
                     </SidebarMenuButton>
                   ) : (
                     <SidebarMenuButton 
@@ -176,7 +176,7 @@ export function AppSidebar() {
                     >
                       <Link to="/auth">
                         <LogIn className={isMobile ? "text-black" : ""} />
-                        <span className={isMobile ? "text-black" : ""}>Connexion</span>
+                        <span className={isMobile ? "text-black" : ""}>{item.title}Connexion</span>
                       </Link>
                     </SidebarMenuButton>
                   )}

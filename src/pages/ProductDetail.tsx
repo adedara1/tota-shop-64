@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -38,6 +37,7 @@ interface Product {
   show_star_reviews?: boolean;
   star_reviews_color?: string;
   review_count?: number;
+  review_count_color?: string;
   star_count?: number;
   show_stock_status?: boolean;
   stock_status_text?: string;
@@ -216,6 +216,7 @@ const ProductDetail = () => {
               showStarReviews={product.show_star_reviews}
               starReviewsColor={product.star_reviews_color}
               reviewCount={product.review_count}
+              reviewCountColor={product.review_count_color}
               starCount={product.star_count}
               showStockStatus={product.show_stock_status}
               stockStatusText={product.stock_status_text}

@@ -62,6 +62,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
   const [showStarReviews, setShowStarReviews] = useState(true);
   const [starReviewsColor, setStarReviewsColor] = useState("#FFCC00");
   const [reviewCount, setReviewCount] = useState(1238);
+  const [reviewCountColor, setReviewCountColor] = useState("#000000");
   const [starCount, setStarCount] = useState(5);
   const [showStockStatus, setShowStockStatus] = useState(true);
   const [stockStatusText, setStockStatusText] = useState("In stock, ready to ship");
@@ -104,6 +105,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
       setShowStarReviews(product.show_star_reviews || true);
       setStarReviewsColor(product.star_reviews_color || "#FFCC00");
       setReviewCount(product.review_count || 1238);
+      setReviewCountColor(product.review_count_color || "#000000");
       setStarCount(product.star_count || 5);
       setShowStockStatus(product.show_stock_status || false);
       setStockStatusText(product.stock_status_text || "In stock, ready to ship");
@@ -330,6 +332,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
         show_star_reviews: showStarReviews,
         star_reviews_color: starReviewsColor,
         review_count: reviewCount,
+        review_count_color: reviewCountColor,
         star_count: starCount,
         show_stock_status: showStockStatus,
         stock_status_text: stockStatusText,
@@ -490,6 +493,13 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
             value={starReviewsColor} 
             onChange={setStarReviewsColor}
             defaultColor="#FFCC00"
+          />
+          
+          <ColorInput 
+            label="Couleur du nombre d'avis" 
+            value={reviewCountColor} 
+            onChange={setReviewCountColor}
+            defaultColor="#000000"
           />
         </div>
       )}
