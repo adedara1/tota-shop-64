@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Database } from "lucide-react";
+import { toast } from "sonner";
 
 interface ProductType {
   id: string;
@@ -24,9 +25,18 @@ export default function Panel() {
 
   useEffect(() => {
     const checkConnection = async () => {
-      const connected = await isSupabaseConnected();
-      setIsConnected(connected);
-      if (!connected) {
+      try {
+        const connected = await isSupabaseConnected();
+        console.log("État de la connexion Supabase (Panel):", connected);
+        setIsConnected(connected);
+        
+        if (!connected) {
+          toast.error("Impossible de se connecter à la base de données");
+        }
+      } catch (error) {
+        console.error("Erreur lors de la vérification de la connexion:", error);
+        setIsConnected(false);
+      } finally {
         setLoading(false);
       }
     };

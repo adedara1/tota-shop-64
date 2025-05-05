@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import PromoBar from "@/components/PromoBar";
 import ProductGallery from "@/components/ProductGallery";
 import ProductDetails from "@/components/ProductDetails";
-import SimilarProducts from "@/components/SimilarProducts";
 import Footer from "@/components/Footer";
 import { supabase, isSupabaseConnected } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -13,6 +12,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
 import { Database as DatabaseIcon } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 
 interface Product {
   id: string;
@@ -57,13 +57,31 @@ const ProductDetail = () => {
   const isMobile = useIsMobile();
   const { addToCart } = useCart();
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
+  const [connectionChecked, setConnectionChecked] = useState(false);
 
   useEffect(() => {
     const checkConnection = async () => {
-      const connected = await isSupabaseConnected();
-      setIsConnected(connected);
-      if (!connected) {
-        setLoading(false);
+      try {
+        const connected = await isSupabaseConnected();
+        console.log("État de la connexion Supabase (ProductDetail):", connected);
+        
+        if (!connected) {
+          toast({
+            title: "Erreur de connexion",
+            description: "Impossible de se connecter à la base de données",
+            variant: "destructive",
+          });
+        }
+        
+        setConnectionChecked(true);
+      } catch (error) {
+        console.error("Erreur lors de la vérification de la connexion:", error);
+        toast({
+          title: "Erreur",
+          description: "Erreur lors de la vérification de la connexion",
+          variant: "destructive",
+        });
+        setConnectionChecked(true);
       }
     };
     
@@ -72,7 +90,7 @@ const ProductDetail = () => {
 
   useEffect(() => {
     const fetchProduct = async () => {
-      if (!isConnected || !id) return;
+      if (!connectionChecked) return;
       
       try {
         const { data, error } = await supabase
@@ -119,10 +137,10 @@ const ProductDetail = () => {
       }
     };
 
-    if (isConnected !== null && id) {
+    if (id && connectionChecked) {
       fetchProduct();
     }
-  }, [id, isConnected]);
+  }, [id, connectionChecked]);
 
   const handleProductClick = async () => {
     if (id) {

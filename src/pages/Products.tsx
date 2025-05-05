@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase, isSupabaseConnected } from "@/integrations/supabase/client";
@@ -13,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import Footer from "@/components/Footer";
 import { defaultSettings, ProductsPageSettings } from "@/models/products-page-settings";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 // Reste de l'interface inchangée
 interface RawSettingsResponse {
@@ -38,21 +38,37 @@ const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [settings, setSettings] = useState<ProductsPageSettings>(defaultSettings);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
+  const [isCheckingConnection, setIsCheckingConnection] = useState(true);
   
   // Vérifier si la connexion à Supabase est active
   useEffect(() => {
     const checkConnection = async () => {
-      const connected = await isSupabaseConnected();
-      setIsConnected(connected);
+      setIsCheckingConnection(true);
+      try {
+        const connected = await isSupabaseConnected();
+        console.log("État de la connexion Supabase:", connected);
+        setIsConnected(connected);
+        
+        if (!connected) {
+          toast.error("Impossible de se connecter à la base de données");
+        }
+      } catch (error) {
+        console.error("Erreur lors de la vérification de la connexion:", error);
+        setIsConnected(false);
+        toast.error("Erreur lors de la vérification de la connexion à la base de données");
+      } finally {
+        setIsCheckingConnection(false);
+      }
     };
     
     checkConnection();
   }, []);
 
   // Fetch page settings - use a fetch function that doesn't rely on the database schema
-  const { data: pageSettings } = useQuery({
+  const { data: pageSettings, isLoading: isLoadingSettings } = useQuery({
     queryKey: ["products-page-settings"],
     queryFn: async () => {
+      console.log("Tentative de récupération des paramètres de page, état de connexion:", isConnected);
       if (!isConnected) return defaultSettings;
       
       try {
@@ -65,10 +81,12 @@ const Products = () => {
           .single();
 
         if (error) {
-          console.error("Error fetching page settings:", error);
+          console.error("Erreur lors de la récupération des paramètres de page:", error);
           return defaultSettings;
         }
 
+        console.log("Paramètres de page récupérés:", data);
+        
         // Map raw response to our type
         const rawData = data as RawSettingsResponse;
         const mappedData: ProductsPageSettings = {
@@ -90,15 +108,16 @@ const Products = () => {
         
         return mappedData;
       } catch (error) {
-        console.error("Error fetching settings:", error);
+        console.error("Erreur lors de la récupération des paramètres:", error);
         return defaultSettings;
       }
     },
-    enabled: isConnected !== null
+    enabled: isConnected === true
   });
 
   useEffect(() => {
     if (pageSettings) {
+      console.log("Mise à jour des paramètres de page:", pageSettings);
       setSettings(pageSettings);
     }
   }, [pageSettings]);
@@ -106,33 +125,52 @@ const Products = () => {
   // Fetch products
   const {
     data: products,
-    isLoading
+    isLoading: isLoadingProducts
   } = useQuery({
     queryKey: ["products", searchQuery, selectedCategory],
     queryFn: async () => {
+      console.log("Tentative de récupération des produits, état de connexion:", isConnected);
       if (!isConnected) return [];
       
-      let query = supabase.from("products").select("*").eq('is_visible', true).order("created_at", {
-        ascending: false
-      });
-      
-      if (searchQuery) {
-        query = query.ilike("name", `%${searchQuery}%`);
+      try {
+        let query = supabase.from("products").select("*");
+        
+        if (query.eq) {
+          query = query.eq('is_visible', true);
+        }
+        
+        query = query.order("created_at", {
+          ascending: false
+        });
+        
+        if (searchQuery) {
+          query = query.ilike("name", `%${searchQuery}%`);
+        }
+        
+        if (selectedCategory && selectedCategory !== "all" && selectedCategory !== "Tout") {
+          query = query.ilike("category", `%${selectedCategory}%`);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error("Erreur lors de la récupération des produits:", error);
+          throw error;
+        }
+        
+        console.log("Produits récupérés:", data?.length || 0, "produits");
+        return data || [];
+      } catch (error) {
+        console.error("Erreur:", error);
+        return [];
       }
-      
-      if (selectedCategory && selectedCategory !== "all" && selectedCategory !== "Tout") {
-        query = query.ilike("category", `%${selectedCategory}%`);
-      }
-      
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
     },
-    enabled: isConnected !== null
+    enabled: isConnected === true
   });
 
   // Filter products based on search and category
   const filteredProducts = products || [];
+  console.log("Produits filtrés:", filteredProducts.length);
 
   // Pagination logic
   const productsPerPage = settings.items_per_page;
@@ -172,6 +210,26 @@ const Products = () => {
     return stars;
   };
 
+  // Afficher un message si la vérification de connexion est en cours
+  if (isCheckingConnection) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
+        <PromoBar />
+        <Navbar />
+        <div className="container mx-auto py-12 px-4 text-center">
+          <div className="flex flex-col items-center justify-center space-y-6 py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+            <h2 className="text-2xl font-bold">Vérification de la connexion...</h2>
+            <p className="text-gray-600 max-w-md">
+              Nous vérifions la connexion à la base de données. Veuillez patienter...
+            </p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   // Afficher un message si la base de données est déconnectée
   if (isConnected === false) {
     return (
@@ -183,10 +241,13 @@ const Products = () => {
             <Database size={64} className="text-gray-400" />
             <h2 className="text-3xl font-bold">Base de données déconnectée</h2>
             <p className="text-gray-600 max-w-md">
-              La connexion à la base de données a été interrompue. Veuillez reconnecter votre projet à une base de données Supabase pour afficher les produits.
+              La connexion à la base de données a été interrompue. Veuillez vérifier votre connexion à Supabase ou contacter l'administrateur.
             </p>
             <Button variant="outline" asChild>
               <a href="/" className="mt-4">Retour à l'accueil</a>
+            </Button>
+            <Button onClick={() => window.location.reload()} className="mt-2">
+              Réessayer
             </Button>
           </div>
         </div>
@@ -195,13 +256,16 @@ const Products = () => {
     );
   }
 
-  if (isLoading || isConnected === null) {
+  if (isLoadingSettings || isLoadingProducts) {
     return (
       <div className="min-h-screen bg-white">
         <PromoBar />
         <Navbar />
         <div className="container mx-auto py-12 px-4">
-          <div className="text-center">Chargement...</div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900 mx-auto mb-4"></div>
+            <p>Chargement des produits...</p>
+          </div>
         </div>
       </div>
     );
@@ -264,51 +328,57 @@ const Products = () => {
             <div className="relative flex justify-center">
               <span className="bg-[#fdf7f7] px-6 text-lg font-medium text-gray-900 flex items-center" style={{ backgroundColor: settings.background_color }}>
                 <span className="text-2xl font-serif italic mr-2">A</span>
-                {settings.section_titles.new_arrivals}
+                {settings.section_titles?.new_arrivals || "Nouveautés"}
               </span>
             </div>
           </div>
 
           {/* Products Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {currentProducts.map((product) => (
-              <Link key={product.id} to={`/product/${product.id}`}>
-                <Card className="rounded-lg overflow-hidden border border-gray-200 transition-all duration-300 hover:shadow-md hover:-translate-y-1">
-                  <div className="relative">
-                    {product.discounted_price < product.original_price && (
-                      <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                        Sale
-                      </div>
-                    )}
-                    <div className="h-48 overflow-hidden bg-gray-100">
-                      <img
-                        src={product.images && product.images.length > 0 ? product.images[0] : "/placeholder.svg"}
-                        alt={product.name}
-                        className="w-full h-full object-contain transition-transform duration-300 hover:scale-105"
-                      />
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-serif text-sm uppercase tracking-wider text-center mb-2">{product.name}</h3>
-                    {settings.show_ratings && (
-                      <div className="flex justify-center mb-2">
-                        {renderStars(4.5)}
-                      </div>
-                    )}
-                    <div className="flex justify-center gap-2 items-center">
-                      {product.discounted_price < product.original_price ? (
-                        <>
-                          <span className="text-gray-400 line-through text-sm">{product.original_price}</span>
-                          <span className="font-medium text-red-600">{product.discounted_price} {product.currency}</span>
-                        </>
-                      ) : (
-                        <span className="font-medium">{product.original_price} {product.currency}</span>
+            {currentProducts.length > 0 ? (
+              currentProducts.map((product) => (
+                <Link key={product.id} to={`/product/${product.id}`}>
+                  <Card className="rounded-lg overflow-hidden border border-gray-200 transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+                    <div className="relative">
+                      {product.discounted_price < product.original_price && (
+                        <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                          Promo
+                        </div>
                       )}
+                      <div className="h-48 overflow-hidden bg-gray-100">
+                        <img
+                          src={product.images && product.images.length > 0 ? product.images[0] : "/placeholder.svg"}
+                          alt={product.name}
+                          className="w-full h-full object-contain transition-transform duration-300 hover:scale-105"
+                        />
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+                    <CardContent className="p-4">
+                      <h3 className="font-serif text-sm uppercase tracking-wider text-center mb-2">{product.name}</h3>
+                      {settings.show_ratings && (
+                        <div className="flex justify-center mb-2">
+                          {renderStars(4.5)}
+                        </div>
+                      )}
+                      <div className="flex justify-center gap-2 items-center">
+                        {product.discounted_price < product.original_price ? (
+                          <>
+                            <span className="text-gray-400 line-through text-sm">{product.original_price}</span>
+                            <span className="font-medium text-red-600">{product.discounted_price} {product.currency}</span>
+                          </>
+                        ) : (
+                          <span className="font-medium">{product.original_price} {product.currency}</span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))
+            ) : (
+              <div className="col-span-4 text-center py-12">
+                <p className="text-gray-500">Aucun produit trouvé</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -322,7 +392,7 @@ const Products = () => {
               <div className="relative flex justify-center">
                 <span className="bg-[#fdf7f7] px-6 text-lg font-medium text-gray-900 flex items-center" style={{ backgroundColor: settings.background_color }}>
                   <span className="text-2xl font-serif italic mr-2">A</span>
-                  {settings.section_titles.seasonal}
+                  {settings.section_titles?.seasonal || "Collection saisonnière"}
                 </span>
               </div>
             </div>

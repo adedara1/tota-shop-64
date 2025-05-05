@@ -20,17 +20,17 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Function to check if the connection to Supabase is active
 export const isSupabaseConnected = async (): Promise<boolean> => {
   try {
-    // Check if the products bucket exists
-    const { data, error } = await supabase.storage.getBucket('products');
+    // Faire une requête simple pour vérifier la connexion à Supabase
+    const { error } = await supabase.from('products').select('count').limit(1);
+    
     if (error) {
-      if (error.message.includes("Bucket not found")) {
-        console.error("Products bucket not found. Please initialize the storage bucket.");
-      }
+      console.error("Erreur de connexion à Supabase:", error.message);
       return false;
     }
+    
     return true;
   } catch (error) {
-    console.error("Error checking Supabase connection:", error);
+    console.error("Erreur lors de la vérification de la connexion à Supabase:", error);
     return false;
   }
 };
@@ -70,18 +70,14 @@ export const initializeSupabase = async () => {
   try {
     const connected = await isSupabaseConnected();
     if (!connected) {
-      console.error("Failed to connect to Supabase");
+      console.error("Impossible de se connecter à Supabase");
       return false;
     }
     
-    console.log("Successfully connected to Supabase");
-    
-    // You could add additional initialization here if needed
-    // For example, checking if required tables exist
-    
+    console.log("Connexion à Supabase établie avec succès");
     return true;
   } catch (error) {
-    console.error("Error initializing Supabase:", error);
+    console.error("Erreur d'initialisation de Supabase:", error);
     return false;
   }
 };
