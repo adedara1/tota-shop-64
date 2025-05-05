@@ -9,7 +9,13 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    storage: localStorage
+  }
+});
 
 // Function to check if the connection to Supabase is active
 export const isSupabaseConnected = async (): Promise<boolean> => {
@@ -18,6 +24,50 @@ export const isSupabaseConnected = async (): Promise<boolean> => {
     return !error;
   } catch (error) {
     console.error("Error checking Supabase connection:", error);
+    return false;
+  }
+};
+
+// Helper function to log and display database errors
+export const handleSupabaseError = (error: any, toast?: any) => {
+  console.error("Supabase error:", error);
+  
+  // Prepare a user-friendly message
+  let errorMessage = "Une erreur s'est produite. Veuillez réessayer.";
+  
+  if (error?.message) {
+    errorMessage = `Erreur: ${error.message}`;
+  }
+  
+  // If toast is provided, show the error message
+  if (toast) {
+    toast({
+      title: "Erreur",
+      description: errorMessage,
+      variant: "destructive"
+    });
+  }
+  
+  return errorMessage;
+};
+
+// Initialize Supabase with required tables and functions
+export const initializeSupabase = async () => {
+  try {
+    const connected = await isSupabaseConnected();
+    if (!connected) {
+      console.error("Failed to connect to Supabase");
+      return false;
+    }
+    
+    console.log("Successfully connected to Supabase");
+    
+    // You could add additional initialization here if needed
+    // For example, checking if required tables exist
+    
+    return true;
+  } catch (error) {
+    console.error("Error initializing Supabase:", error);
     return false;
   }
 };

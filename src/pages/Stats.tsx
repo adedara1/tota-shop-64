@@ -1,6 +1,7 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, handleSupabaseError } from "@/integrations/supabase/client";
 import {
   Table,
   TableBody,
@@ -12,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import PromoBar from "@/components/PromoBar";
 import Navbar from "@/components/Navbar";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProductStats {
   product_name: string;
@@ -21,6 +23,7 @@ interface ProductStats {
 }
 
 const Stats = () => {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'products' | 'buttons'>('products');
 
   const { data: productStats, isLoading: isLoadingProducts } = useQuery({
@@ -56,6 +59,7 @@ const Stats = () => {
 
         if (productsError) {
           console.error("Error fetching product names:", productsError);
+          handleSupabaseError(productsError, toast);
           // Continue with unknown product names instead of throwing
         }
 
@@ -71,6 +75,7 @@ const Stats = () => {
         });
       } catch (error) {
         console.error("Error fetching product stats:", error);
+        handleSupabaseError(error, toast);
         return [];
       }
     },
@@ -85,7 +90,10 @@ const Stats = () => {
           .select("*")
           .order("click_date", { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+          handleSupabaseError(error, toast);
+          return [];
+        }
         
         return data.map((stat) => ({
           button_name: stat.button_name,
@@ -95,6 +103,7 @@ const Stats = () => {
         }));
       } catch (error) {
         console.error("Error fetching button stats:", error);
+        handleSupabaseError(error, toast);
         return [];
       }
     },
