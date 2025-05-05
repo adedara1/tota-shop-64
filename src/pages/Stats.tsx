@@ -26,49 +26,77 @@ const Stats = () => {
   const { data: productStats, isLoading: isLoadingProducts } = useQuery({
     queryKey: ["product-stats"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("product_stats")
-        .select("view_date, views_count, clicks_count, product_id")
-        .order("view_date", { ascending: false });
+      try {
+        const { data: statsData, error: statsError } = await supabase
+          .from("product_stats")
+          .select("view_date, views_count, clicks_count, product_id")
+          .order("view_date", { ascending: false });
 
-      if (error) throw error;
+        if (statsError) throw statsError;
+        if (!statsData || statsData.length === 0) return [];
 
-      // Fetch product names in a separate query
-      const productIds = data.map(stat => stat.product_id).filter(Boolean);
-      const productsResponse = await supabase
-        .from("products")
-        .select("id, name")
-        .in("id", productIds);
+        // Fetch product names in a separate query
+        const productIds = statsData
+          .map(stat => stat.product_id)
+          .filter(Boolean) as string[];
 
-      // Map product names to stats
-      return data.map((stat) => {
-        const product = productsResponse.data?.find(p => p.id === stat.product_id);
-        return {
-          product_name: product?.name || "Unknown product",
-          views_count: stat.views_count,
-          clicks_count: stat.clicks_count,
-          view_date: new Date(stat.view_date).toLocaleDateString(),
-        };
-      });
+        if (productIds.length === 0) {
+          return statsData.map(stat => ({
+            product_name: "Produit supprimé",
+            views_count: stat.views_count,
+            clicks_count: stat.clicks_count,
+            view_date: new Date(stat.view_date).toLocaleDateString(),
+          }));
+        }
+
+        const { data: productsData, error: productsError } = await supabase
+          .from("products")
+          .select("id, name")
+          .in("id", productIds);
+
+        if (productsError) {
+          console.error("Error fetching product names:", productsError);
+          // Continue with unknown product names instead of throwing
+        }
+
+        // Map product names to stats
+        return statsData.map((stat) => {
+          const product = productsData?.find(p => p.id === stat.product_id);
+          return {
+            product_name: product?.name || "Produit inconnu",
+            views_count: stat.views_count,
+            clicks_count: stat.clicks_count,
+            view_date: new Date(stat.view_date).toLocaleDateString(),
+          };
+        });
+      } catch (error) {
+        console.error("Error fetching product stats:", error);
+        return [];
+      }
     },
   });
 
   const { data: buttonStats, isLoading: isLoadingButtons } = useQuery({
     queryKey: ["button-stats"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("button_stats")
-        .select("*")
-        .order("click_date", { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from("button_stats")
+          .select("*")
+          .order("click_date", { ascending: false });
 
-      if (error) throw error;
-
-      return data.map((stat) => ({
-        button_name: stat.button_name,
-        page_name: stat.page_name,
-        clicks_count: stat.clicks_count,
-        click_date: new Date(stat.click_date).toLocaleDateString(),
-      }));
+        if (error) throw error;
+        
+        return data.map((stat) => ({
+          button_name: stat.button_name,
+          page_name: stat.page_name,
+          clicks_count: stat.clicks_count,
+          click_date: new Date(stat.click_date).toLocaleDateString(),
+        }));
+      } catch (error) {
+        console.error("Error fetching button stats:", error);
+        return [];
+      }
     },
   });
 

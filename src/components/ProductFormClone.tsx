@@ -272,24 +272,35 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
 
       if (images.length > 0) {
         for (const image of images) {
-          const fileName = `${crypto.randomUUID()}-${image.name}`;
-          console.log("Uploading image:", fileName);
-          
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from("products")
-            .upload(fileName, image);
+          try {
+            const fileName = `${crypto.randomUUID()}-${image.name}`;
+            console.log("Uploading image:", fileName);
+            
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from("products")
+              .upload(fileName, image);
 
-          if (uploadError) {
-            console.error("Error uploading image:", uploadError);
-            throw uploadError;
+            if (uploadError) {
+              console.error("Error uploading image:", uploadError);
+              throw new Error(`Erreur de téléchargement de l'image: ${uploadError.message}`);
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+              .from("products")
+              .getPublicUrl(fileName);
+
+            console.log("Image uploaded successfully:", publicUrl);
+            imageUrls.push(publicUrl);
+          } catch (imageError) {
+            console.error("Error processing image:", imageError);
+            toast({
+              title: "Erreur",
+              description: "Problème lors du téléchargement d'une image. Veuillez réessayer.",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return; // Stop the submission if image upload fails
           }
-
-          const { data: { publicUrl } } = supabase.storage
-            .from("products")
-            .getPublicUrl(fileName);
-
-          console.log("Image uploaded successfully:", publicUrl);
-          imageUrls.push(publicUrl);
         }
       }
 
@@ -308,10 +319,10 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
 
       const productData = {
         name: formData.get("name") as string,
-        original_price: parseInt(formData.get("original_price") as string),
-        discounted_price: parseInt(formData.get("discounted_price") as string),
-        description: description,
-        cart_url: cartUrl,
+        original_price: parseInt(formData.get("original_price") as string) || 0,
+        discounted_price: parseInt(formData.get("discounted_price") as string) || 0,
+        description: description || "",
+        cart_url: cartUrl || "#",
         theme_color: selectedColor,
         images: imageUrls.length > 0 ? imageUrls : product?.images || [],
         is_visible: true,
@@ -353,7 +364,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
 
         if (updateError) {
           console.error("Error updating product:", updateError);
-          throw updateError;
+          throw new Error(`Erreur de mise à jour: ${updateError.message}`);
         }
 
         toast({
@@ -369,7 +380,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
 
         if (insertError) {
           console.error("Error creating product:", insertError);
-          throw insertError;
+          throw new Error(`Erreur de création: ${insertError.message}`);
         }
 
         toast({
@@ -379,11 +390,11 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
       }
 
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating/updating product:", error);
       toast({
         title: "Erreur",
-        description: "Échec de la création/modification du produit",
+        description: error.message || "Échec de la création/modification du produit. Veuillez vérifier les champs obligatoires.",
         variant: "destructive",
       });
     } finally {

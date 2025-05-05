@@ -17,6 +17,7 @@ export const isSupabaseConnected = async (): Promise<boolean> => {
     const { data, error } = await supabase.from('products').select('id').limit(1);
     return !error;
   } catch (error) {
+    console.error("Error checking Supabase connection:", error);
     return false;
   }
 };

@@ -214,29 +214,41 @@ const ProductForm = () => {
       const imageUrls: string[] = [];
       if (images.length > 0) {
         for (const image of images) {
-          const fileName = `${crypto.randomUUID()}-${image.name}`;
-          console.log("Uploading image:", fileName);
-          const {
-            data: uploadData,
-            error: uploadError
-          } = await supabase.storage.from("products").upload(fileName, image);
-          if (uploadError) {
-            console.error("Error uploading image:", uploadError);
-            throw uploadError;
-          }
-          const {
-            data: {
-              publicUrl
+          try {
+            const fileName = `${crypto.randomUUID()}-${image.name}`;
+            console.log("Uploading image:", fileName);
+            const {
+              data: uploadData,
+              error: uploadError
+            } = await supabase.storage.from("products").upload(fileName, image);
+            if (uploadError) {
+              console.error("Error uploading image:", uploadError);
+              throw new Error(`Erreur de téléchargement de l'image: ${uploadError.message}`);
             }
-          } = supabase.storage.from("products").getPublicUrl(fileName);
-          console.log("Image uploaded successfully:", publicUrl);
-          imageUrls.push(publicUrl);
+            const {
+              data: {
+                publicUrl
+              }
+            } = supabase.storage.from("products").getPublicUrl(fileName);
+            console.log("Image uploaded successfully:", publicUrl);
+            imageUrls.push(publicUrl);
+          } catch (imageError: any) {
+            console.error("Error processing image:", imageError);
+            toast({
+              title: "Erreur",
+              description: "Problème lors du téléchargement d'une image. Veuillez réessayer.",
+              variant: "destructive"
+            });
+            setLoading(false);
+            return; // Stop the submission if image upload fails
+          }
         }
       }
+      
       const productData = {
         name: formData.get("name") as string,
-        original_price: parseInt(formData.get("original_price") as string),
-        discounted_price: parseInt(formData.get("discounted_price") as string),
+        original_price: parseInt(formData.get("original_price") as string) || 0,
+        discounted_price: parseInt(formData.get("discounted_price") as string) || 0,
         description: description,
         cart_url: formData.get("cart_url") as string,
         theme_color: selectedColor,
@@ -249,15 +261,18 @@ const ProductForm = () => {
         show_similar_products: formData.get("show_similar_products") === "on",
         similar_products: similarProducts.length > 0 ? similarProducts : []
       };
+      
       console.log("Saving product data:", productData);
       if (editingProduct) {
         const {
           error: updateError
         } = await supabase.from("products").update(productData).eq("id", editingProduct.id);
+        
         if (updateError) {
           console.error("Error updating product:", updateError);
-          throw updateError;
+          throw new Error(`Erreur de mise à jour: ${updateError.message}`);
         }
+        
         toast({
           title: "Succès",
           description: "Produit mis à jour avec succès"
@@ -266,23 +281,26 @@ const ProductForm = () => {
         const {
           error: insertError
         } = await supabase.from("products").insert(productData);
+        
         if (insertError) {
           console.error("Error creating product:", insertError);
-          throw insertError;
+          throw new Error(`Erreur de création: ${insertError.message}`);
         }
+        
         toast({
           title: "Succès",
           description: "Produit créé avec succès"
         });
       }
+      
       resetForm();
       setIsSheetOpen(false);
       fetchProducts();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating/updating product:", error);
       toast({
         title: "Erreur",
-        description: "Échec de l'opération",
+        description: error.message || "Échec de l'opération. Veuillez vérifier les champs obligatoires.",
         variant: "destructive"
       });
     } finally {
