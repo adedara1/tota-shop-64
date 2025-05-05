@@ -13,6 +13,7 @@ import { useCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
 import { Database as DatabaseIcon } from "lucide-react";
 import { Loader2, AlertCircle } from "lucide-react";
+import ProductGallery from "@/components/ProductGallery";
 
 interface Product {
   id: string;

@@ -1,7 +1,5 @@
 
-import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
+import React, { useState } from "react";
 
 interface ProductGalleryProps {
   images: string[];
@@ -9,149 +7,49 @@ interface ProductGalleryProps {
 }
 
 const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const allImages = [...images];
-  const isMobile = useIsMobile();
+  const [activeImage, setActiveImage] = useState<string | null>(
+    images && images.length > 0 ? images[0] : null
+  );
 
-  // Reset active index when images change
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [images]);
+  // Combine product images with option-specific images
+  const allImages = [...images, ...optionImages.filter(img => !images.includes(img))];
 
-  const nextSlide = () => {
-    setActiveIndex(current => current === allImages.length - 1 ? 0 : current + 1);
-  };
-
-  const prevSlide = () => {
-    setActiveIndex(current => current === 0 ? allImages.length - 1 : current - 1);
-  };
-
-  const goToSlide = (index: number) => {
-    setActiveIndex(index);
-  };
-
-  if (!images || images.length === 0) {
-    return <div className="relative h-[500px] bg-gray-100 flex items-center justify-center rounded-lg">
-      <p className="text-gray-500">Aucune image disponible</p>
-    </div>;
-  }
-
-  // Version desktop avec miniatures à gauche
-  if (!isMobile) {
-    return (
-      <div className="relative flex flex-row gap-4">
-        {/* Miniatures sur le côté gauche pour desktop */}
-        {allImages.length > 1 && (
-          <div className="flex flex-col gap-2 w-[100px] max-h-[500px] overflow-y-auto">
-            {allImages.map((image, index) => (
-              <button
-                key={index}
-                onClick={() => goToSlide(index)}
-                className={`relative h-16 w-16 flex-shrink-0 rounded-md overflow-hidden border-2 ${
-                  index === activeIndex ? 'border-black' : 'border-transparent'
-                }`}
-              >
-                <img 
-                  src={image} 
-                  alt={`Thumbnail ${index + 1}`} 
-                  className="h-full w-full object-cover"
-                />
-              </button>
-            ))}
+  return (
+    <div className="md:order-1 order-1">
+      {/* Main large image */}
+      <div className="mb-4 rounded-lg overflow-hidden bg-white border border-gray-200">
+        {activeImage ? (
+          <img
+            src={activeImage}
+            alt="Product"
+            className="w-full h-auto object-contain aspect-square"
+          />
+        ) : (
+          <div className="w-full h-96 flex items-center justify-center bg-gray-100">
+            <p className="text-gray-500">Aucune image</p>
           </div>
         )}
-        
-        {/* Image principale */}
-        <div className="relative h-[500px] flex-grow overflow-hidden rounded-lg">
-          <img 
-            src={allImages[activeIndex]} 
-            alt={`Product image ${activeIndex + 1}`}
-            className="w-full max-w-xl"
-            style={{
-              objectFit: "contain",
-              width: "100%",
-              height: "auto",
-              alignSelf: "flex-start"
-            }} 
-          />
-          
-          {allImages.length > 1 && (
-            <>
-              <button 
-                onClick={prevSlide} 
-                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center shadow-md" 
-                aria-label="Previous image"
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <button 
-                onClick={nextSlide} 
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center shadow-md" 
-                aria-label="Next image"
-              >
-                <ChevronRight size={18} />
-              </button>
-            </>
-          )}
-        </div>
       </div>
-    );
-  }
 
-  // Version mobile (inchangée)
-  return (
-    <div className="relative flex flex-col gap-4">
-      {/* Main image */}
-      <div className="relative h-auto overflow-hidden rounded-lg flex-grow">
-        <img 
-          src={allImages[activeIndex]} 
-          alt={`Product image ${activeIndex + 1}`}
-          className="w-full max-w-xl"
-          style={{
-            objectFit: "contain",
-            width: "100%",
-            height: "auto",
-            alignSelf: "flex-start"
-          }} 
-        />
-        
-        {allImages.length > 1 && (
-          <>
-            <button 
-              onClick={prevSlide} 
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center shadow-md" 
-              aria-label="Previous image"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <button 
-              onClick={nextSlide} 
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center shadow-md" 
-              aria-label="Next image"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </>
-        )}
-      </div>
-      
-      {/* Miniatures en bas pour mobile */}
+      {/* Thumbnail gallery */}
       {allImages.length > 1 && (
-        <div className="flex flex-row overflow-x-auto gap-2 max-w-full">
+        <div className="grid grid-cols-5 gap-2">
           {allImages.map((image, index) => (
-            <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className={`relative h-16 w-16 flex-shrink-0 rounded-md overflow-hidden border-2 ${
-                index === activeIndex ? 'border-black' : 'border-transparent'
+            <div
+              key={`${image}-${index}`}
+              className={`cursor-pointer rounded-md overflow-hidden border ${
+                activeImage === image 
+                  ? "border-blue-500 ring-2 ring-blue-300" 
+                  : "border-gray-200 hover:border-gray-300"
               }`}
+              onClick={() => setActiveImage(image)}
             >
-              <img 
-                src={image} 
-                alt={`Thumbnail ${index + 1}`} 
-                className="h-full w-full object-cover"
+              <img
+                src={image}
+                alt={`Thumbnail ${index + 1}`}
+                className="w-full h-auto object-cover aspect-square"
               />
-            </button>
+            </div>
           ))}
         </div>
       )}
