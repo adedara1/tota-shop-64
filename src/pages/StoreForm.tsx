@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -28,6 +27,7 @@ interface Store {
   created_at: string;
   media_url?: string;
   media_type?: "image" | "video";
+  show_media?: boolean;
 }
 
 const StoreForm = () => {
@@ -40,6 +40,7 @@ const StoreForm = () => {
   const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
   const [mediaUrl, setMediaUrl] = useState<string>("");
   const [mediaType, setMediaType] = useState<"image" | "video">("image");
+  const [showMedia, setShowMedia] = useState<boolean>(true);
 
   useEffect(() => {
     loadStores();
@@ -72,6 +73,10 @@ const StoreForm = () => {
     setMediaType(type);
   };
 
+  const handleShowMediaChange = (show: boolean) => {
+    setShowMedia(show);
+  };
+
   const onSubmit = async () => {
     if (selectedProducts.length === 0) {
       toast.error("Veuillez sélectionner au moins un produit");
@@ -86,7 +91,8 @@ const StoreForm = () => {
         const storeData = await updateStore(editingStoreId, {
           products: selectedProducts.map(p => p.id),
           media_url: mediaUrl || undefined,
-          media_type: mediaUrl ? mediaType : undefined
+          media_type: mediaUrl ? mediaType : undefined,
+          show_media: showMedia
         });
         
         toast.success("Votre boutique a été mise à jour avec succès");
@@ -98,7 +104,8 @@ const StoreForm = () => {
           name: "Ma boutique",
           products: selectedProducts.map(p => p.id),
           media_url: mediaUrl || undefined,
-          media_type: mediaUrl ? mediaType : undefined
+          media_type: mediaUrl ? mediaType : undefined,
+          show_media: showMedia
         });
 
         toast.success("Votre boutique a été créée avec succès");
@@ -136,6 +143,9 @@ const StoreForm = () => {
         setMediaUrl("");
         setMediaType("image");
       }
+      
+      // Set show_media flag
+      setShowMedia(storeData.show_media !== false);
       
       // Fetch product details for the selected products
       const productIds = storeData.products || [];
@@ -234,6 +244,8 @@ const StoreForm = () => {
               <MediaUploader 
                 onMediaUpload={handleMediaUpload}
                 initialMedia={mediaUrl ? { url: mediaUrl, type: mediaType } : undefined}
+                showMedia={showMedia}
+                onShowMediaChange={handleShowMediaChange}
               />
 
               <ProductSelector

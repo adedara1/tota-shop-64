@@ -87,6 +87,7 @@ export interface StoreData {
   updated_at?: string;
   media_url?: string;
   media_type?: "image" | "video";
+  show_media?: boolean;
 }
 
 // Store functions
