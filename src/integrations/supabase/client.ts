@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './types';
 
@@ -103,12 +104,24 @@ export const fetchStores = async (): Promise<StoreData[]> => {
       .select('*');
     
     if (error) throw error;
-    // Add type assertion to handle the media_type property
-    return (data || []).map(store => ({
-      ...store,
-      media_type: store.media_type as "image" | "video" | undefined,
-      show_media: store.show_media !== false // Ensure show_media is properly typed
-    }));
+    
+    // Add explicit type casting for each store object
+    return (data || []).map(store => {
+      const typedStore: StoreData = {
+        id: store.id,
+        name: store.name,
+        products: store.products || [],
+        address: store.address,
+        contact: store.contact,
+        description: store.description,
+        media_url: store.media_url,
+        media_type: store.media_type as "image" | "video" | undefined,
+        show_media: typeof store.show_media === 'boolean' ? store.show_media : true,
+        created_at: store.created_at,
+        updated_at: store.updated_at
+      };
+      return typedStore;
+    });
   } catch (error) {
     console.error('Error fetching stores:', error);
     throw error;
@@ -168,12 +181,22 @@ export const fetchStoreById = async (storeId: string): Promise<StoreData | null>
       return null;
     }
     
-    // Add type assertion to handle the media_type property
-    return {
-      ...data,
+    // Create a properly typed store object
+    const typedStore: StoreData = {
+      id: data.id,
+      name: data.name,
+      products: data.products || [],
+      address: data.address,
+      contact: data.contact,
+      description: data.description,
+      media_url: data.media_url,
       media_type: data.media_type as "image" | "video" | undefined,
-      show_media: data.show_media !== false // Ensure show_media is properly typed
+      show_media: typeof data.show_media === 'boolean' ? data.show_media : true,
+      created_at: data.created_at,
+      updated_at: data.updated_at
     };
+    
+    return typedStore;
   } catch (error) {
     console.error('Error fetching store by ID:', error);
     return null;

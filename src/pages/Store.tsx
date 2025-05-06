@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShoppingCart, Star } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, StoreData } from "@/integrations/supabase/client";
 import Footer from "@/components/Footer";
 import PromoBar from "@/components/PromoBar";
 import { toast } from "sonner";
@@ -19,15 +19,7 @@ interface Product {
 }
 
 // Update the Store interface to match the StoreData interface in client.ts
-interface Store {
-  id: string;
-  name: string;
-  products: string[];
-  created_at: string;
-  media_url?: string;
-  media_type?: "image" | "video";
-  show_media?: boolean;
-}
+interface Store extends StoreData {}
 
 const Store = () => {
   const {
@@ -118,7 +110,7 @@ const Store = () => {
               </div>
               
               {/* Ne montrer le média que si show_media n'est pas explicitement false et qu'il y a une URL de média */}
-              {(store.show_media !== false && store.media_url) && (
+              {(store?.show_media !== false && store?.media_url) && (
                 <div className="md:max-w-xs w-full">
                   {store.media_type === "image" && <img src={store.media_url} alt="Store Showcase" className="rounded-md w-full" />}
                   {store.media_type === "video" && <video src={store.media_url} controls className="rounded-md w-full" />}
