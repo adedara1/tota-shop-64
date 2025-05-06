@@ -31,7 +31,6 @@ interface RawSettingsResponse {
   created_at?: string;
   updated_at?: string;
 }
-
 const Products = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -39,7 +38,7 @@ const Products = () => {
   const [settings, setSettings] = useState<ProductsPageSettings>(defaultSettings);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [isCheckingConnection, setIsCheckingConnection] = useState(true);
-  
+
   // Vérifier si la connexion à Supabase est active
   useEffect(() => {
     const checkConnection = async () => {
@@ -48,7 +47,6 @@ const Products = () => {
         const connected = await isSupabaseConnected();
         console.log("État de la connexion Supabase:", connected);
         setIsConnected(connected);
-        
         if (!connected) {
           toast.error("Impossible de se connecter à la base de données");
         }
@@ -60,33 +58,32 @@ const Products = () => {
         setIsCheckingConnection(false);
       }
     };
-    
     checkConnection();
   }, []);
 
   // Fetch page settings - use a fetch function that doesn't rely on the database schema
-  const { data: pageSettings, isLoading: isLoadingSettings } = useQuery({
+  const {
+    data: pageSettings,
+    isLoading: isLoadingSettings
+  } = useQuery({
     queryKey: ["products-page-settings"],
     queryFn: async () => {
       console.log("Tentative de récupération des paramètres de page, état de connexion:", isConnected);
       if (!isConnected) return defaultSettings;
-      
       try {
         // Use raw query without type checking
-        const { data, error } = await supabase
-          .from('products_page_settings')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
+        const {
+          data,
+          error
+        } = await supabase.from('products_page_settings').select('*').order('created_at', {
+          ascending: false
+        }).limit(1).single();
         if (error) {
           console.error("Erreur lors de la récupération des paramètres de page:", error);
           return defaultSettings;
         }
-
         console.log("Paramètres de page récupérés:", data);
-        
+
         // Map raw response to our type
         const rawData = data as RawSettingsResponse;
         const mappedData: ProductsPageSettings = {
@@ -105,7 +102,6 @@ const Products = () => {
           created_at: rawData.created_at,
           updated_at: rawData.updated_at
         };
-        
         return mappedData;
       } catch (error) {
         console.error("Erreur lors de la récupération des paramètres:", error);
@@ -114,7 +110,6 @@ const Products = () => {
     },
     enabled: isConnected === true
   });
-
   useEffect(() => {
     if (pageSettings) {
       console.log("Mise à jour des paramètres de page:", pageSettings);
@@ -131,33 +126,28 @@ const Products = () => {
     queryFn: async () => {
       console.log("Tentative de récupération des produits, état de connexion:", isConnected);
       if (!isConnected) return [];
-      
       try {
         let query = supabase.from("products").select("*");
-        
         if (query.eq) {
           query = query.eq('is_visible', true);
         }
-        
         query = query.order("created_at", {
           ascending: false
         });
-        
         if (searchQuery) {
           query = query.ilike("name", `%${searchQuery}%`);
         }
-        
         if (selectedCategory && selectedCategory !== "all" && selectedCategory !== "Tout") {
           query = query.ilike("category", `%${selectedCategory}%`);
         }
-        
-        const { data, error } = await query;
-        
+        const {
+          data,
+          error
+        } = await query;
         if (error) {
           console.error("Erreur lors de la récupération des produits:", error);
           throw error;
         }
-        
         console.log("Produits récupérés:", data?.length || 0, "produits");
         return data || [];
       } catch (error) {
@@ -184,12 +174,10 @@ const Products = () => {
   for (let i = 1; i <= totalPages; i++) {
     pageNumbers.push(i);
   }
-  
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo(0, 0);
   };
-  
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
     setCurrentPage(1);
@@ -199,21 +187,16 @@ const Products = () => {
   const renderStars = (rating: number) => {
     const stars = [];
     for (let i = 0; i < 5; i++) {
-      stars.push(
-        <Star 
-          key={i} 
-          size={12} 
-          className={i < Math.floor(rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} 
-        />
-      );
+      stars.push(<Star key={i} size={12} className={i < Math.floor(rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />);
     }
     return stars;
   };
 
   // Afficher un message si la vérification de connexion est en cours
   if (isCheckingConnection) {
-    return (
-      <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
+    return <div className="min-h-screen" style={{
+      backgroundColor: "#f1eee9"
+    }}>
         <PromoBar />
         <Navbar />
         <div className="container mx-auto py-12 px-4 text-center">
@@ -226,14 +209,14 @@ const Products = () => {
           </div>
         </div>
         <Footer />
-      </div>
-    );
+      </div>;
   }
 
   // Afficher un message si la base de données est déconnectée
   if (isConnected === false) {
-    return (
-      <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
+    return <div className="min-h-screen" style={{
+      backgroundColor: "#f1eee9"
+    }}>
         <PromoBar />
         <Navbar />
         <div className="container mx-auto py-12 px-4 text-center">
@@ -252,13 +235,10 @@ const Products = () => {
           </div>
         </div>
         <Footer />
-      </div>
-    );
+      </div>;
   }
-
   if (isLoadingSettings || isLoadingProducts) {
-    return (
-      <div className="min-h-screen bg-white">
+    return <div className="min-h-screen bg-white">
         <PromoBar />
         <Navbar />
         <div className="container mx-auto py-12 px-4">
@@ -267,56 +247,34 @@ const Products = () => {
             <p>Chargement des produits...</p>
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen" style={{ backgroundColor: settings.background_color || "#fdf7f7" }}>
+  return <div className="min-h-screen" style={{
+    backgroundColor: settings.background_color || "#fdf7f7"
+  }}>
       <PromoBar />
       <Navbar />
       
       {/* Hero Banner */}
       <div className="relative w-full h-[400px] overflow-hidden">
-        <img 
-          src={settings.hero_banner_image} 
-          alt={settings.hero_banner_title} 
-          className="w-full h-full object-cover"
-        />
+        <img src={settings.hero_banner_image} alt={settings.hero_banner_title} className="w-full h-full object-cover" />
       </div>
       
       <div className="container mx-auto py-8 px-4">
         {/* Search and Filter */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          {settings.show_search && (
-            <div className="relative w-full md:w-auto">
+          {settings.show_search && <div className="relative w-full md:w-auto">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <Input
-                type="text"
-                placeholder="Rechercher..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 rounded-full border-gray-300 w-full md:w-[300px]"
-              />
-            </div>
-          )}
+              <Input type="text" placeholder="Rechercher..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10 pr-4 py-2 rounded-full border-gray-300 w-full md:w-[300px]" />
+            </div>}
           
-          {settings.show_categories && (
-            <Tabs defaultValue={settings.categories[0]} className="w-full md:w-auto">
+          {settings.show_categories && <Tabs defaultValue={settings.categories[0]} className="w-full md:w-auto">
               <TabsList className="bg-transparent border border-gray-200 rounded-full p-1">
-                {settings.categories.map((category) => (
-                  <TabsTrigger
-                    key={category}
-                    value={category}
-                    onClick={() => handleCategoryChange(category)}
-                    className="rounded-full px-4 py-1 data-[state=active]:bg-black data-[state=active]:text-white"
-                  >
+                {settings.categories.map(category => <TabsTrigger key={category} value={category} onClick={() => handleCategoryChange(category)} className="rounded-full px-4 py-1 data-[state=active]:bg-black data-[state=active]:text-white">
                     {category}
-                  </TabsTrigger>
-                ))}
+                  </TabsTrigger>)}
               </TabsList>
-            </Tabs>
-          )}
+            </Tabs>}
         </div>
 
         {/* New Arrivals Section */}
@@ -326,8 +284,10 @@ const Products = () => {
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-[#fdf7f7] px-6 text-lg font-medium text-gray-900 flex items-center" style={{ backgroundColor: settings.background_color }}>
-                <span className="text-2xl font-serif italic mr-2">A</span>
+              <span className="bg-[#fdf7f7] px-6 text-lg font-medium text-gray-900 flex items-center" style={{
+              backgroundColor: settings.background_color
+            }}>
+                
                 {settings.section_titles?.new_arrivals || "Nouveautés"}
               </span>
             </div>
@@ -335,111 +295,73 @@ const Products = () => {
 
           {/* Products Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {currentProducts.length > 0 ? (
-              currentProducts.map((product) => (
-                <Link key={product.id} to={`/product/${product.id}`}>
+            {currentProducts.length > 0 ? currentProducts.map(product => <Link key={product.id} to={`/product/${product.id}`}>
                   <Card className="rounded-lg overflow-hidden border border-gray-200 transition-all duration-300 hover:shadow-md hover:-translate-y-1">
                     <div className="relative">
-                      {product.discounted_price < product.original_price && (
-                        <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                      {product.discounted_price < product.original_price && <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
                           Promo
-                        </div>
-                      )}
+                        </div>}
                       <div className="h-48 overflow-hidden bg-gray-100">
-                        <img
-                          src={product.images && product.images.length > 0 ? product.images[0] : "/placeholder.svg"}
-                          alt={product.name}
-                          className="w-full h-full object-contain transition-transform duration-300 hover:scale-105"
-                        />
+                        <img src={product.images && product.images.length > 0 ? product.images[0] : "/placeholder.svg"} alt={product.name} className="w-full h-full object-contain transition-transform duration-300 hover:scale-105" />
                       </div>
                     </div>
                     <CardContent className="p-4">
                       <h3 className="font-serif text-sm uppercase tracking-wider text-center mb-2">{product.name}</h3>
-                      {settings.show_ratings && (
-                        <div className="flex justify-center mb-2">
+                      {settings.show_ratings && <div className="flex justify-center mb-2">
                           {renderStars(4.5)}
-                        </div>
-                      )}
+                        </div>}
                       <div className="flex justify-center gap-2 items-center">
-                        {product.discounted_price < product.original_price ? (
-                          <>
+                        {product.discounted_price < product.original_price ? <>
                             <span className="text-gray-400 line-through text-sm">{product.original_price}</span>
                             <span className="font-medium text-red-600">{product.discounted_price} {product.currency}</span>
-                          </>
-                        ) : (
-                          <span className="font-medium">{product.original_price} {product.currency}</span>
-                        )}
+                          </> : <span className="font-medium">{product.original_price} {product.currency}</span>}
                       </div>
                     </CardContent>
                   </Card>
-                </Link>
-              ))
-            ) : (
-              <div className="col-span-4 text-center py-12">
+                </Link>) : <div className="col-span-4 text-center py-12">
                 <p className="text-gray-500">Aucun produit trouvé</p>
-              </div>
-            )}
+              </div>}
           </div>
         </div>
 
         {/* Fall & Winter Fragrances Section */}
-        {filteredProducts.length > productsPerPage && (
-          <div className="mb-12">
+        {filteredProducts.length > productsPerPage && <div className="mb-12">
             <div className="relative mb-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
               </div>
               <div className="relative flex justify-center">
-                <span className="bg-[#fdf7f7] px-6 text-lg font-medium text-gray-900 flex items-center" style={{ backgroundColor: settings.background_color }}>
+                <span className="bg-[#fdf7f7] px-6 text-lg font-medium text-gray-900 flex items-center" style={{
+              backgroundColor: settings.background_color
+            }}>
                   <span className="text-2xl font-serif italic mr-2">A</span>
                   {settings.section_titles?.seasonal || "Collection saisonnière"}
                 </span>
               </div>
             </div>
-          </div>
-        )}
+          </div>}
         
         {/* Pagination */}
-        {totalPages > 1 && (
-          <Pagination className="my-8">
+        {totalPages > 1 && <Pagination className="my-8">
             <PaginationContent>
-              {currentPage > 1 && (
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    className="cursor-pointer"
-                  />
-                </PaginationItem>
-              )}
+              {currentPage > 1 && <PaginationItem>
+                  <PaginationPrevious onClick={() => handlePageChange(currentPage - 1)} className="cursor-pointer" />
+                </PaginationItem>}
               
-              {pageNumbers.map((page) => (
-                <PaginationItem key={page}>
-                  <PaginationLink
-                    isActive={currentPage === page}
-                    onClick={() => handlePageChange(page)}
-                    className="cursor-pointer"
-                  >
+              {pageNumbers.map(page => <PaginationItem key={page}>
+                  <PaginationLink isActive={currentPage === page} onClick={() => handlePageChange(page)} className="cursor-pointer">
                     {page}
                   </PaginationLink>
-                </PaginationItem>
-              ))}
+                </PaginationItem>)}
               
-              {currentPage < totalPages && (
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    className="cursor-pointer"
-                  />
-                </PaginationItem>
-              )}
+              {currentPage < totalPages && <PaginationItem>
+                  <PaginationNext onClick={() => handlePageChange(currentPage + 1)} className="cursor-pointer" />
+                </PaginationItem>}
             </PaginationContent>
-          </Pagination>
-        )}
+          </Pagination>}
       </div>
       
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default Products;
