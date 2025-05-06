@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './types';
 
@@ -47,6 +48,16 @@ export const initSupabase = async () => {
   }
 };
 
+// Add a function to check if Supabase is connected
+export const isSupabaseConnected = async (): Promise<boolean> => {
+  return await initSupabase();
+};
+
+// Add a function to handle Supabase errors
+export const handleSupabaseError = (error: any): void => {
+  console.error("Supabase error:", error);
+};
+
 export interface StoreData {
   id: string;
   name: string;
@@ -76,7 +87,7 @@ export const createStore = async (storeData: Omit<StoreData, "id" | "created_at"
       .single();
     
     if (error) throw error;
-    return data;
+    return data as StoreData;
   } catch (error) {
     console.error('Error creating store:', error);
     throw error;
@@ -90,7 +101,11 @@ export const fetchStores = async (): Promise<StoreData[]> => {
       .select('*');
     
     if (error) throw error;
-    return data || [];
+    // Add type assertion to handle the media_type property
+    return (data || []).map(store => ({
+      ...store,
+      media_type: store.media_type as "image" | "video" | undefined
+    }));
   } catch (error) {
     console.error('Error fetching stores:', error);
     throw error;
@@ -130,7 +145,7 @@ export const updateStore = async (storeId: string, storeData: Partial<Omit<Store
       .single();
     
     if (error) throw error;
-    return data;
+    return data as StoreData;
   } catch (error) {
     console.error('Error updating store:', error);
     throw error;
@@ -150,7 +165,11 @@ export const fetchStoreById = async (storeId: string): Promise<StoreData | null>
       return null;
     }
     
-    return data;
+    // Add type assertion to handle the media_type property
+    return {
+      ...data,
+      media_type: data.media_type as "image" | "video" | undefined
+    };
   } catch (error) {
     console.error('Error fetching store by ID:', error);
     return null;
