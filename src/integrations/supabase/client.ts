@@ -116,7 +116,8 @@ export const fetchStores = async (): Promise<StoreData[]> => {
         description: store.description,
         media_url: store.media_url,
         media_type: store.media_type as "image" | "video" | undefined,
-        show_media: typeof store.show_media === 'boolean' ? store.show_media : true,
+        // Utiliser une valeur par défaut pour show_media si elle n'existe pas dans la base de données
+        show_media: true, // Par défaut, le média est affiché
         created_at: store.created_at,
         updated_at: store.updated_at
       };
@@ -191,7 +192,8 @@ export const fetchStoreById = async (storeId: string): Promise<StoreData | null>
       description: data.description,
       media_url: data.media_url,
       media_type: data.media_type as "image" | "video" | undefined,
-      show_media: typeof data.show_media === 'boolean' ? data.show_media : true,
+      // Utiliser une valeur par défaut pour show_media si elle n'existe pas dans la base de données
+      show_media: true, // Par défaut, le média est affiché
       created_at: data.created_at,
       updated_at: data.updated_at
     };

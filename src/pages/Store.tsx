@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -44,7 +45,23 @@ const Store = () => {
           error
         } = await supabase.from("stores").select("*").eq('id', id).single();
         if (error) throw error;
-        return data;
+        
+        // Convertir les données brutes en StoreData typé avec valeurs par défaut
+        const typedStore: StoreData = {
+          id: data.id,
+          name: data.name,
+          products: data.products || [],
+          address: data.address,
+          contact: data.contact,
+          description: data.description,
+          media_url: data.media_url,
+          media_type: data.media_type as "image" | "video" | undefined,
+          show_media: true, // Par défaut, afficher le média
+          created_at: data.created_at,
+          updated_at: data.updated_at
+        };
+        
+        return typedStore;
       } catch (error) {
         console.error("Error fetching store:", error);
         throw error;
@@ -110,7 +127,7 @@ const Store = () => {
               </div>
               
               {/* Ne montrer le média que si show_media n'est pas explicitement false et qu'il y a une URL de média */}
-              {(store?.show_media !== false && store?.media_url) && (
+              {(store.show_media !== false && store.media_url) && (
                 <div className="md:max-w-xs w-full">
                   {store.media_type === "image" && <img src={store.media_url} alt="Store Showcase" className="rounded-md w-full" />}
                   {store.media_type === "video" && <video src={store.media_url} controls className="rounded-md w-full" />}
