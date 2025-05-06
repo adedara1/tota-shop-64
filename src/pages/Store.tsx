@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -9,7 +8,6 @@ import Footer from "@/components/Footer";
 import PromoBar from "@/components/PromoBar";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-
 interface Product {
   id: string;
   name: string;
@@ -18,7 +16,6 @@ interface Product {
   original_price: number;
   currency: string;
 }
-
 interface Store {
   id: string;
   name: string;
@@ -28,7 +25,6 @@ interface Store {
   media_type?: "image" | "video";
   show_media?: boolean;
 }
-
 const Store = () => {
   const {
     id
@@ -78,7 +74,6 @@ const Store = () => {
     };
     fetchProducts();
   }, [store]);
-  
   if (isStoreLoading) {
     return <div className="min-h-screen bg-white">
         <PromoBar />
@@ -87,7 +82,6 @@ const Store = () => {
         </div>
       </div>;
   }
-  
   if (storeError || !store) {
     return <div className="min-h-screen bg-white">
         <PromoBar />
@@ -102,7 +96,6 @@ const Store = () => {
   // Ensure we have exactly 4 product slots (either real products or placeholders)
   const productsToDisplay = [...storeProducts];
   const placeholdersNeeded = Math.max(0, 4 - productsToDisplay.length);
-  
   return <div className="min-h-screen bg-white">
       <PromoBar />
       
@@ -112,18 +105,16 @@ const Store = () => {
             <div className="flex flex-col md:flex-row justify-between items-start gap-6">
               <div className="space-y-3">
                 <div className="flex items-center">
-                  <h1 className="text-3xl font-bold mr-2">Digit-</h1>
-                  <h1 className="text-3xl font-extrabold">Sarl</h1>
+                  <h1 className="text-3xl font-bold mr-2">Digit</h1>
+                  <h1 className="text-3xl font-extrabold">-Sarl</h1>
                 </div>
               </div>
               
               {/* Ne montrer le média que si show_media n'est pas explicitement false et qu'il y a une URL de média */}
-              {(store.show_media !== false && store.media_url) && (
-                <div className="md:max-w-xs w-full">
+              {store.show_media !== false && store.media_url && <div className="md:max-w-xs w-full">
                   {store.media_type === "image" && <img src={store.media_url} alt="Store Showcase" className="rounded-md w-full" />}
                   {store.media_type === "video" && <video src={store.media_url} controls className="rounded-md w-full" />}
-                </div>
-              )}
+                </div>}
             </div>
           </div>
         </div>
@@ -175,5 +166,4 @@ const Store = () => {
       <Footer />
     </div>;
 };
-
 export default Store;
