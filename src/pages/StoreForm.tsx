@@ -1,14 +1,15 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import ProductSelector from "@/components/ProductSelector";
-import { createStore } from "@/integrations/supabase/client";
+import { createStore, fetchStores, deleteStore } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { toast } from "sonner";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Eye, Trash, PenSquare } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface Product {
   id: string;
@@ -19,11 +20,37 @@ interface Product {
   currency: string;
 }
 
+interface Store {
+  id: string;
+  name: string;
+  products: string[];
+  created_at: string;
+}
+
 const StoreForm = () => {
   const navigate = useNavigate();
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadStores();
+  }, []);
+
+  const loadStores = async () => {
+    setIsLoading(true);
+    try {
+      const storeData = await fetchStores();
+      setStores(storeData);
+    } catch (error) {
+      console.error("Error fetching stores:", error);
+      toast.error("Erreur lors du chargement des boutiques");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSelectProducts = (products: Product[]) => {
     setSelectedProducts(products);
@@ -46,6 +73,7 @@ const StoreForm = () => {
 
       toast.success("Votre boutique a été créée avec succès");
       navigate(`/store/${storeData.id}`);
+      loadStores(); // Refresh the stores list
     } catch (error) {
       console.error("Error creating store:", error);
       toast.error("Une erreur est survenue lors de la création de la boutique");
@@ -54,12 +82,27 @@ const StoreForm = () => {
     }
   };
 
+  const handleDeleteStore = async (storeId: string) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette boutique ?")) {
+      return;
+    }
+
+    try {
+      await deleteStore(storeId);
+      toast.success("Boutique supprimée avec succès");
+      loadStores(); // Refresh the list
+    } catch (error) {
+      console.error("Error deleting store:", error);
+      toast.error("Erreur lors de la suppression de la boutique");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       
       <div className="container mx-auto py-12 px-4">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto mb-12">
           <h1 className="text-3xl font-bold mb-8 text-center">Créer votre boutique</h1>
           
           <Card>
@@ -120,6 +163,66 @@ const StoreForm = () => {
               </Button>
             </CardFooter>
           </Card>
+        </div>
+        
+        {/* Stores List Section */}
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-2xl font-bold mb-4">Boutiques disponibles</h2>
+          
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900 mx-auto"></div>
+              <p className="mt-2">Chargement des boutiques...</p>
+            </div>
+          ) : stores.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <p className="text-gray-500">Aucune boutique n'a été créée</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nom</TableHead>
+                      <TableHead>Date de création</TableHead>
+                      <TableHead>Produits</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {stores.map((store) => (
+                      <TableRow key={store.id}>
+                        <TableCell className="font-medium">{store.name}</TableCell>
+                        <TableCell>{new Date(store.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>{store.products.length} produits</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => navigate(`/store/${store.id}`)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleDeleteStore(store.id)}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
       
