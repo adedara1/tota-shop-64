@@ -3,10 +3,8 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ShoppingCart, ChevronLeft } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { fetchStoreById, supabase } from "@/integrations/supabase/client";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PromoBar from "@/components/PromoBar";
 import { toast } from "sonner";
@@ -66,14 +64,9 @@ const Store = () => {
     return (
       <div className="min-h-screen bg-white">
         <PromoBar />
-        <Navbar />
         <div className="container mx-auto py-12 px-4">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900 mx-auto mb-4"></div>
-            <p>Chargement de la boutique...</p>
-          </div>
+          <div className="text-center">Chargement...</div>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -82,30 +75,25 @@ const Store = () => {
     return (
       <div className="min-h-screen bg-white">
         <PromoBar />
-        <Navbar />
         <div className="container mx-auto py-12 px-4 text-center">
           <h2 className="text-2xl font-bold mb-4">Boutique introuvable</h2>
           <p className="mb-8">La boutique que vous recherchez n'existe pas ou a été supprimée.</p>
-          <Button asChild>
-            <Link to="/products">Retour aux produits</Link>
-          </Button>
         </div>
         <Footer />
       </div>
     );
   }
 
+  // Ensure we have exactly 4 product slots (either real products or placeholders)
+  const productsToDisplay = [...storeProducts];
+  const placeholdersNeeded = Math.max(0, 4 - productsToDisplay.length);
+
   return (
     <div className="min-h-screen bg-white">
       <PromoBar />
-      <Navbar />
       
       <div className="container mx-auto py-8 px-4">
         <div className="mb-8">
-          <Button variant="ghost" asChild className="mb-4 -ml-4">
-            <Link to="/products"><ChevronLeft className="mr-2 h-4 w-4" />Retour aux produits</Link>
-          </Button>
-          
           <div className="flex flex-col md:flex-row justify-between items-start gap-6 bg-gray-50 p-6 rounded-lg">
             <div>
               <h1 className="text-3xl font-bold mb-2">{store.name}</h1>
@@ -114,11 +102,11 @@ const Store = () => {
           </div>
         </div>
         
-        <h2 className="text-2xl font-medium mb-6">Produits disponibles</h2>
-        
-        {storeProducts.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {storeProducts.map((product) => (
+        {/* Featured Products Section */}
+        <div className="container mx-auto mb-8 px-4">
+          <h2 className="text-2xl font-medium mb-4">Produits en vedette</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {productsToDisplay.map((product) => (
               <Link to={`/product/${product.id}`} key={product.id} className="block">
                 <Card className="h-full hover:shadow-md transition-shadow">
                   <div className="aspect-square w-full overflow-hidden bg-gray-100">
@@ -149,12 +137,23 @@ const Store = () => {
                 </Card>
               </Link>
             ))}
+            
+            {/* If we have less than 4 products, fill with placeholders */}
+            {Array.from({ length: placeholdersNeeded }).map((_, index) => (
+              <Card key={`placeholder-${index}`} className="h-full">
+                <div className="aspect-square w-full bg-gray-100 flex items-center justify-center">
+                  <p className="text-sm text-gray-500">Produit à venir</p>
+                </div>
+                <CardContent className="p-4">
+                  <h3 className="font-medium text-sm">Produit à venir</h3>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500">Prix à déterminer</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        ) : (
-          <div className="text-center py-12 bg-gray-50 rounded-lg">
-            <p className="text-gray-500">Aucun produit disponible pour cette boutique</p>
-          </div>
-        )}
+        </div>
       </div>
       
       <Footer />

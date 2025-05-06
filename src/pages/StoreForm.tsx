@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import ProductSelector from "@/components/ProductSelector";
-import { createStore, fetchStores, deleteStore, updateStore, fetchStoreById } from "@/integrations/supabase/client";
+import { createStore, fetchStores, deleteStore, updateStore, fetchStoreById, supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { toast } from "sonner";
