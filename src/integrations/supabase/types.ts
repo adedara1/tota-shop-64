@@ -409,6 +409,8 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          media_type: string | null
+          media_url: string | null
           name: string
           products: string[] | null
           updated_at: string | null
@@ -419,6 +421,8 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          media_type?: string | null
+          media_url?: string | null
           name: string
           products?: string[] | null
           updated_at?: string | null
@@ -429,6 +433,8 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          media_type?: string | null
+          media_url?: string | null
           name?: string
           products?: string[] | null
           updated_at?: string | null

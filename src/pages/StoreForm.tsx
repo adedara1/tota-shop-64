@@ -10,6 +10,7 @@ import Footer from "@/components/Footer";
 import { toast } from "sonner";
 import { ChevronRight, Eye, Trash, PenSquare } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import MediaUploader from "@/components/MediaUploader";
 
 interface Product {
   id: string;
@@ -25,6 +26,8 @@ interface Store {
   name: string;
   products: string[];
   created_at: string;
+  media_url?: string;
+  media_type?: "image" | "video";
 }
 
 const StoreForm = () => {
@@ -35,6 +38,8 @@ const StoreForm = () => {
   const [stores, setStores] = useState<Store[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
+  const [mediaUrl, setMediaUrl] = useState<string>("");
+  const [mediaType, setMediaType] = useState<"image" | "video">("image");
 
   useEffect(() => {
     loadStores();
@@ -57,6 +62,11 @@ const StoreForm = () => {
     setSelectedProducts(products);
   };
 
+  const handleMediaUpload = (url: string, type: "image" | "video") => {
+    setMediaUrl(url);
+    setMediaType(type);
+  };
+
   const onSubmit = async () => {
     if (selectedProducts.length === 0) {
       toast.error("Veuillez sélectionner au moins un produit");
@@ -69,7 +79,9 @@ const StoreForm = () => {
       if (editingStoreId) {
         // Update existing store
         const storeData = await updateStore(editingStoreId, {
-          products: selectedProducts.map(p => p.id)
+          products: selectedProducts.map(p => p.id),
+          media_url: mediaUrl || undefined,
+          media_type: mediaUrl ? mediaType : undefined
         });
         
         toast.success("Votre boutique a été mise à jour avec succès");
@@ -79,7 +91,9 @@ const StoreForm = () => {
         // Create a new store
         const storeData = await createStore({
           name: "Ma boutique",
-          products: selectedProducts.map(p => p.id)
+          products: selectedProducts.map(p => p.id),
+          media_url: mediaUrl || undefined,
+          media_type: mediaUrl ? mediaType : undefined
         });
 
         toast.success("Votre boutique a été créée avec succès");
@@ -87,6 +101,7 @@ const StoreForm = () => {
       }
       
       setSelectedProducts([]);
+      setMediaUrl("");
       loadStores(); // Refresh the stores list
     } catch (error) {
       console.error("Error creating/updating store:", error);
@@ -105,6 +120,15 @@ const StoreForm = () => {
       }
       
       setEditingStoreId(storeId);
+      
+      // Set media data if available
+      if (storeData.media_url) {
+        setMediaUrl(storeData.media_url);
+        setMediaType(storeData.media_type || "image");
+      } else {
+        setMediaUrl("");
+        setMediaType("image");
+      }
       
       // Fetch product details for the selected products
       const productIds = storeData.products || [];
@@ -167,7 +191,7 @@ const StoreForm = () => {
                 Sélectionnez jusqu'à 4 produits qui seront affichés dans votre boutique
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
               <Button 
                 type="button"
                 variant="outline"
@@ -199,6 +223,11 @@ const StoreForm = () => {
                   ))}
                 </div>
               )}
+
+              <MediaUploader 
+                onMediaUpload={handleMediaUpload}
+                initialMedia={mediaUrl ? { url: mediaUrl, type: mediaType } : undefined}
+              />
 
               <ProductSelector
                 open={isDialogOpen}

@@ -85,6 +85,8 @@ export interface StoreData {
   products?: string[];
   created_at?: string;
   updated_at?: string;
+  media_url?: string;
+  media_type?: "image" | "video";
 }
 
 // Store functions

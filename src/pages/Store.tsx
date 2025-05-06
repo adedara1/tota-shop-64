@@ -24,6 +24,8 @@ interface Store {
   name: string;
   products: string[];
   created_at: string;
+  media_url?: string;
+  media_type?: "image" | "video";
 }
 
 const Store = () => {
@@ -136,11 +138,29 @@ const Store = () => {
               </div>
               
               <div className="md:max-w-xs w-full">
-                <img 
-                  src="public/lovable-uploads/1237687d-4028-42e4-924a-a4dc28aaa0d3.png" 
-                  alt="Store Showcase" 
-                  className="rounded-md w-full"
-                />
+                {store.media_url && store.media_type === "image" && (
+                  <img 
+                    src={store.media_url} 
+                    alt="Store Showcase" 
+                    className="rounded-md w-full"
+                  />
+                )}
+                
+                {store.media_url && store.media_type === "video" && (
+                  <video 
+                    src={store.media_url} 
+                    controls
+                    className="rounded-md w-full"
+                  />
+                )}
+                
+                {!store.media_url && (
+                  <img 
+                    src="public/lovable-uploads/1237687d-4028-42e4-924a-a4dc28aaa0d3.png" 
+                    alt="Store Showcase" 
+                    className="rounded-md w-full"
+                  />
+                )}
               </div>
             </div>
           </div>
