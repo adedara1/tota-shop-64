@@ -18,6 +18,7 @@ interface Product {
   currency: string;
 }
 
+// Update the Store interface to match the StoreData interface in client.ts
 interface Store {
   id: string;
   name: string;

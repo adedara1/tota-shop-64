@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './types';
 
@@ -53,9 +52,12 @@ export const isSupabaseConnected = async (): Promise<boolean> => {
   return await initSupabase();
 };
 
-// Add a function to handle Supabase errors
-export const handleSupabaseError = (error: any): void => {
+// Update the function to handle Supabase errors with optional toast parameter
+export const handleSupabaseError = (error: any, toast?: any): void => {
   console.error("Supabase error:", error);
+  if (toast) {
+    toast.error("Une erreur est survenue");
+  }
 };
 
 export interface StoreData {
@@ -104,7 +106,8 @@ export const fetchStores = async (): Promise<StoreData[]> => {
     // Add type assertion to handle the media_type property
     return (data || []).map(store => ({
       ...store,
-      media_type: store.media_type as "image" | "video" | undefined
+      media_type: store.media_type as "image" | "video" | undefined,
+      show_media: store.show_media !== false // Ensure show_media is properly typed
     }));
   } catch (error) {
     console.error('Error fetching stores:', error);
@@ -168,7 +171,8 @@ export const fetchStoreById = async (storeId: string): Promise<StoreData | null>
     // Add type assertion to handle the media_type property
     return {
       ...data,
-      media_type: data.media_type as "image" | "video" | undefined
+      media_type: data.media_type as "image" | "video" | undefined,
+      show_media: data.show_media !== false // Ensure show_media is properly typed
     };
   } catch (error) {
     console.error('Error fetching store by ID:', error);
