@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import ProductSelector from "@/components/ProductSelector";
-import { createStore, fetchStores, deleteStore, updateStore, fetchStoreById, supabase } from "@/integrations/supabase/client";
+import { createStore, fetchStores, deleteStore, updateStore, fetchStoreById, supabase, StoreData } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { toast } from "sonner";
@@ -49,7 +49,12 @@ const StoreForm = () => {
     setIsLoading(true);
     try {
       const storeData = await fetchStores();
-      setStores(storeData);
+      // Conversion explicite du type pour s'assurer que media_type est bien typé
+      const typedStores: Store[] = storeData.map(store => ({
+        ...store,
+        media_type: (store.media_type as "image" | "video" | undefined) || undefined
+      }));
+      setStores(typedStores);
     } catch (error) {
       console.error("Error fetching stores:", error);
       toast.error("Erreur lors du chargement des boutiques");
@@ -121,10 +126,12 @@ const StoreForm = () => {
       
       setEditingStoreId(storeId);
       
-      // Set media data if available
+      // Set media data if available with proper type casting
       if (storeData.media_url) {
         setMediaUrl(storeData.media_url);
-        setMediaType(storeData.media_type || "image");
+        // Assurer que media_type est bien de type "image" | "video"
+        const safeMediaType = storeData.media_type === "video" ? "video" : "image";
+        setMediaType(safeMediaType);
       } else {
         setMediaUrl("");
         setMediaType("image");
