@@ -3,11 +3,12 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart } from "lucide-react";
-import { fetchStoreById, supabase } from "@/integrations/supabase/client";
+import { ShoppingCart, Star } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import Footer from "@/components/Footer";
 import PromoBar from "@/components/PromoBar";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 interface Product {
   id: string;
@@ -34,7 +35,20 @@ const Store = () => {
     queryKey: ["store", id],
     queryFn: async () => {
       if (!id) return null;
-      return await fetchStoreById(id);
+      
+      try {
+        const { data, error } = await supabase
+          .from("stores")
+          .select("*")
+          .eq('id', id)
+          .single();
+          
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.error("Error fetching store:", error);
+        throw error;
+      }
     }
   });
 
@@ -94,10 +108,40 @@ const Store = () => {
       
       <div className="container mx-auto py-8 px-4">
         <div className="mb-8">
-          <div className="flex flex-col md:flex-row justify-between items-start gap-6 bg-gray-50 p-6 rounded-lg">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">{store.name}</h1>
-              <p className="text-sm text-gray-600">Boutique créée le {new Date(store.created_at).toLocaleDateString()}</p>
+          <div className="bg-black text-white p-6 rounded-lg">
+            <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center">
+                  <h1 className="text-3xl font-bold mr-2">TOTAL-</h1>
+                  <h1 className="text-3xl font-extrabold">SERVICE</h1>
+                </div>
+                <div className="flex items-center">
+                  <span className="text-lg mr-2">4.3</span>
+                  <Star className="h-5 w-5 fill-white text-white mr-1" />
+                  <span className="text-sm text-gray-300">(348.3k)</span>
+                </div>
+                <p className="text-sm">#1 Destination for Trends + Fast Shipping</p>
+                <div className="flex space-x-3 mt-2">
+                  <Button variant="outline" className="bg-white text-black hover:bg-gray-100">
+                    Suivre
+                  </Button>
+                  <Button variant="outline" className="bg-transparent text-white border-white hover:bg-white/10">
+                    <span className="mr-2 text-blue-400">🌐</span>
+                    www.total-service.com
+                  </Button>
+                  <Button variant="outline" className="bg-transparent text-white border-white hover:bg-white/10 px-2">
+                    •••
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="md:max-w-xs w-full">
+                <img 
+                  src="public/lovable-uploads/1237687d-4028-42e4-924a-a4dc28aaa0d3.png" 
+                  alt="Store Showcase" 
+                  className="rounded-md w-full"
+                />
+              </div>
             </div>
           </div>
         </div>
