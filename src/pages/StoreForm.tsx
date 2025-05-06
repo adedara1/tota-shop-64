@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,10 +5,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ProductSelector from "@/components/ProductSelector";
-import { createStore, fetchStores, deleteStore, updateStore, fetchStoreById, supabase, StoreData } from "@/integrations/supabase/client";
+import { createStore, fetchStores, deleteStore, updateStore, fetchStoreById, supabase, StoreData, handleSupabaseError } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { ChevronRight, Eye, Trash, PenSquare } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import MediaUploader from "@/components/MediaUploader";
@@ -23,18 +22,11 @@ interface Product {
   currency: string;
 }
 
-interface Store {
-  id: string;
-  name: string;
-  products: string[];
-  created_at: string;
-  media_url?: string;
-  media_type?: "image" | "video";
-  show_media?: boolean;
-}
+interface Store extends StoreData {}
 
 const StoreForm = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -54,15 +46,10 @@ const StoreForm = () => {
     setIsLoading(true);
     try {
       const storeData = await fetchStores();
-      // Conversion explicite du type pour s'assurer que media_type est bien typé
-      const typedStores: Store[] = storeData.map(store => ({
-        ...store,
-        media_type: (store.media_type as "image" | "video" | undefined) || undefined
-      }));
-      setStores(typedStores);
+      setStores(storeData);
     } catch (error) {
       console.error("Error fetching stores:", error);
-      toast.error("Erreur lors du chargement des boutiques");
+      handleSupabaseError(error, toast);
     } finally {
       setIsLoading(false);
     }
@@ -83,43 +70,53 @@ const StoreForm = () => {
 
   const onSubmit = async () => {
     if (selectedProducts.length === 0) {
-      toast.error("Veuillez sélectionner au moins un produit");
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner au moins un produit",
+        variant: "destructive"
+      });
       return;
     }
 
     if (!storeName.trim()) {
-      toast.error("Veuillez donner un nom à votre boutique");
+      toast({
+        title: "Erreur",
+        description: "Veuillez donner un nom à votre boutique",
+        variant: "destructive"
+      });
       return;
     }
 
     setIsSubmitting(true);
 
     try {
+      const storeData: StoreData = {
+        name: storeName,
+        products: selectedProducts.map(p => p.id),
+        media_url: mediaUrl || undefined,
+        media_type: mediaUrl ? mediaType : undefined,
+        show_media: showMedia
+      };
+
       if (editingStoreId) {
         // Update existing store
-        const storeData = await updateStore(editingStoreId, {
-          name: storeName,
-          products: selectedProducts.map(p => p.id),
-          media_url: mediaUrl || undefined,
-          media_type: mediaUrl ? mediaType : undefined,
-          show_media: showMedia
-        });
+        const updatedStore = await updateStore(editingStoreId, storeData);
         
-        toast.success("Votre boutique a été mise à jour avec succès");
-        navigate(`/store/${storeData.id}`);
+        toast({
+          title: "Succès",
+          description: "Votre boutique a été mise à jour avec succès"
+        });
+        navigate(`/store/${updatedStore.id}`);
         setEditingStoreId(null);
       } else {
         // Create a new store
-        const storeData = await createStore({
-          name: storeName,
-          products: selectedProducts.map(p => p.id),
-          media_url: mediaUrl || undefined,
-          media_type: mediaUrl ? mediaType : undefined,
-          show_media: showMedia
-        });
+        const newStore = await createStore(storeData);
 
-        toast.success("Votre boutique a été créée avec succès");
-        navigate(`/store/${storeData.id}`);
+        toast({
+          title: "Succès",
+          description: "Votre boutique a été créée avec succès"
+        });
+        navigate(`/store/${newStore.id}`);
       }
       
       setSelectedProducts([]);
@@ -128,7 +125,7 @@ const StoreForm = () => {
       loadStores(); // Refresh the stores list
     } catch (error) {
       console.error("Error creating/updating store:", error);
-      toast.error("Une erreur est survenue lors de la création/modification de la boutique");
+      handleSupabaseError(error, toast);
     } finally {
       setIsSubmitting(false);
     }
@@ -138,7 +135,10 @@ const StoreForm = () => {
     try {
       const storeData = await fetchStoreById(storeId);
       if (!storeData) {
-        toast.error("Boutique introuvable");
+        toast({
+          title: "Erreur",
+          description: "Boutique introuvable"
+        });
         return;
       }
       
@@ -147,12 +147,10 @@ const StoreForm = () => {
       // Set store name
       setStoreName(storeData.name);
       
-      // Set media data if available with proper type casting
+      // Set media data if available
       if (storeData.media_url) {
         setMediaUrl(storeData.media_url);
-        // Assurer que media_type est bien de type "image" | "video"
-        const safeMediaType = storeData.media_type === "video" ? "video" : "image";
-        setMediaType(safeMediaType);
+        setMediaType(storeData.media_type || "image");
       } else {
         setMediaUrl("");
         setMediaType("image");
@@ -176,7 +174,10 @@ const StoreForm = () => {
           .select("id, name, images, discounted_price, original_price, currency")
           .in("id", productIds);
           
-        if (error) throw error;
+        if (error) {
+          handleSupabaseError(error, toast);
+          return;
+        }
         
         if (data) {
           setSelectedProducts(data);
@@ -184,11 +185,11 @@ const StoreForm = () => {
         }
       } catch (error) {
         console.error("Error fetching products for store:", error);
-        toast.error("Erreur lors du chargement des produits de la boutique");
+        handleSupabaseError(error, toast);
       }
     } catch (error) {
       console.error("Error fetching store data:", error);
-      toast.error("Erreur lors du chargement des données de la boutique");
+      handleSupabaseError(error, toast);
     }
   };
 
@@ -199,11 +200,14 @@ const StoreForm = () => {
 
     try {
       await deleteStore(storeId);
-      toast.success("Boutique supprimée avec succès");
+      toast({
+        title: "Succès",
+        description: "Boutique supprimée avec succès"
+      });
       loadStores(); // Refresh the list
     } catch (error) {
       console.error("Error deleting store:", error);
-      toast.error("Erreur lors de la suppression de la boutique");
+      handleSupabaseError(error, toast);
     }
   };
 

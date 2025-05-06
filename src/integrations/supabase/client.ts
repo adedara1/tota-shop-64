@@ -41,6 +41,8 @@ export const handleSupabaseError = (error: any, toast?: any) => {
       errorMessage = "Erreur: Le bucket de stockage n'existe pas. Veuillez contacter l'administrateur.";
     } else if (error.message.includes("storage")) {
       errorMessage = "Erreur de stockage: Impossible de télécharger l'image. Veuillez réessayer.";
+    } else if (error.message.includes("new row violates row-level security policy")) {
+      errorMessage = "Erreur d'autorisation: Vous n'avez pas les permissions nécessaires pour cette action.";
     } else {
       errorMessage = `Erreur: ${error.message}`;
     }
@@ -98,7 +100,7 @@ export const fetchStores = async () => {
     .order('created_at', { ascending: false });
     
   if (error) throw error;
-  return data;
+  return data as StoreData[];
 };
 
 export const fetchStoreById = async (id: string) => {
@@ -109,30 +111,41 @@ export const fetchStoreById = async (id: string) => {
     .single();
     
   if (error) throw error;
-  return data;
+  return data as StoreData;
 };
 
 export const createStore = async (storeData: StoreData) => {
+  // Ensure show_media has a default value if not provided
+  const dataToInsert = {
+    ...storeData,
+    show_media: storeData.show_media !== undefined ? storeData.show_media : true
+  };
+
   const { data, error } = await supabase
     .from('stores')
-    .insert(storeData)
+    .insert(dataToInsert)
     .select()
     .single();
     
   if (error) throw error;
-  return data;
+  return data as StoreData;
 };
 
 export const updateStore = async (id: string, storeData: Partial<StoreData>) => {
+  // Ensure we're not sending undefined values
+  const sanitizedData = Object.fromEntries(
+    Object.entries(storeData).filter(([_, value]) => value !== undefined)
+  );
+
   const { data, error } = await supabase
     .from('stores')
-    .update(storeData)
+    .update(sanitizedData)
     .eq('id', id)
     .select()
     .single();
     
   if (error) throw error;
-  return data;
+  return data as StoreData;
 };
 
 export const deleteStore = async (id: string) => {
