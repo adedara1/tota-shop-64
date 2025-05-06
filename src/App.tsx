@@ -22,6 +22,8 @@ import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { initSupabase } from "@/utils/supabaseInit";
 import Index from './pages/Index';
+import StoreForm from './pages/StoreForm';
+import Store from './pages/Store';
 
 const App = () => {
   const queryClient = new QueryClient();
@@ -48,6 +50,8 @@ const App = () => {
               <Route path="/contact" element={<Contact />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/home" element={<Home />} />
+              <Route path="/store-form" element={<StoreForm />} />
+              <Route path="/store/:id" element={<Store />} />
               
               {/* Protected routes */}
               <Route element={<ProtectedRoute />}>
