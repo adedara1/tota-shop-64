@@ -102,7 +102,19 @@ const Store = () => {
         <div className="mb-8">
           <div className="bg-black text-white p-6 rounded-lg">
             <div className="flex flex-col md:flex-row justify-between items-start gap-6">
-              
+              <div className="space-y-3">
+                <div className="flex items-center">
+                  <h1 className="text-3xl font-bold mr-2">TOTAL-</h1>
+                  <h1 className="text-3xl font-extrabold">SERVICE</h1>
+                </div>
+                <div className="flex items-center">
+                  <span className="text-lg mr-2">4.3</span>
+                  <Star className="h-5 w-5 fill-white text-white mr-1" />
+                  <span className="text-sm text-gray-300">(348.3k)</span>
+                </div>
+                <p className="text-sm">#1 Destination for Trends + Fast Shipping</p>
+                
+              </div>
               
               <div className="md:max-w-xs w-full">
                 {store.media_url && store.media_type === "image" && <img src={store.media_url} alt="Store Showcase" className="rounded-md w-full" />}
