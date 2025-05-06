@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import ProductSelector from "@/components/ProductSelector";
-import { createStore, fetchStores, deleteStore } from "@/integrations/supabase/client";
+import { createStore, fetchStores, deleteStore, updateStore, fetchStoreById } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { toast } from "sonner";
@@ -34,6 +34,7 @@ const StoreForm = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [stores, setStores] = useState<Store[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
 
   useEffect(() => {
     loadStores();
@@ -65,20 +66,74 @@ const StoreForm = () => {
     setIsSubmitting(true);
 
     try {
-      // Create a new store with just a default name and the selected products
-      const storeData = await createStore({
-        name: "Ma boutique",
-        products: selectedProducts.map(p => p.id)
-      });
+      if (editingStoreId) {
+        // Update existing store
+        const storeData = await updateStore(editingStoreId, {
+          products: selectedProducts.map(p => p.id)
+        });
+        
+        toast.success("Votre boutique a été mise à jour avec succès");
+        navigate(`/store/${storeData.id}`);
+        setEditingStoreId(null);
+      } else {
+        // Create a new store
+        const storeData = await createStore({
+          name: "Ma boutique",
+          products: selectedProducts.map(p => p.id)
+        });
 
-      toast.success("Votre boutique a été créée avec succès");
-      navigate(`/store/${storeData.id}`);
+        toast.success("Votre boutique a été créée avec succès");
+        navigate(`/store/${storeData.id}`);
+      }
+      
+      setSelectedProducts([]);
       loadStores(); // Refresh the stores list
     } catch (error) {
-      console.error("Error creating store:", error);
-      toast.error("Une erreur est survenue lors de la création de la boutique");
+      console.error("Error creating/updating store:", error);
+      toast.error("Une erreur est survenue lors de la création/modification de la boutique");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleEditStore = async (storeId: string) => {
+    try {
+      const storeData = await fetchStoreById(storeId);
+      if (!storeData) {
+        toast.error("Boutique introuvable");
+        return;
+      }
+      
+      setEditingStoreId(storeId);
+      
+      // Fetch product details for the selected products
+      const productIds = storeData.products || [];
+      
+      if (productIds.length === 0) {
+        setSelectedProducts([]);
+        setIsDialogOpen(true);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from("products")
+          .select("id, name, images, discounted_price, original_price, currency")
+          .in("id", productIds);
+          
+        if (error) throw error;
+        
+        if (data) {
+          setSelectedProducts(data);
+          setIsDialogOpen(true);
+        }
+      } catch (error) {
+        console.error("Error fetching products for store:", error);
+        toast.error("Erreur lors du chargement des produits de la boutique");
+      }
+    } catch (error) {
+      console.error("Error fetching store data:", error);
+      toast.error("Erreur lors du chargement des données de la boutique");
     }
   };
 
@@ -107,7 +162,7 @@ const StoreForm = () => {
           
           <Card>
             <CardHeader>
-              <CardTitle>Sélection des produits</CardTitle>
+              <CardTitle>{editingStoreId ? "Modifier la boutique" : "Sélection des produits"}</CardTitle>
               <CardDescription>
                 Sélectionnez jusqu'à 4 produits qui seront affichés dans votre boutique
               </CardDescription>
@@ -147,7 +202,12 @@ const StoreForm = () => {
 
               <ProductSelector
                 open={isDialogOpen}
-                onOpenChange={setIsDialogOpen}
+                onOpenChange={(open) => {
+                  setIsDialogOpen(open);
+                  if (!open && !selectedProducts.length) {
+                    setEditingStoreId(null);
+                  }
+                }}
                 onSave={handleSelectProducts}
                 initialSelectedProducts={selectedProducts}
               />
@@ -158,7 +218,7 @@ const StoreForm = () => {
                 disabled={isSubmitting || selectedProducts.length === 0} 
                 onClick={onSubmit}
               >
-                {isSubmitting ? "Création en cours..." : "Créer ma boutique"}
+                {isSubmitting ? "Traitement en cours..." : editingStoreId ? "Mettre à jour ma boutique" : "Créer ma boutique"}
                 {!isSubmitting && <ChevronRight className="ml-2 h-4 w-4" />}
               </Button>
             </CardFooter>
@@ -206,6 +266,13 @@ const StoreForm = () => {
                               onClick={() => navigate(`/store/${store.id}`)}
                             >
                               <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleEditStore(store.id)}
+                            >
+                              <PenSquare className="h-4 w-4" />
                             </Button>
                             <Button 
                               size="sm" 
