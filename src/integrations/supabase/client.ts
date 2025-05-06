@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './types';
 
@@ -48,19 +47,6 @@ export const initSupabase = async () => {
   }
 };
 
-// Add a function to check if Supabase is connected
-export const isSupabaseConnected = async (): Promise<boolean> => {
-  return await initSupabase();
-};
-
-// Update the function to handle Supabase errors with optional toast parameter
-export const handleSupabaseError = (error: any, toast?: any): void => {
-  console.error("Supabase error:", error);
-  if (toast) {
-    toast.error("Une erreur est survenue");
-  }
-};
-
 export interface StoreData {
   id: string;
   name: string;
@@ -90,7 +76,7 @@ export const createStore = async (storeData: Omit<StoreData, "id" | "created_at"
       .single();
     
     if (error) throw error;
-    return data as StoreData;
+    return data;
   } catch (error) {
     console.error('Error creating store:', error);
     throw error;
@@ -104,25 +90,7 @@ export const fetchStores = async (): Promise<StoreData[]> => {
       .select('*');
     
     if (error) throw error;
-    
-    // Add explicit type casting for each store object
-    return (data || []).map(store => {
-      const typedStore: StoreData = {
-        id: store.id,
-        name: store.name,
-        products: store.products || [],
-        address: store.address,
-        contact: store.contact,
-        description: store.description,
-        media_url: store.media_url,
-        media_type: store.media_type as "image" | "video" | undefined,
-        // Utiliser une valeur par défaut pour show_media si elle n'existe pas dans la base de données
-        show_media: true, // Par défaut, le média est affiché
-        created_at: store.created_at,
-        updated_at: store.updated_at
-      };
-      return typedStore;
-    });
+    return data || [];
   } catch (error) {
     console.error('Error fetching stores:', error);
     throw error;
@@ -162,7 +130,7 @@ export const updateStore = async (storeId: string, storeData: Partial<Omit<Store
       .single();
     
     if (error) throw error;
-    return data as StoreData;
+    return data;
   } catch (error) {
     console.error('Error updating store:', error);
     throw error;
@@ -182,23 +150,7 @@ export const fetchStoreById = async (storeId: string): Promise<StoreData | null>
       return null;
     }
     
-    // Create a properly typed store object
-    const typedStore: StoreData = {
-      id: data.id,
-      name: data.name,
-      products: data.products || [],
-      address: data.address,
-      contact: data.contact,
-      description: data.description,
-      media_url: data.media_url,
-      media_type: data.media_type as "image" | "video" | undefined,
-      // Utiliser une valeur par défaut pour show_media si elle n'existe pas dans la base de données
-      show_media: true, // Par défaut, le média est affiché
-      created_at: data.created_at,
-      updated_at: data.updated_at
-    };
-    
-    return typedStore;
+    return data;
   } catch (error) {
     console.error('Error fetching store by ID:', error);
     return null;

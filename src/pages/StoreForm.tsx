@@ -22,8 +22,15 @@ interface Product {
   currency: string;
 }
 
-// Update to use StoreData interface directly
-type Store = StoreData;
+interface Store {
+  id: string;
+  name: string;
+  products: string[];
+  created_at: string;
+  media_url?: string;
+  media_type?: "image" | "video";
+  show_media?: boolean;
+}
 
 const StoreForm = () => {
   const navigate = useNavigate();

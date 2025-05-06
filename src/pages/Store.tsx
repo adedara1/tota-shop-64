@@ -1,10 +1,9 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShoppingCart, Star } from "lucide-react";
-import { supabase, StoreData } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import Footer from "@/components/Footer";
 import PromoBar from "@/components/PromoBar";
 import { toast } from "sonner";
@@ -19,8 +18,15 @@ interface Product {
   currency: string;
 }
 
-// Update the Store interface to match the StoreData interface in client.ts
-interface Store extends StoreData {}
+interface Store {
+  id: string;
+  name: string;
+  products: string[];
+  created_at: string;
+  media_url?: string;
+  media_type?: "image" | "video";
+  show_media?: boolean;
+}
 
 const Store = () => {
   const {
@@ -45,23 +51,7 @@ const Store = () => {
           error
         } = await supabase.from("stores").select("*").eq('id', id).single();
         if (error) throw error;
-        
-        // Convertir les données brutes en StoreData typé avec valeurs par défaut
-        const typedStore: StoreData = {
-          id: data.id,
-          name: data.name,
-          products: data.products || [],
-          address: data.address,
-          contact: data.contact,
-          description: data.description,
-          media_url: data.media_url,
-          media_type: data.media_type as "image" | "video" | undefined,
-          show_media: true, // Par défaut, afficher le média
-          created_at: data.created_at,
-          updated_at: data.updated_at
-        };
-        
-        return typedStore;
+        return data;
       } catch (error) {
         console.error("Error fetching store:", error);
         throw error;
