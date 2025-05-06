@@ -1,7 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import ProductSelector from "@/components/ProductSelector";
 import { createStore, fetchStores, deleteStore, updateStore, fetchStoreById, supabase, StoreData } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
@@ -41,6 +44,7 @@ const StoreForm = () => {
   const [mediaUrl, setMediaUrl] = useState<string>("");
   const [mediaType, setMediaType] = useState<"image" | "video">("image");
   const [showMedia, setShowMedia] = useState<boolean>(true);
+  const [storeName, setStoreName] = useState<string>("Ma boutique");
 
   useEffect(() => {
     loadStores();
@@ -83,12 +87,18 @@ const StoreForm = () => {
       return;
     }
 
+    if (!storeName.trim()) {
+      toast.error("Veuillez donner un nom à votre boutique");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       if (editingStoreId) {
         // Update existing store
         const storeData = await updateStore(editingStoreId, {
+          name: storeName,
           products: selectedProducts.map(p => p.id),
           media_url: mediaUrl || undefined,
           media_type: mediaUrl ? mediaType : undefined,
@@ -101,7 +111,7 @@ const StoreForm = () => {
       } else {
         // Create a new store
         const storeData = await createStore({
-          name: "Ma boutique",
+          name: storeName,
           products: selectedProducts.map(p => p.id),
           media_url: mediaUrl || undefined,
           media_type: mediaUrl ? mediaType : undefined,
@@ -114,6 +124,7 @@ const StoreForm = () => {
       
       setSelectedProducts([]);
       setMediaUrl("");
+      setStoreName("Ma boutique");
       loadStores(); // Refresh the stores list
     } catch (error) {
       console.error("Error creating/updating store:", error);
@@ -132,6 +143,9 @@ const StoreForm = () => {
       }
       
       setEditingStoreId(storeId);
+      
+      // Set store name
+      setStoreName(storeData.name);
       
       // Set media data if available with proper type casting
       if (storeData.media_url) {
@@ -199,16 +213,27 @@ const StoreForm = () => {
       
       <div className="container mx-auto py-12 px-4">
         <div className="max-w-3xl mx-auto mb-12">
-          <h1 className="text-3xl font-bold mb-8 text-center">Créer votre boutique</h1>
+          <h1 className="text-3xl font-bold mb-8 text-center">{editingStoreId ? "Modifier la boutique" : "Créer votre boutique"}</h1>
           
           <Card>
             <CardHeader>
-              <CardTitle>{editingStoreId ? "Modifier la boutique" : "Sélection des produits"}</CardTitle>
+              <CardTitle>{editingStoreId ? "Modifier la boutique" : "Créer une boutique"}</CardTitle>
               <CardDescription>
-                Sélectionnez jusqu'à 4 produits qui seront affichés dans votre boutique
+                Personnalisez votre boutique et sélectionnez jusqu'à 4 produits qui seront affichés
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="store-name">Nom de la boutique</Label>
+                <Input 
+                  id="store-name"
+                  type="text"
+                  value={storeName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                  placeholder="Entrez le nom de votre boutique"
+                />
+              </div>
+              
               <Button 
                 type="button"
                 variant="outline"
@@ -263,7 +288,7 @@ const StoreForm = () => {
             <CardFooter className="flex justify-end">
               <Button 
                 type="button" 
-                disabled={isSubmitting || selectedProducts.length === 0} 
+                disabled={isSubmitting || selectedProducts.length === 0 || !storeName.trim()} 
                 onClick={onSubmit}
               >
                 {isSubmitting ? "Traitement en cours..." : editingStoreId ? "Mettre à jour ma boutique" : "Créer ma boutique"}
