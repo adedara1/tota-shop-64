@@ -74,3 +74,70 @@ export const initializeSupabase = async () => {
     return false;
   }
 };
+
+// Store types
+export interface StoreData {
+  id?: string;
+  name: string;
+  description?: string;
+  contact?: string;
+  address?: string;
+  products?: string[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Store functions
+export const fetchStores = async () => {
+  const { data, error } = await supabase
+    .from('stores')
+    .select('*')
+    .order('created_at', { ascending: false });
+    
+  if (error) throw error;
+  return data;
+};
+
+export const fetchStoreById = async (id: string) => {
+  const { data, error } = await supabase
+    .from('stores')
+    .select('*')
+    .eq('id', id)
+    .single();
+    
+  if (error) throw error;
+  return data;
+};
+
+export const createStore = async (storeData: StoreData) => {
+  const { data, error } = await supabase
+    .from('stores')
+    .insert(storeData)
+    .select()
+    .single();
+    
+  if (error) throw error;
+  return data;
+};
+
+export const updateStore = async (id: string, storeData: Partial<StoreData>) => {
+  const { data, error } = await supabase
+    .from('stores')
+    .update(storeData)
+    .eq('id', id)
+    .select()
+    .single();
+    
+  if (error) throw error;
+  return data;
+};
+
+export const deleteStore = async (id: string) => {
+  const { error } = await supabase
+    .from('stores')
+    .delete()
+    .eq('id', id);
+    
+  if (error) throw error;
+  return true;
+};

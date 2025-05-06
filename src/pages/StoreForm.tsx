@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import ProductSelector from "@/components/ProductSelector";
-import { supabase } from "@/integrations/supabase/client";
+import { createStore } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { toast } from "sonner";
@@ -59,19 +59,13 @@ const StoreForm = () => {
 
     try {
       // Create a new store
-      const { data: storeData, error: storeError } = await supabase
-        .from("stores")
-        .insert({
-          name: data.name,
-          description: data.description,
-          contact: data.contact,
-          address: data.address,
-          products: selectedProducts.map(p => p.id)
-        })
-        .select()
-        .single();
-
-      if (storeError) throw storeError;
+      const storeData = await createStore({
+        name: data.name,
+        description: data.description,
+        contact: data.contact,
+        address: data.address,
+        products: selectedProducts.map(p => p.id)
+      });
 
       toast.success("Votre boutique a été créée avec succès");
       navigate(`/store/${storeData.id}`);

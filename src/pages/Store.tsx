@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MapPin, Phone, ChevronLeft, Star } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchStoreById, supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PromoBar from "@/components/PromoBar";
@@ -39,15 +39,7 @@ const Store = () => {
     queryKey: ["store", id],
     queryFn: async () => {
       if (!id) return null;
-      
-      const { data, error } = await supabase
-        .from("stores")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-      return data as Store;
+      return await fetchStoreById(id);
     }
   });
 

@@ -402,6 +402,39 @@ export type Database = {
         }
         Relationships: []
       }
+      stores: {
+        Row: {
+          address: string | null
+          contact: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          products: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          contact?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          products?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          contact?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          products?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ui_preferences: {
         Row: {
           created_at: string | null
