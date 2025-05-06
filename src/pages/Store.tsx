@@ -112,7 +112,7 @@ const Store = () => {
                   <Star className="h-5 w-5 fill-white text-white mr-1" />
                   <span className="text-sm text-gray-300">(348.3k)</span>
                 </div>
-                <p className="text-sm">#1 Destination for Trends + Fast Shipping</p>
+                
                 
               </div>
               
