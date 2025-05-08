@@ -104,7 +104,11 @@ const MediaUploader = ({ onMediaUpload, initialMedia, className, onShowMediaChan
       <div className="flex justify-between items-center mb-2">
         <div>
           <h3 className="text-sm font-medium">Image ou vidéo de la boutique</h3>
-          <p className="text-xs text-gray-500">Format recommandé: 16:9, max 5MB</p>
+          <p className="text-xs text-gray-500">
+            {mediaType === "image" 
+              ? "Format recommandé: 16:9, max 5MB. Pour hero: 1920x1080px idéalement." 
+              : "Format recommandé: 16:9, max 5MB."}
+          </p>
         </div>
         <div className="flex items-center">
           <input 

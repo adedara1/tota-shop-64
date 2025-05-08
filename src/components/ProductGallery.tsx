@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface ProductGalleryProps {
   images: string[];
@@ -7,12 +7,19 @@ interface ProductGalleryProps {
 }
 
 const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
-  const [activeImage, setActiveImage] = useState<string | null>(
-    images && images.length > 0 ? images[0] : null
-  );
+  const [activeImage, setActiveImage] = useState<string | null>(null);
 
-  // Combine product images with option-specific images
-  const allImages = [...images, ...optionImages.filter(img => !images.includes(img))];
+  // Utiliser un Set pour éliminer les doublons entre images produit et images d'options
+  const uniqueImages = [...new Set([...images, ...optionImages])];
+
+  // Définir l'image active au chargement ou quand les images changent
+  useEffect(() => {
+    if (uniqueImages.length > 0) {
+      setActiveImage(uniqueImages[0]);
+    } else {
+      setActiveImage(null);
+    }
+  }, [images, optionImages]);
 
   return (
     <div className="md:order-1 order-1">
@@ -22,7 +29,7 @@ const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
           <img
             src={activeImage}
             alt="Product"
-            className="w-full h-auto object-contain aspect-square"
+            className="w-full h-auto object-cover aspect-square"
           />
         ) : (
           <div className="w-full h-96 flex items-center justify-center bg-gray-100">
@@ -32,9 +39,9 @@ const ProductGallery = ({ images, optionImages = [] }: ProductGalleryProps) => {
       </div>
 
       {/* Thumbnail gallery */}
-      {allImages.length > 1 && (
+      {uniqueImages.length > 1 && (
         <div className="grid grid-cols-5 gap-2">
-          {allImages.map((image, index) => (
+          {uniqueImages.map((image, index) => (
             <div
               key={`${image}-${index}`}
               className={`cursor-pointer rounded-md overflow-hidden border ${
