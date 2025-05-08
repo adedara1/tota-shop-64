@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -178,6 +179,15 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
     }
   };
 
+  // Fonction pour sanitizer les noms de fichiers
+  const sanitizeFileName = (fileName: string): string => {
+    // Remplacer les caractères accentués et spéciaux
+    return fileName
+      .normalize('NFD') // Décompose les caractères accentués
+      .replace(/[\u0300-\u036f]/g, '') // Supprime les accents
+      .replace(/[^a-zA-Z0-9.-]/g, '_'); // Remplace autres caractères spéciaux par _
+  };
+
   const addOptionValue = async () => {
     if (editingOptionType && newOptionValue.trim() && 
         !optionValues[editingOptionType]?.some(item => 
@@ -187,7 +197,8 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
       
       if (optionImageFile) {
         try {
-          const fileName = `option-${crypto.randomUUID()}-${optionImageFile.name}`;
+          const sanitizedName = sanitizeFileName(optionImageFile.name);
+          const fileName = `option-${crypto.randomUUID()}-${sanitizedName}`;
           
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from("products")
@@ -273,7 +284,8 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
       if (images.length > 0) {
         for (const image of images) {
           try {
-            const fileName = `${crypto.randomUUID()}-${image.name}`;
+            const sanitizedName = sanitizeFileName(image.name);
+            const fileName = `${crypto.randomUUID()}-${sanitizedName}`;
             console.log("Uploading image:", fileName);
             
             const { data: uploadData, error: uploadError } = await supabase.storage

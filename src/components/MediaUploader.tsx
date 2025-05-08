@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
@@ -11,6 +12,15 @@ interface MediaUploaderProps {
   onShowMediaChange?: (showMedia: boolean) => void;
   showMedia?: boolean;
 }
+
+// Fonction pour sanitizer les noms de fichiers
+const sanitizeFileName = (fileName: string): string => {
+  // Remplacer les caractères accentués et spéciaux
+  return fileName
+    .normalize('NFD') // Décompose les caractères accentués
+    .replace(/[\u0300-\u036f]/g, '') // Supprime les accents
+    .replace(/[^a-zA-Z0-9.-]/g, '_'); // Remplace autres caractères spéciaux par _
+};
 
 const MediaUploader = ({ onMediaUpload, initialMedia, className, onShowMediaChange, showMedia = true }: MediaUploaderProps) => {
   const [isUploading, setIsUploading] = useState(false);
@@ -47,6 +57,7 @@ const MediaUploader = ({ onMediaUpload, initialMedia, className, onShowMediaChan
       
       // Uploader le fichier à Supabase Storage
       const fileExt = file.name.split('.').pop();
+      const sanitizedName = sanitizeFileName(file.name);
       const fileName = `${crypto.randomUUID()}-${Date.now()}.${fileExt}`;
       
       const { error, data } = await supabase.storage

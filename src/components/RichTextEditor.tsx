@@ -1,3 +1,4 @@
+
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -28,6 +29,15 @@ interface RichTextEditorProps {
   value: string
   onChange: (value: string) => void
 }
+
+// Fonction pour sanitizer les noms de fichiers
+const sanitizeFileName = (fileName: string): string => {
+  // Remplacer les caractères accentués et spéciaux
+  return fileName
+    .normalize('NFD') // Décompose les caractères accentués
+    .replace(/[\u0300-\u036f]/g, '') // Supprime les accents
+    .replace(/[^a-zA-Z0-9.-]/g, '_'); // Remplace autres caractères spéciaux par _
+};
 
 const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
   const editor = useEditor({
@@ -99,7 +109,8 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
     if (!file) return
 
     try {
-      const fileName = `${crypto.randomUUID()}-${file.name}`
+      const sanitizedName = sanitizeFileName(file.name);
+      const fileName = `${crypto.randomUUID()}-${sanitizedName}`
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("products")
         .upload(fileName, file)
@@ -329,27 +340,6 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
           <LinkIcon className="w-4 h-4" />
         </button>
         <button
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={`p-2 rounded hover:bg-gray-100 ${
-            editor.isActive('blockquote') ? 'bg-gray-100' : ''
-          }`}
-          type="button"
-          title="Citation"
-        >
-          <Quote className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={`p-2 rounded hover:bg-gray-100 ${
-            editor.isActive('codeBlock') ? 'bg-gray-100' : ''
-          }`}
-          type="button"
-          title="Code"
-        >
-          <Code className="w-4 h-4" />
-        </button>
-
-        <button
           onClick={addImage}
           className="p-2 rounded hover:bg-gray-100"
           type="button"
@@ -365,36 +355,30 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
         >
           <TableIcon className="w-4 h-4" />
         </button>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              className="p-2 rounded hover:bg-gray-100"
-              type="button"
-              title="Plus d'options"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => editor.chain().focus().clearNodes().run()}>
-              Effacer le formatage
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().undo().run()}>
-              Annuler
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => editor.chain().focus().redo().run()}>
-              Rétablir
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <button
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          className={`p-2 rounded hover:bg-gray-100 ${
+            editor.isActive('blockquote') ? 'bg-gray-100' : ''
+          }`}
+          type="button"
+          title="Citation"
+        >
+          <Quote className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          className={`p-2 rounded hover:bg-gray-100 ${
+            editor.isActive('codeBlock') ? 'bg-gray-100' : ''
+          }`}
+          type="button"
+          title="Bloc de code"
+        >
+          <Code className="w-4 h-4" />
+        </button>
       </div>
-      <EditorContent 
-        editor={editor} 
-        className="p-4 h-full min-h-[200px] prose max-w-none w-full"
-      />
+      <EditorContent editor={editor} className="p-4 prose max-w-none" />
     </div>
-  )
-}
+  );
+};
 
-export default RichTextEditor
+export default RichTextEditor;
