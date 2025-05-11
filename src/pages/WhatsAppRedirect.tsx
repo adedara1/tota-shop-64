@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,7 +22,7 @@ interface WhatsAppRedirect {
 const WhatsAppRedirect = () => {
   const [name, setName] = useState('');
   const [redirectCode, setRedirectCode] = useState('');
-  const [waitMinutes, setWaitMinutes] = useState<number>(0);
+  const [waitSeconds, setWaitSeconds] = useState<number>(0); // Changé de minutes à secondes
   const [redirects, setRedirects] = useState<WhatsAppRedirect[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -60,6 +59,9 @@ const WhatsAppRedirect = () => {
         finalRedirectUrl = `intent://send?phone=${redirectCode}#Intent;scheme=whatsapp;package=com.whatsapp;action=android.intent.action.VIEW;end;`;
       }
 
+      // Convertir les secondes en minutes pour le stockage (pour compatibilité avec la base de données existante)
+      const minutesEquivalent = Math.ceil(waitSeconds / 60);
+
       if (editingId) {
         // Mettre à jour une redirection existante
         const { error } = await supabase
@@ -68,7 +70,7 @@ const WhatsAppRedirect = () => {
             name,
             redirect_code: redirectCode,
             redirect_url: finalRedirectUrl,
-            wait_minutes: waitMinutes
+            wait_minutes: minutesEquivalent
           })
           .eq('id', editingId);
         
@@ -83,7 +85,7 @@ const WhatsAppRedirect = () => {
             name,
             redirect_code: redirectCode,
             redirect_url: finalRedirectUrl,
-            wait_minutes: waitMinutes
+            wait_minutes: minutesEquivalent
           });
         
         if (error) throw error;
@@ -93,7 +95,7 @@ const WhatsAppRedirect = () => {
       // Réinitialiser le formulaire et rafraîchir la liste
       setName('');
       setRedirectCode('');
-      setWaitMinutes(0);
+      setWaitSeconds(0);
       fetchRedirects();
     } catch (error: any) {
       toast.error(`Erreur: ${error.message}`);
@@ -106,7 +108,8 @@ const WhatsAppRedirect = () => {
     setEditingId(redirect.id);
     setName(redirect.name);
     setRedirectCode(redirect.redirect_code);
-    setWaitMinutes(redirect.wait_minutes);
+    // Convertir les minutes en secondes pour l'édition
+    setWaitSeconds(redirect.wait_minutes * 60);
   };
 
   const handleDelete = async (id: string) => {
@@ -145,7 +148,7 @@ const WhatsAppRedirect = () => {
     setEditingId(null);
     setName('');
     setRedirectCode('');
-    setWaitMinutes(0);
+    setWaitSeconds(0);
   };
 
   return (
@@ -188,14 +191,14 @@ const WhatsAppRedirect = () => {
           </div>
           
           <div>
-            <Label htmlFor="waitMinutes">Temps d'attente avant redirection (en minutes)</Label>
+            <Label htmlFor="waitSeconds">Temps d'attente avant redirection (en secondes)</Label>
             <Input
-              id="waitMinutes"
+              id="waitSeconds"
               type="number"
               min="0"
-              max="60"
-              value={waitMinutes}
-              onChange={(e) => setWaitMinutes(parseInt(e.target.value) || 0)}
+              max="3600"
+              value={waitSeconds}
+              onChange={(e) => setWaitSeconds(parseInt(e.target.value) || 0)}
               required
             />
           </div>
@@ -238,7 +241,7 @@ const WhatsAppRedirect = () => {
                   <TableRow key={redirect.id}>
                     <TableCell>{redirect.name}</TableCell>
                     <TableCell className="max-w-[200px] truncate">{redirect.redirect_code}</TableCell>
-                    <TableCell>{redirect.wait_minutes} min</TableCell>
+                    <TableCell>{redirect.wait_minutes * 60} sec</TableCell>
                     <TableCell>
                       {redirect.is_active ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">

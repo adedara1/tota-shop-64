@@ -14,7 +14,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 
 // Type for Store data
 export interface StoreData {
-  id: string;
+  id?: string; // Maintenant optionnel lors de la création
   name: string;
   products: string[];
   media_url?: string;

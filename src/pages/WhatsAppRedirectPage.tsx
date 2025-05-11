@@ -28,7 +28,7 @@ const WhatsAppRedirectPage = () => {
           throw new Error('Cette redirection a été désactivée');
         }
         
-        // Définir l'URL de redirection et le compte à rebours
+        // Définir l'URL de redirection et le compte à rebours en secondes
         setRedirectUrl(data.redirect_url);
         setCountdown(data.wait_minutes * 60); // Convertir minutes en secondes
       } catch (error: any) {
@@ -101,7 +101,7 @@ const WhatsAppRedirectPage = () => {
     }
   };
   
-  // Formater le temps restant
+  // Formater le temps restant (maintenant en secondes)
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
