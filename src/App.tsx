@@ -55,7 +55,7 @@ const App = () => {
               <Route path="/store-form" element={<StoreForm />} />
               <Route path="/store/:id" element={<Store />} />
               <Route path="/whatsapp" element={<WhatsAppRedirect />} />
-              <Route path="/whatsapp/:id" element={<WhatsAppRedirectPage />} />
+              <Route path="/whatsapp/:nom" element={<WhatsAppRedirectPage />} />
               
               {/* Protected routes */}
               <Route element={<ProtectedRoute />}>

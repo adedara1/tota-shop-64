@@ -1,9 +1,10 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 const WhatsAppRedirectPage = () => {
-  const { id } = useParams<{ id: string }>();
+  const { nom } = useParams<{ nom: string }>();
   const [countdown, setCountdown] = useState<number | null>(null);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -11,11 +12,23 @@ const WhatsAppRedirectPage = () => {
   useEffect(() => {
     const fetchRedirectInfo = async () => {
       try {
-        const { data, error } = await supabase
+        // Essayer d'abord de récupérer par url_name
+        let query = supabase
           .from('whatsapp_redirects')
-          .select('*')
-          .eq('id', id)
-          .single();
+          .select('*');
+          
+        if (nom) {
+          // Vérifier si le paramètre ressemble à un UUID (ancienne URL)
+          const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          
+          if (uuidPattern.test(nom)) {
+            query = query.eq('id', nom);
+          } else {
+            query = query.eq('url_name', nom);
+          }
+        }
+        
+        const { data, error } = await query.maybeSingle();
         
         if (error) throw error;
         
@@ -28,7 +41,6 @@ const WhatsAppRedirectPage = () => {
         }
         
         // Définir l'URL de redirection et le compte à rebours directement en secondes
-        // Sans multiplication par 60, puisqu'on stocke déjà en secondes
         setRedirectUrl(data.redirect_url);
         setCountdown(data.wait_minutes);
       } catch (error: any) {
@@ -38,7 +50,7 @@ const WhatsAppRedirectPage = () => {
     };
     
     fetchRedirectInfo();
-  }, [id]);
+  }, [nom]);
   
   useEffect(() => {
     // Gérer le compte à rebours si défini

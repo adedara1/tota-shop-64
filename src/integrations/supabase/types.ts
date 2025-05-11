@@ -480,6 +480,7 @@ export type Database = {
           redirect_code: string
           redirect_url: string
           updated_at: string
+          url_name: string | null
           wait_minutes: number
         }
         Insert: {
@@ -490,6 +491,7 @@ export type Database = {
           redirect_code: string
           redirect_url: string
           updated_at?: string
+          url_name?: string | null
           wait_minutes?: number
         }
         Update: {
@@ -500,6 +502,7 @@ export type Database = {
           redirect_code?: string
           redirect_url?: string
           updated_at?: string
+          url_name?: string | null
           wait_minutes?: number
         }
         Relationships: []

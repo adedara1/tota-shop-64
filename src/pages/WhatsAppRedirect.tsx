@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +13,7 @@ import { Trash, Edit, ToggleLeft, ToggleRight } from "lucide-react";
 interface WhatsAppRedirect {
   id: string;
   name: string;
+  url_name: string;
   redirect_code: string;
   redirect_url: string;
   wait_minutes: number; // Nous gardons ce nom pour compatibilité, mais c'est en secondes
@@ -21,6 +23,7 @@ interface WhatsAppRedirect {
 
 const WhatsAppRedirect = () => {
   const [name, setName] = useState('');
+  const [urlName, setUrlName] = useState('');
   const [redirectCode, setRedirectCode] = useState('');
   const [waitSeconds, setWaitSeconds] = useState<number>(0);
   const [redirects, setRedirects] = useState<WhatsAppRedirect[]>([]);
@@ -46,6 +49,24 @@ const WhatsAppRedirect = () => {
     fetchRedirects();
   }, []);
 
+  // Générer un URL name à partir du nom
+  const generateUrlName = (inputName: string) => {
+    return inputName
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
+  };
+
+  // Mettre à jour l'URL name quand le nom change
+  useEffect(() => {
+    if (!editingId || !urlName.trim()) {
+      setUrlName(generateUrlName(name));
+    }
+  }, [name, editingId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -59,6 +80,21 @@ const WhatsAppRedirect = () => {
         finalRedirectUrl = `intent://send?phone=${redirectCode}#Intent;scheme=whatsapp;package=com.whatsapp;action=android.intent.action.VIEW;end;`;
       }
 
+      // Vérifier si l'URL name est unique
+      const { data: existingWithSameUrlName, error: checkError } = await supabase
+        .from('whatsapp_redirects')
+        .select('id')
+        .eq('url_name', urlName)
+        .neq('id', editingId || '');
+      
+      if (checkError) throw checkError;
+      
+      if (existingWithSameUrlName && existingWithSameUrlName.length > 0) {
+        toast.error("Ce nom d'URL est déjà utilisé. Veuillez en choisir un autre.");
+        setLoading(false);
+        return;
+      }
+
       // Utiliser directement les secondes (sans conversion)
       if (editingId) {
         // Mettre à jour une redirection existante
@@ -66,6 +102,7 @@ const WhatsAppRedirect = () => {
           .from('whatsapp_redirects')
           .update({
             name,
+            url_name: urlName,
             redirect_code: redirectCode,
             redirect_url: finalRedirectUrl,
             wait_minutes: waitSeconds // Stocker directement les secondes
@@ -81,6 +118,7 @@ const WhatsAppRedirect = () => {
           .from('whatsapp_redirects')
           .insert({
             name,
+            url_name: urlName,
             redirect_code: redirectCode,
             redirect_url: finalRedirectUrl,
             wait_minutes: waitSeconds // Stocker directement les secondes
@@ -92,6 +130,7 @@ const WhatsAppRedirect = () => {
       
       // Réinitialiser le formulaire et rafraîchir la liste
       setName('');
+      setUrlName('');
       setRedirectCode('');
       setWaitSeconds(0);
       fetchRedirects();
@@ -105,6 +144,7 @@ const WhatsAppRedirect = () => {
   const handleEdit = (redirect: WhatsAppRedirect) => {
     setEditingId(redirect.id);
     setName(redirect.name);
+    setUrlName(redirect.url_name || generateUrlName(redirect.name));
     setRedirectCode(redirect.redirect_code);
     // Pas de conversion nécessaire, puisqu'on stocke déjà en secondes
     setWaitSeconds(redirect.wait_minutes);
@@ -145,6 +185,7 @@ const WhatsAppRedirect = () => {
   const cancelEdit = () => {
     setEditingId(null);
     setName('');
+    setUrlName('');
     setRedirectCode('');
     setWaitSeconds(0);
   };
@@ -169,6 +210,21 @@ const WhatsAppRedirect = () => {
               placeholder="Ex: Support Client"
               required
             />
+          </div>
+          
+          <div>
+            <Label htmlFor="urlName">Nom dans l'URL</Label>
+            <Input
+              id="urlName"
+              type="text"
+              value={urlName}
+              onChange={(e) => setUrlName(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
+              placeholder="Ex: support-client"
+              required
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              Ce nom sera utilisé dans l'URL: /whatsapp/<span className="font-mono">{urlName || 'nom-url'}</span>
+            </p>
           </div>
           
           <div>
@@ -226,6 +282,7 @@ const WhatsAppRedirect = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nom</TableHead>
+                  <TableHead>Nom URL</TableHead>
                   <TableHead>Code</TableHead>
                   <TableHead>Attente</TableHead>
                   <TableHead>Statut</TableHead>
@@ -238,7 +295,8 @@ const WhatsAppRedirect = () => {
                 {redirects.map((redirect) => (
                   <TableRow key={redirect.id}>
                     <TableCell>{redirect.name}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{redirect.redirect_code}</TableCell>
+                    <TableCell>{redirect.url_name || generateUrlName(redirect.name)}</TableCell>
+                    <TableCell className="max-w-[150px] truncate">{redirect.redirect_code}</TableCell>
                     <TableCell>{redirect.wait_minutes} sec</TableCell>
                     <TableCell>
                       {redirect.is_active ? (
@@ -254,7 +312,7 @@ const WhatsAppRedirect = () => {
                     <TableCell>{new Date(redirect.created_at).toLocaleString()}</TableCell>
                     <TableCell>
                       <Link 
-                        to={`/whatsapp/${redirect.id}`} 
+                        to={`/whatsapp/${redirect.url_name || redirect.id}`} 
                         target="_blank"
                         className="text-blue-600 hover:underline"
                       >
