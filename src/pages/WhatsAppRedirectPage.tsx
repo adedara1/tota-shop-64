@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,9 +27,10 @@ const WhatsAppRedirectPage = () => {
           throw new Error('Cette redirection a été désactivée');
         }
         
-        // Définir l'URL de redirection et le compte à rebours en secondes
+        // Définir l'URL de redirection et le compte à rebours directement en secondes
+        // Sans multiplication par 60, puisqu'on stocke déjà en secondes
         setRedirectUrl(data.redirect_url);
-        setCountdown(data.wait_minutes * 60); // Convertir minutes en secondes
+        setCountdown(data.wait_minutes);
       } catch (error: any) {
         console.error('Erreur:', error);
         setError(error.message || 'Une erreur est survenue');
@@ -101,7 +101,7 @@ const WhatsAppRedirectPage = () => {
     }
   };
   
-  // Formater le temps restant (maintenant en secondes)
+  // Formater le temps restant (en secondes)
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;

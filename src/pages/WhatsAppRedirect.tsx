@@ -14,7 +14,7 @@ interface WhatsAppRedirect {
   name: string;
   redirect_code: string;
   redirect_url: string;
-  wait_minutes: number;
+  wait_minutes: number; // Nous gardons ce nom pour compatibilité, mais c'est en secondes
   is_active: boolean;
   created_at: string;
 }
@@ -22,7 +22,7 @@ interface WhatsAppRedirect {
 const WhatsAppRedirect = () => {
   const [name, setName] = useState('');
   const [redirectCode, setRedirectCode] = useState('');
-  const [waitSeconds, setWaitSeconds] = useState<number>(0); // Changé de minutes à secondes
+  const [waitSeconds, setWaitSeconds] = useState<number>(0);
   const [redirects, setRedirects] = useState<WhatsAppRedirect[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -59,9 +59,7 @@ const WhatsAppRedirect = () => {
         finalRedirectUrl = `intent://send?phone=${redirectCode}#Intent;scheme=whatsapp;package=com.whatsapp;action=android.intent.action.VIEW;end;`;
       }
 
-      // Convertir les secondes en minutes pour le stockage (pour compatibilité avec la base de données existante)
-      const minutesEquivalent = Math.ceil(waitSeconds / 60);
-
+      // Utiliser directement les secondes (sans conversion)
       if (editingId) {
         // Mettre à jour une redirection existante
         const { error } = await supabase
@@ -70,7 +68,7 @@ const WhatsAppRedirect = () => {
             name,
             redirect_code: redirectCode,
             redirect_url: finalRedirectUrl,
-            wait_minutes: minutesEquivalent
+            wait_minutes: waitSeconds // Stocker directement les secondes
           })
           .eq('id', editingId);
         
@@ -85,7 +83,7 @@ const WhatsAppRedirect = () => {
             name,
             redirect_code: redirectCode,
             redirect_url: finalRedirectUrl,
-            wait_minutes: minutesEquivalent
+            wait_minutes: waitSeconds // Stocker directement les secondes
           });
         
         if (error) throw error;
@@ -108,8 +106,8 @@ const WhatsAppRedirect = () => {
     setEditingId(redirect.id);
     setName(redirect.name);
     setRedirectCode(redirect.redirect_code);
-    // Convertir les minutes en secondes pour l'édition
-    setWaitSeconds(redirect.wait_minutes * 60);
+    // Pas de conversion nécessaire, puisqu'on stocke déjà en secondes
+    setWaitSeconds(redirect.wait_minutes);
   };
 
   const handleDelete = async (id: string) => {
@@ -241,7 +239,7 @@ const WhatsAppRedirect = () => {
                   <TableRow key={redirect.id}>
                     <TableCell>{redirect.name}</TableCell>
                     <TableCell className="max-w-[200px] truncate">{redirect.redirect_code}</TableCell>
-                    <TableCell>{redirect.wait_minutes * 60} sec</TableCell>
+                    <TableCell>{redirect.wait_minutes} sec</TableCell>
                     <TableCell>
                       {redirect.is_active ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
