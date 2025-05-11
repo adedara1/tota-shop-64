@@ -471,6 +471,39 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_redirects: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          redirect_code: string
+          redirect_url: string
+          updated_at: string
+          wait_minutes: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          redirect_code: string
+          redirect_url: string
+          updated_at?: string
+          wait_minutes?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          redirect_code?: string
+          redirect_url?: string
+          updated_at?: string
+          wait_minutes?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

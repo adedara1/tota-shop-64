@@ -24,6 +24,8 @@ import { initSupabase } from "@/utils/supabaseInit";
 import Index from './pages/Index';
 import StoreForm from './pages/StoreForm';
 import Store from './pages/Store';
+import WhatsAppRedirect from './pages/WhatsAppRedirect';
+import WhatsAppRedirectPage from './pages/WhatsAppRedirectPage';
 
 const App = () => {
   const queryClient = new QueryClient();
@@ -52,6 +54,8 @@ const App = () => {
               <Route path="/home" element={<Home />} />
               <Route path="/store-form" element={<StoreForm />} />
               <Route path="/store/:id" element={<Store />} />
+              <Route path="/whatsapp" element={<WhatsAppRedirect />} />
+              <Route path="/whatsapp/:id" element={<WhatsAppRedirectPage />} />
               
               {/* Protected routes */}
               <Route element={<ProtectedRoute />}>
