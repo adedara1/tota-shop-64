@@ -16,7 +16,7 @@ interface WhatsAppRedirect {
   url_name: string;
   redirect_code: string;
   redirect_url: string;
-  wait_minutes: number; // Nous gardons ce nom pour compatibilité, mais c'est en secondes
+  wait_minutes: number; // Stocke directement les secondes
   is_active: boolean;
   created_at: string;
 }
@@ -42,6 +42,7 @@ const WhatsAppRedirect = () => {
       setRedirects(data || []);
     } catch (error: any) {
       toast.error(`Erreur lors du chargement des redirections: ${error.message}`);
+      console.error("Erreur fetchRedirects:", error);
     }
   };
 
@@ -72,6 +73,19 @@ const WhatsAppRedirect = () => {
     setLoading(true);
 
     try {
+      // Validation: s'assurer que tous les champs requis sont présents
+      if (!name.trim()) {
+        throw new Error("Le nom est requis");
+      }
+      
+      if (!urlName.trim()) {
+        throw new Error("Le nom d'URL est requis");
+      }
+      
+      if (!redirectCode.trim()) {
+        throw new Error("Le code de redirection est requis");
+      }
+
       // Vérifier si le code est une URL d'intention ou un numéro de téléphone
       let finalRedirectUrl = redirectCode;
       
@@ -80,51 +94,66 @@ const WhatsAppRedirect = () => {
         finalRedirectUrl = `intent://send?phone=${redirectCode}#Intent;scheme=whatsapp;package=com.whatsapp;action=android.intent.action.VIEW;end;`;
       }
 
+      console.log("Vérification de l'URL name unique:", urlName);
       // Vérifier si l'URL name est unique
       const { data: existingWithSameUrlName, error: checkError } = await supabase
         .from('whatsapp_redirects')
         .select('id')
-        .eq('url_name', urlName)
-        .neq('id', editingId || '');
+        .eq('url_name', urlName);
       
-      if (checkError) throw checkError;
+      if (checkError) {
+        console.error("Erreur lors de la vérification de l'URL name:", checkError);
+        throw checkError;
+      }
       
-      if (existingWithSameUrlName && existingWithSameUrlName.length > 0) {
+      // Filtrer pour exclure l'ID actuel en cours d'édition
+      const duplicates = existingWithSameUrlName?.filter(item => editingId ? item.id !== editingId : true) || [];
+      
+      if (duplicates.length > 0) {
         toast.error("Ce nom d'URL est déjà utilisé. Veuillez en choisir un autre.");
         setLoading(false);
         return;
       }
 
-      // Utiliser directement les secondes (sans conversion)
+      console.log("Préparation des données pour", editingId ? "mise à jour" : "insertion");
+      
+      const redirectData = {
+        name,
+        url_name: urlName,
+        redirect_code: redirectCode,
+        redirect_url: finalRedirectUrl,
+        wait_minutes: waitSeconds // Secondes directement
+      };
+      
+      console.log("Données à envoyer:", redirectData);
+
       if (editingId) {
         // Mettre à jour une redirection existante
+        console.log("Mise à jour de la redirection avec ID:", editingId);
         const { error } = await supabase
           .from('whatsapp_redirects')
-          .update({
-            name,
-            url_name: urlName,
-            redirect_code: redirectCode,
-            redirect_url: finalRedirectUrl,
-            wait_minutes: waitSeconds // Stocker directement les secondes
-          })
+          .update(redirectData)
           .eq('id', editingId);
         
-        if (error) throw error;
+        if (error) {
+          console.error("Erreur lors de la mise à jour:", error);
+          throw error;
+        }
+        
         toast.success('Redirection mise à jour avec succès');
         setEditingId(null);
       } else {
         // Créer une nouvelle redirection
+        console.log("Création d'une nouvelle redirection");
         const { error } = await supabase
           .from('whatsapp_redirects')
-          .insert({
-            name,
-            url_name: urlName,
-            redirect_code: redirectCode,
-            redirect_url: finalRedirectUrl,
-            wait_minutes: waitSeconds // Stocker directement les secondes
-          });
+          .insert(redirectData);
         
-        if (error) throw error;
+        if (error) {
+          console.error("Erreur lors de l'insertion:", error);
+          throw error;
+        }
+        
         toast.success('Redirection créée avec succès');
       }
       
@@ -135,6 +164,7 @@ const WhatsAppRedirect = () => {
       setWaitSeconds(0);
       fetchRedirects();
     } catch (error: any) {
+      console.error("Erreur dans handleSubmit:", error);
       toast.error(`Erreur: ${error.message}`);
     } finally {
       setLoading(false);
@@ -142,26 +172,32 @@ const WhatsAppRedirect = () => {
   };
 
   const handleEdit = (redirect: WhatsAppRedirect) => {
+    console.log("Édition de la redirection:", redirect);
     setEditingId(redirect.id);
     setName(redirect.name);
     setUrlName(redirect.url_name || generateUrlName(redirect.name));
     setRedirectCode(redirect.redirect_code);
-    // Pas de conversion nécessaire, puisqu'on stocke déjà en secondes
     setWaitSeconds(redirect.wait_minutes);
   };
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette redirection?')) {
       try {
+        console.log("Suppression de la redirection avec ID:", id);
         const { error } = await supabase
           .from('whatsapp_redirects')
           .delete()
           .eq('id', id);
         
-        if (error) throw error;
+        if (error) {
+          console.error("Erreur lors de la suppression:", error);
+          throw error;
+        }
+        
         toast.success('Redirection supprimée avec succès');
         fetchRedirects();
       } catch (error: any) {
+        console.error("Erreur dans handleDelete:", error);
         toast.error(`Erreur: ${error.message}`);
       }
     }
@@ -169,20 +205,27 @@ const WhatsAppRedirect = () => {
 
   const toggleActive = async (id: string, currentStatus: boolean) => {
     try {
+      console.log(`${currentStatus ? 'Désactivation' : 'Activation'} de la redirection avec ID:`, id);
       const { error } = await supabase
         .from('whatsapp_redirects')
         .update({ is_active: !currentStatus })
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Erreur lors du changement de statut:", error);
+        throw error;
+      }
+      
       toast.success(`Redirection ${currentStatus ? 'désactivée' : 'activée'} avec succès`);
       fetchRedirects();
     } catch (error: any) {
+      console.error("Erreur dans toggleActive:", error);
       toast.error(`Erreur: ${error.message}`);
     }
   };
 
   const cancelEdit = () => {
+    console.log("Annulation de l'édition");
     setEditingId(null);
     setName('');
     setUrlName('');

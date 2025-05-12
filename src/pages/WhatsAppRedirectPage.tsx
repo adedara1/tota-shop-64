@@ -1,10 +1,12 @@
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const WhatsAppRedirectPage = () => {
   const { nom } = useParams<{ nom: string }>();
+  const navigate = useNavigate();
   const [countdown, setCountdown] = useState<number | null>(null);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -12,45 +14,59 @@ const WhatsAppRedirectPage = () => {
   useEffect(() => {
     const fetchRedirectInfo = async () => {
       try {
-        // Essayer d'abord de récupérer par url_name
-        let query = supabase
-          .from('whatsapp_redirects')
-          .select('*');
-          
-        if (nom) {
-          // Vérifier si le paramètre ressemble à un UUID (ancienne URL)
-          const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-          
-          if (uuidPattern.test(nom)) {
-            query = query.eq('id', nom);
-          } else {
-            query = query.eq('url_name', nom);
-          }
+        console.log("Recherche de redirection pour:", nom);
+        
+        if (!nom || nom.trim() === '') {
+          throw new Error("Identifiant de redirection manquant");
+        }
+        
+        // Essayer d'abord de récupérer par url_name ou id
+        let query = supabase.from('whatsapp_redirects').select('*');
+        
+        // Vérifier si le paramètre ressemble à un UUID
+        const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        
+        if (uuidPattern.test(nom)) {
+          console.log("Recherche par ID:", nom);
+          query = query.eq('id', nom);
+        } else {
+          console.log("Recherche par url_name:", nom);
+          query = query.eq('url_name', nom);
         }
         
         const { data, error } = await query.maybeSingle();
         
-        if (error) throw error;
+        if (error) {
+          console.error("Erreur Supabase:", error);
+          throw error;
+        }
         
         if (!data) {
+          console.error("Redirection non trouvée pour:", nom);
           throw new Error('Redirection non trouvée');
         }
         
+        console.log("Redirection trouvée:", data);
+        
         if (!data.is_active) {
+          console.log("Redirection inactive:", data);
           throw new Error('Cette redirection a été désactivée');
         }
         
-        // Définir l'URL de redirection et le compte à rebours directement en secondes
+        // Définir l'URL de redirection et le compte à rebours
         setRedirectUrl(data.redirect_url);
-        setCountdown(data.wait_minutes);
+        setCountdown(data.wait_minutes); // Déjà en secondes
+        
       } catch (error: any) {
-        console.error('Erreur:', error);
+        console.error('Erreur lors de la récupération de la redirection:', error);
         setError(error.message || 'Une erreur est survenue');
+        // Afficher une notification toast pour les erreurs
+        toast.error(error.message || 'Une erreur est survenue lors de la redirection');
       }
     };
     
     fetchRedirectInfo();
-  }, [nom]);
+  }, [nom, navigate]);
   
   useEffect(() => {
     // Gérer le compte à rebours si défini
@@ -62,6 +78,7 @@ const WhatsAppRedirectPage = () => {
       return () => clearInterval(timer);
     } else if (countdown === 0 && redirectUrl) {
       // Rediriger vers WhatsApp quand le compte à rebours atteint zéro
+      console.log("Redirection vers:", redirectUrl);
       performRedirect(redirectUrl);
     }
   }, [countdown, redirectUrl]);
