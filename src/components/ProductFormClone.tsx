@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +11,7 @@ import { Database } from "@/integrations/supabase/types";
 import { Toggle } from "@/components/ui/toggle";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ImageIcon, X, Link as LinkIcon, Globe, Star, Video, VideoOff, Upload, FileVideo } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ColorInput from "@/components/ColorInput";
 import SimilarProductsSelector from "@/components/SimilarProductsSelector";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -851,4 +852,121 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
               </TabsTrigger>
             </TabsList>
             
-            {urlType
+            <TabsContent value="whatsapp">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="whatsapp-number">Numéro WhatsApp (avec l'indicatif pays)</Label>
+                  <Input
+                    id="whatsapp-number"
+                    value={whatsappNumber}
+                    onChange={(e) => setWhatsappNumber(e.target.value)}
+                    placeholder="Ex: 22501234567"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="whatsapp-message">Message pré-rempli</Label>
+                  <Input
+                    id="whatsapp-message"
+                    value={whatsappMessage}
+                    onChange={(e) => setWhatsappMessage(e.target.value)}
+                    placeholder="Ex: Je suis intéressé par votre produit"
+                  />
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="custom">
+              <div>
+                <Label htmlFor="custom-url">URL personnalisée</Label>
+                <Input
+                  id="custom-url"
+                  value={customUrl}
+                  onChange={(e) => setCustomUrl(e.target.value)}
+                  placeholder="https://example.com/cart"
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      )}
+
+      <div>
+        <Label htmlFor="button_text-clone">Texte du bouton</Label>
+        <Input
+          id="button_text-clone"
+          name="button_text"
+          defaultValue={product?.button_text || "Acheter maintenant"}
+        />
+      </div>
+
+      <div>
+        <Label>Description du produit</Label>
+        <RichTextEditor value={description} onChange={setDescription} />
+      </div>
+
+      <div>
+        <Label>Couleur du thème</Label>
+        <ColorSelector 
+          selectedColor={selectedColor} 
+          onColorSelect={setSelectedColor} 
+        />
+      </div>
+
+      <div className="flex items-center space-x-2 my-4">
+        <Checkbox 
+          id="show-similar-products" 
+          checked={showSimilarProducts} 
+          onCheckedChange={(checked) => {
+            setShowSimilarProducts(checked === true);
+            if (checked === true && !showSimilarProductsSelector) {
+              setShowSimilarProductsSelector(true);
+            }
+          }}
+        />
+        <Label htmlFor="show-similar-products" className="font-medium cursor-pointer">
+          Afficher des produits similaires
+        </Label>
+      </div>
+
+      {showSimilarProducts && (
+        <>
+          <ColorInput 
+            label="Couleur du titre des produits similaires" 
+            value={similarProductsTitleColor} 
+            onChange={setSimilarProductsTitleColor}
+            defaultColor="#FFFFFF"
+          />
+          
+          <div className="mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowSimilarProductsSelector(!showSimilarProductsSelector)}
+            >
+              {showSimilarProductsSelector ? "Cacher" : "Afficher"} le sélecteur de produits similaires
+            </Button>
+          </div>
+          
+          {showSimilarProductsSelector && (
+            <SimilarProductsSelector 
+              selectedProducts={similarProducts} 
+              onProductsSelect={handleSimilarProductsSelect}
+              excludeId={product?.id}
+            />
+          )}
+        </>
+      )}
+      
+      <div className="flex justify-end space-x-4 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Annuler
+        </Button>
+        <Button type="submit" disabled={loading}>
+          {loading ? "Traitement en cours..." : product ? "Mettre à jour" : "Créer"}
+        </Button>
+      </div>
+    </form>
+  );
+};
+
+export default ProductFormClone;
