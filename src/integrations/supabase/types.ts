@@ -507,6 +507,47 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_stats: {
+        Row: {
+          created_at: string
+          id: string
+          redirect_name: string | null
+          updated_at: string
+          url_name: string | null
+          visit_date: string
+          visits_count: number
+          whatsapp_redirect_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          redirect_name?: string | null
+          updated_at?: string
+          url_name?: string | null
+          visit_date?: string
+          visits_count?: number
+          whatsapp_redirect_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          redirect_name?: string | null
+          updated_at?: string
+          url_name?: string | null
+          visit_date?: string
+          visits_count?: number
+          whatsapp_redirect_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_stats_whatsapp_redirect_id_fkey"
+            columns: ["whatsapp_redirect_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_redirects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -526,6 +567,15 @@ export type Database = {
       }
       increment_product_view: {
         Args: { product_id_param: string; view_date_param?: string }
+        Returns: undefined
+      }
+      increment_whatsapp_visit: {
+        Args: {
+          whatsapp_id_param: string
+          redirect_name_param: string
+          url_name_param: string
+          visit_date_param?: string
+        }
         Returns: undefined
       }
       table_exists: {

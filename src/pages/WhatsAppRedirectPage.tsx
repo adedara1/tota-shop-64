@@ -53,6 +53,21 @@ const WhatsAppRedirectPage = () => {
           throw new Error('Cette redirection a été désactivée');
         }
         
+        // Enregistrer la visite dans les statistiques
+        if (data.id) {
+          try {
+            await supabase.rpc('increment_whatsapp_visit', {
+              whatsapp_id_param: data.id,
+              redirect_name_param: data.name,
+              url_name_param: data.url_name || ''
+            });
+            console.log("Visite enregistrée pour:", data.name);
+          } catch (statsError) {
+            console.error("Erreur lors de l'enregistrement de la visite:", statsError);
+            // Ne pas interrompre le processus de redirection si l'enregistrement échoue
+          }
+        }
+        
         // Définir l'URL de redirection et le compte à rebours
         setRedirectUrl(data.redirect_url);
         setCountdown(data.wait_minutes); // Déjà en secondes

@@ -22,9 +22,23 @@ interface ProductStats {
   view_date: string;
 }
 
+interface ButtonStats {
+  button_name: string;
+  page_name: string;
+  clicks_count: number;
+  click_date: string;
+}
+
+interface WhatsAppStats {
+  redirect_name: string;
+  url_name: string;
+  visits_count: number;
+  visit_date: string;
+}
+
 const Stats = () => {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'products' | 'buttons'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'buttons' | 'whatsapp'>('products');
 
   const { data: productStats, isLoading: isLoadingProducts } = useQuery({
     queryKey: ["product-stats"],
@@ -109,7 +123,35 @@ const Stats = () => {
     },
   });
 
-  if (isLoadingProducts || isLoadingButtons) {
+  const { data: whatsappStats, isLoading: isLoadingWhatsApp } = useQuery({
+    queryKey: ["whatsapp-stats"],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from("whatsapp_stats")
+          .select("*")
+          .order("visit_date", { ascending: false });
+
+        if (error) {
+          handleSupabaseError(error, toast);
+          return [];
+        }
+        
+        return data.map((stat) => ({
+          redirect_name: stat.redirect_name || "Sans nom",
+          url_name: stat.url_name || "N/A",
+          visits_count: stat.visits_count,
+          visit_date: new Date(stat.visit_date).toLocaleDateString(),
+        }));
+      } catch (error) {
+        console.error("Error fetching WhatsApp stats:", error);
+        handleSupabaseError(error, toast);
+        return [];
+      }
+    },
+  });
+
+  if (isLoadingProducts || isLoadingButtons || isLoadingWhatsApp) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: "#f1eee9" }}>
         <PromoBar />
@@ -126,8 +168,8 @@ const Stats = () => {
       <PromoBar />
       <Navbar />
       <main className="container mx-auto py-12 px-4">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex gap-4">
+        <div className="flex flex-wrap items-center justify-between mb-6">
+          <div className="flex flex-wrap gap-2 mb-4 md:mb-0">
             <Button
               onClick={() => setActiveTab('products')}
               variant={activeTab === 'products' ? 'default' : 'outline'}
@@ -140,10 +182,16 @@ const Stats = () => {
             >
               Statistiques des Boutons
             </Button>
+            <Button
+              onClick={() => setActiveTab('whatsapp')}
+              variant={activeTab === 'whatsapp' ? 'default' : 'outline'}
+            >
+              Statistiques WhatsApp
+            </Button>
           </div>
         </div>
 
-        {activeTab === 'products' ? (
+        {activeTab === 'products' && (
           <div className="bg-white rounded-lg shadow">
             <Table>
               <TableHeader>
@@ -163,10 +211,17 @@ const Stats = () => {
                     <TableCell className="text-right">{stat.clicks_count}</TableCell>
                   </TableRow>
                 ))}
+                {productStats?.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-6">Aucune statistique disponible</TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'buttons' && (
           <div className="bg-white rounded-lg shadow">
             <Table>
               <TableHeader>
@@ -186,6 +241,41 @@ const Stats = () => {
                     <TableCell className="text-right">{stat.clicks_count}</TableCell>
                   </TableRow>
                 ))}
+                {buttonStats?.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-6">Aucune statistique disponible</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {activeTab === 'whatsapp' && (
+          <div className="bg-white rounded-lg shadow">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Nom de la redirection</TableHead>
+                  <TableHead>Identifiant URL</TableHead>
+                  <TableHead className="text-right">Visites</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {whatsappStats?.map((stat, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{stat.visit_date}</TableCell>
+                    <TableCell>{stat.redirect_name}</TableCell>
+                    <TableCell>{stat.url_name}</TableCell>
+                    <TableCell className="text-right">{stat.visits_count}</TableCell>
+                  </TableRow>
+                ))}
+                {whatsappStats?.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-6">Aucune statistique disponible</TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
