@@ -32,6 +32,7 @@ interface ProductDetailsProps {
   productNameColor?: string;
   originalPriceColor?: string;
   discountedPriceColor?: string;
+  discountedPriceColor?: string;
   quantityTextColor?: string;
   showProductTrademark?: boolean;
   productTrademarkColor?: string;
@@ -288,6 +289,7 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
         </div>
       )}
       
+      {/* Ajout de la vidéo ici avant le contenu principal */}
       {showVideo && videoUrl && (
         <div className="my-4">
           <ProductVideo 

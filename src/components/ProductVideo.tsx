@@ -1,6 +1,6 @@
 
 import { useState, useRef, useEffect } from 'react';
-import { PictureInPicture2, Play, Pause } from 'lucide-react';
+import { PictureInPicture2, Play, Pause, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ProductVideoProps {
@@ -19,6 +19,7 @@ const ProductVideo = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [isPiPActive, setIsPiPActive] = useState(false);
+  const [isVideoVisible, setIsVideoVisible] = useState(true);
   
   // Handle play/pause
   const togglePlay = () => {
@@ -49,10 +50,27 @@ const ProductVideo = ({
       console.error("Picture-in-Picture failed:", error);
     }
   };
+
+  // Toggle video visibility
+  const toggleVideoVisibility = () => {
+    setIsVideoVisible(!isVideoVisible);
+    
+    // Si on ferme la vidéo et qu'elle est en PiP, on quitte le mode PiP
+    if (isVideoVisible && isPiPActive && videoRef.current && document.pictureInPictureElement === videoRef.current) {
+      document.exitPictureInPicture().catch(err => console.error("Error exiting PiP:", err));
+      setIsPiPActive(false);
+    }
+
+    // Si on rouvre la vidéo et qu'elle doit jouer, on la lance
+    if (!isVideoVisible && autoPlay && videoRef.current) {
+      videoRef.current.play().catch(err => console.error("Error playing video:", err));
+      setIsPlaying(true);
+    }
+  };
   
-  // Auto-enable PiP if requested
+  // Auto-enable PiP if requested - s'active automatiquement à l'atterrissage
   useEffect(() => {
-    if (pipEnabled && videoRef.current && !isPiPActive) {
+    if (pipEnabled && videoRef.current && !isPiPActive && isVideoVisible) {
       const enablePiP = async () => {
         try {
           // Only request PiP if video has started playing
@@ -64,41 +82,32 @@ const ProductVideo = ({
           console.error("Could not enter Picture-in-Picture mode:", error);
         }
       };
-      
-      // We need user interaction before enabling PiP on some browsers
-      const handleFirstInteraction = () => {
+
+      // Activer PiP automatiquement après le chargement de la vidéo
+      const handleVideoReady = () => {
         if (videoRef.current) {
           videoRef.current.play()
             .then(() => {
               setIsPlaying(true);
-              if (pipEnabled) enablePiP();
+              enablePiP();
             })
             .catch(err => console.error("Error playing video:", err));
         }
       };
       
-      // Listen for scroll events to enable PiP when user scrolls past the video
-      const handleScroll = () => {
-        if (!videoRef.current || isPiPActive) return;
-        
-        const rect = videoRef.current.getBoundingClientRect();
-        // If video is out of viewport and is playing, enable PiP
-        if ((rect.bottom < 0 || rect.top > window.innerHeight) && isPlaying) {
-          enablePiP();
-        }
-      };
-      
-      if (autoPlay) {
-        window.addEventListener('scroll', handleScroll);
-        document.addEventListener('click', handleFirstInteraction, { once: true });
+      if (videoRef.current.readyState >= 2) {
+        handleVideoReady();
+      } else {
+        videoRef.current.addEventListener('loadeddata', handleVideoReady, { once: true });
       }
       
       return () => {
-        window.removeEventListener('scroll', handleScroll);
-        document.removeEventListener('click', handleFirstInteraction);
+        if (videoRef.current) {
+          videoRef.current.removeEventListener('loadeddata', handleVideoReady);
+        }
       };
     }
-  }, [pipEnabled, autoPlay, isPiPActive, isPlaying]);
+  }, [pipEnabled, videoRef.current, isVideoVisible]);
   
   // Handle PiP events
   useEffect(() => {
@@ -116,6 +125,20 @@ const ProductVideo = ({
       video.removeEventListener('leavepictureinpicture', onExitPiP);
     };
   }, []);
+
+  // Si la vidéo est masquée, afficher uniquement le bouton pour la réouvrir
+  if (!isVideoVisible) {
+    return (
+      <div className="fixed bottom-4 right-4 z-50">
+        <button 
+          onClick={toggleVideoVisibility}
+          className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-full bg-opacity-70 hover:bg-opacity-90 transition-all shadow-lg"
+        >
+          <Play size={16} /> Voir la vidéo
+        </button>
+      </div>
+    );
+  }
   
   return (
     <div className={cn("relative w-full rounded-md overflow-hidden", className)}>
@@ -129,6 +152,16 @@ const ProductVideo = ({
         className="w-full h-auto"
         loop
       />
+      
+      <div className="absolute top-2 right-2">
+        <button
+          onClick={toggleVideoVisibility}
+          className="p-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-75 transition-all"
+          aria-label="Fermer la vidéo"
+        >
+          <X size={16} />
+        </button>
+      </div>
       
       <div className="absolute bottom-2 right-2 flex gap-2">
         <button
