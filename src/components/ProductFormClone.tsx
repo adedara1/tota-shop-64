@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,10 +9,11 @@ import ColorSelector from "@/components/ColorSelector";
 import { Database } from "@/integrations/supabase/types";
 import { Toggle } from "@/components/ui/toggle";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ImageIcon, X, Link as LinkIcon, Globe, Star } from "lucide-react";
+import { ImageIcon, X, Link as LinkIcon, Globe, Star, Video, VideoOff, Upload, FileVideo } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ColorInput from "@/components/ColorInput";
 import SimilarProductsSelector from "@/components/SimilarProductsSelector";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 type CurrencyCode = Database['public']['Enums']['currency_code'];
 
@@ -87,6 +87,14 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
   const [similarProducts, setSimilarProducts] = useState<string[]>([]);
   const [showSimilarProductsSelector, setShowSimilarProductsSelector] = useState(false);
 
+  // Video related state
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [showVideo, setShowVideo] = useState(false);
+  const [videoPipEnabled, setVideoPipEnabled] = useState(false);
+  const [videoAutoplay, setVideoAutoplay] = useState(false);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+
   // Initialiser le formulaire avec les données du produit si nous sommes en mode édition
   useEffect(() => {
     if (product) {
@@ -145,6 +153,16 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
           setCustomUrl(product.cart_url);
         }
       }
+
+      // Video settings
+      setVideoUrl(product.video_url || null);
+      setShowVideo(product.show_video || false);
+      setVideoPipEnabled(product.video_pip_enabled || false);
+      setVideoAutoplay(product.video_autoplay || false);
+      
+      if (product.video_url) {
+        setVideoPreviewUrl(product.video_url);
+      }
     }
   }, [product]);
 
@@ -154,7 +172,6 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
       toast({
         title: "Erreur",
         description: "Vous ne pouvez télécharger que 4 images maximum",
-        variant: "destructive",
       });
       return;
     }
@@ -177,6 +194,31 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
       setNewOptionType("");
       setEditingOptionType(newOptionType);
     }
+  };
+
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.size > 100 * 1024 * 1024) { // 100MB limit
+        toast({
+          title: "Fichier trop volumineux",
+          description: "La taille maximale de vidéo est de 100MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setVideoFile(file);
+      setVideoPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const removeVideo = () => {
+    setVideoFile(null);
+    if (videoPreviewUrl && !product?.video_url) {
+      URL.revokeObjectURL(videoPreviewUrl);
+    }
+    setVideoPreviewUrl(null);
+    setVideoUrl(null);
   };
 
   // Fonction pour sanitizer les noms de fichiers
@@ -280,7 +322,9 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
     try {
       const formData = new FormData(e.currentTarget);
       const imageUrls: string[] = [];
+      let uploadedVideoUrl: string | null = null;
 
+      // Upload images
       if (images.length > 0) {
         for (const image of images) {
           try {
@@ -313,6 +357,40 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
             setLoading(false);
             return; // Stop the submission if image upload fails
           }
+        }
+      }
+
+      // Upload video if provided
+      if (videoFile) {
+        try {
+          const sanitizedName = sanitizeFileName(videoFile.name);
+          const fileName = `video-${crypto.randomUUID()}-${sanitizedName}`;
+          console.log("Uploading video:", fileName);
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from("products")
+            .upload(fileName, videoFile);
+
+          if (uploadError) {
+            console.error("Error uploading video:", uploadError);
+            throw new Error(`Erreur de téléchargement de la vidéo: ${uploadError.message}`);
+          }
+
+          const { data: { publicUrl } } = supabase.storage
+            .from("products")
+            .getPublicUrl(fileName);
+
+          console.log("Video uploaded successfully:", publicUrl);
+          uploadedVideoUrl = publicUrl;
+        } catch (videoError) {
+          console.error("Error processing video:", videoError);
+          toast({
+            title: "Erreur",
+            description: "Problème lors du téléchargement de la vidéo. Veuillez réessayer.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
         }
       }
 
@@ -362,7 +440,11 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
         stock_status_color: stockStatusColor,
         show_similar_products: showSimilarProducts,
         similar_products: similarProducts,
-        similar_products_title_color: similarProductsTitleColor
+        similar_products_title_color: similarProductsTitleColor,
+        video_url: uploadedVideoUrl || videoUrl || null,
+        show_video: showVideo,
+        video_pip_enabled: videoPipEnabled,
+        video_autoplay: videoAutoplay
       };
 
       console.log("Saving product data:", productData);
@@ -431,6 +513,98 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
         />
       </div>
 
+      {/* Section vidéo */}
+      <div className="border rounded-lg p-4 space-y-4">
+        <h3 className="text-lg font-medium flex items-center gap-2">
+          <FileVideo size={18} />
+          Vidéo du produit
+        </h3>
+        
+        <div className="flex items-center space-x-2 my-4">
+          <Checkbox 
+            id="show-video" 
+            checked={showVideo} 
+            onCheckedChange={(checked) => {
+              setShowVideo(checked === true);
+            }}
+          />
+          <Label htmlFor="show-video" className="font-medium cursor-pointer">
+            Afficher une vidéo sur la page du produit
+          </Label>
+        </div>
+        
+        {showVideo && (
+          <div className="ml-6 space-y-4 border-l-2 border-gray-200 pl-4">
+            <div>
+              <Label htmlFor="video-upload" className="block mb-2">Télécharger une vidéo (100MB max)</Label>
+              <div className="flex flex-col gap-2">
+                <Input
+                  id="video-upload"
+                  type="file"
+                  accept="video/*"
+                  onChange={handleVideoChange}
+                />
+                {videoPreviewUrl && (
+                  <>
+                    <div className="mt-2 border rounded-lg overflow-hidden">
+                      <AspectRatio ratio={16/9}>
+                        <video 
+                          src={videoPreviewUrl} 
+                          controls 
+                          className="w-full h-full object-contain"
+                        />
+                      </AspectRatio>
+                    </div>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={removeVideo}
+                      className="flex items-center gap-1 mt-2 w-fit"
+                    >
+                      <X size={14} /> Supprimer la vidéo
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="video-pip" 
+                  checked={videoPipEnabled} 
+                  onCheckedChange={(checked) => {
+                    setVideoPipEnabled(checked === true);
+                  }}
+                />
+                <Label htmlFor="video-pip" className="cursor-pointer">
+                  Activer le mode Picture-in-Picture
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="video-autoplay" 
+                  checked={videoAutoplay} 
+                  onCheckedChange={(checked) => {
+                    setVideoAutoplay(checked === true);
+                  }}
+                />
+                <Label htmlFor="video-autoplay" className="cursor-pointer">
+                  Lecture automatique
+                </Label>
+              </div>
+              
+              <p className="text-xs text-gray-500 mt-2">
+                Le mode Picture-in-Picture permet à la vidéo de rester visible dans un petit lecteur flottant 
+                lorsque l'utilisateur fait défiler la page.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Reste du formulaire */}
       <div>
         <Label htmlFor="name-clone">Nom du produit</Label>
         <Input 
@@ -677,272 +851,4 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
               </TabsTrigger>
             </TabsList>
             
-            {urlType === 'custom' ? (
-              <div>
-                <Label htmlFor="custom-url">URL personnalisée</Label>
-                <div className="flex items-center mt-1">
-                  <LinkIcon size={16} className="text-gray-400 mr-2" />
-                  <Input
-                    id="custom-url"
-                    value={customUrl}
-                    onChange={(e) => setCustomUrl(e.target.value)}
-                    placeholder="https://example.com"
-                    required={!useInternalCart && urlType === 'custom'}
-                  />
-                </div>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <Label htmlFor="whatsapp-number-clone">Numéro WhatsApp</Label>
-                  <Input
-                    id="whatsapp-number-clone"
-                    value={whatsappNumber}
-                    onChange={(e) => setWhatsappNumber(e.target.value)}
-                    placeholder="Ex: 51180895"
-                    required={!useInternalCart && urlType === 'whatsapp'}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="whatsapp-message-clone">Message WhatsApp par défaut</Label>
-                  <Input
-                    id="whatsapp-message-clone"
-                    value={whatsappMessage}
-                    onChange={(e) => setWhatsappMessage(e.target.value)}
-                    placeholder="Ex: Bonjour"
-                    required={!useInternalCart && urlType === 'whatsapp'}
-                  />
-                </div>
-              </>
-            )}
-          </Tabs>
-        </div>
-      )}
-
-      <div>
-        <Label htmlFor="button_text-clone">Texte du bouton</Label>
-        <Input
-          id="button_text-clone"
-          name="button_text"
-          required
-          defaultValue={useInternalCart ? "Ajouter au panier" : "Contactez-nous sur WhatsApp"}
-          placeholder={useInternalCart ? "Ajouter au panier" : "Contactez-nous sur WhatsApp"}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="description-clone">Description</Label>
-        <div className="prose max-w-none">
-          <RichTextEditor 
-            value={description} 
-            onChange={setDescription}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label>Couleur du thème</Label>
-        <ColorSelector
-          selectedColor={selectedColor}
-          onColorSelect={setSelectedColor}
-        />
-      </div>
-
-      <div className="space-y-4">
-        <Label>Options du produit</Label>
-        
-        <ColorInput 
-          label="Couleur du texte des titres d'options" 
-          value={optionTitleColor} 
-          onChange={setOptionTitleColor}
-        />
-        
-        <ColorInput 
-          label="Couleur du texte des valeurs d'options" 
-          value={optionValueColor} 
-          onChange={setOptionValueColor}
-        />
-        
-        <div className="flex items-center gap-2">
-          <Input 
-            placeholder="Nom de l'option (ex: Taille, Couleur)" 
-            value={newOptionType}
-            onChange={(e) => setNewOptionType(e.target.value)}
-          />
-          <Button 
-            type="button" 
-            onClick={addOptionType}
-            variant="outline"
-          >
-            Ajouter
-          </Button>
-        </div>
-        
-        {optionTypes.length > 0 && (
-          <div className="border rounded-lg p-4">
-            <div className="flex gap-2 mb-4 flex-wrap">
-              {optionTypes.map(type => (
-                <Toggle
-                  key={type}
-                  pressed={editingOptionType === type}
-                  onPressedChange={() => setEditingOptionType(type)}
-                  className={`
-                    rounded-full px-3 py-1 text-sm 
-                    ${editingOptionType === type 
-                      ? 'bg-black text-white' 
-                      : 'bg-white border border-gray-300'
-                    }
-                  `}
-                >
-                  <span>{type}</span>
-                  <button 
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeOptionType(type);
-                    }}
-                    className="ml-2 text-xs"
-                  >
-                    ✕
-                  </button>
-                </Toggle>
-              ))}
-            </div>
-            
-            {editingOptionType && (
-              <div className="space-y-3">
-                <h4 className="text-sm font-medium">Valeurs pour "{editingOptionType}"</h4>
-                
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <Input 
-                      placeholder="Valeur de l'option (ex: S, M, L)" 
-                      value={newOptionValue}
-                      onChange={(e) => setNewOptionValue(e.target.value)}
-                    />
-                    <Button 
-                      type="button" 
-                      onClick={addOptionValue}
-                      variant="outline"
-                      size="sm"
-                    >
-                      Ajouter
-                    </Button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label 
-                      htmlFor="option-image-input" 
-                      className="flex items-center gap-1 cursor-pointer text-sm p-2 border rounded hover:bg-gray-50"
-                    >
-                      <ImageIcon size={16} className="text-gray-500" />
-                      <span>Ajouter une image</span>
-                    </label>
-                    <Input
-                      id="option-image-input"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleOptionImageChange}
-                      className="hidden"
-                    />
-                    {optionImageFile && (
-                      <div className="text-xs text-gray-500">
-                        {optionImageFile.name}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex flex-wrap gap-2">
-                  {optionValues[editingOptionType]?.map((value, index) => {
-                    const displayValue = typeof value === 'object' ? value.value : value;
-                    const hasImage = typeof value === 'object' && value.image;
-                    
-                    return (
-                      <div 
-                        key={index} 
-                        className={`${hasImage ? 'bg-blue-50' : 'bg-gray-100'} rounded-full px-3 py-1 text-sm flex items-center`}
-                      >
-                        {displayValue}
-                        {hasImage && (
-                          <span className="ml-1 text-blue-500">
-                            <ImageIcon size={14} />
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => removeOptionValue(editingOptionType, value)}
-                          className="ml-2"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center space-x-2 my-4">
-        <Checkbox 
-          id="show-similar-products" 
-          checked={showSimilarProducts} 
-          onCheckedChange={(checked) => {
-            setShowSimilarProducts(checked === true);
-          }}
-        />
-        <Label htmlFor="show-similar-products" className="font-medium cursor-pointer">
-          Afficher des produits similaires
-        </Label>
-      </div>
-      
-      {showSimilarProducts && (
-        <div className="ml-6 space-y-4 border-l-2 border-gray-200 pl-4">
-          <div className="flex flex-col gap-3">
-            <Label>Produits similaires sélectionnés: {similarProducts.length}</Label>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setShowSimilarProductsSelector(true)}
-            >
-              Sélectionner des produits similaires
-            </Button>
-            
-            <ColorInput 
-              label="Couleur du titre 'Produits similaires'" 
-              value={similarProductsTitleColor} 
-              onChange={setSimilarProductsTitleColor}
-              defaultColor="#FFFFFF"
-            />
-          </div>
-        </div>
-      )}
-      
-      <SimilarProductsSelector
-        open={showSimilarProductsSelector}
-        onOpenChange={setShowSimilarProductsSelector}
-        onSave={handleSimilarProductsSelect}
-        initialSelectedProducts={similarProducts}
-      />
-
-      <div className="flex gap-4">
-        <Button type="submit" disabled={loading} className="flex-1">
-          {loading ? "En cours..." : product ? "Modifier" : "Créer"}
-        </Button>
-        <Button 
-          variant="outline" 
-          onClick={onCancel} 
-          className="flex-1"
-          type="button"
-        >
-          Annuler
-        </Button>
-      </div>
-    </form>
-  );
-};
-
-export default ProductFormClone;
+            {urlType

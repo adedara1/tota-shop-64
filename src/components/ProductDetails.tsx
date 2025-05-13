@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "./ui/badge";
 import { useCart } from "@/hooks/use-cart";
 import { toast } from "@/hooks/use-toast";
+import ProductVideo from "./ProductVideo";
 
 interface OptionValue {
   value: string;
@@ -42,6 +43,10 @@ interface ProductDetailsProps {
   showStockStatus?: boolean;
   stockStatusText?: string;
   stockStatusColor?: string;
+  videoUrl?: string;
+  showVideo?: boolean;
+  videoPipEnabled?: boolean;
+  videoAutoplay?: boolean;
 }
 
 const ProductDetails = ({
@@ -73,7 +78,11 @@ const ProductDetails = ({
   starCount = 5,
   showStockStatus = true,
   stockStatusText = "In stock, ready to ship",
-  stockStatusColor = "#00AA00"
+  stockStatusColor = "#00AA00",
+  videoUrl,
+  showVideo = false,
+  videoPipEnabled = false,
+  videoAutoplay = false
 }: ProductDetailsProps) => {
   const displayCurrency = currency === 'XOF' || currency === 'XAF' ? 'CFA' : currency;
   const [quantity, setQuantity] = useState(1);
@@ -276,6 +285,17 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
             ))}
           </div>
           <span className="text-xs ml-2" style={{ color: reviewCountColor }}>{reviewCount} reviews</span>
+        </div>
+      )}
+      
+      {showVideo && videoUrl && (
+        <div className="my-4">
+          <ProductVideo 
+            videoUrl={videoUrl}
+            pipEnabled={videoPipEnabled}
+            autoPlay={videoAutoplay}
+            className="rounded-lg overflow-hidden shadow-md"
+          />
         </div>
       )}
       

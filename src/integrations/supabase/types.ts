@@ -225,6 +225,7 @@ export type Database = {
           show_similar_products: boolean | null
           show_star_reviews: boolean | null
           show_stock_status: boolean | null
+          show_video: boolean | null
           similar_products: string[] | null
           similar_products_title_color: string | null
           star_count: number | null
@@ -234,6 +235,9 @@ export type Database = {
           theme_color: string
           updated_at: string
           use_internal_cart: boolean | null
+          video_autoplay: boolean | null
+          video_pip_enabled: boolean | null
+          video_url: string | null
         }
         Insert: {
           button_text?: string
@@ -264,6 +268,7 @@ export type Database = {
           show_similar_products?: boolean | null
           show_star_reviews?: boolean | null
           show_stock_status?: boolean | null
+          show_video?: boolean | null
           similar_products?: string[] | null
           similar_products_title_color?: string | null
           star_count?: number | null
@@ -273,6 +278,9 @@ export type Database = {
           theme_color?: string
           updated_at?: string
           use_internal_cart?: boolean | null
+          video_autoplay?: boolean | null
+          video_pip_enabled?: boolean | null
+          video_url?: string | null
         }
         Update: {
           button_text?: string
@@ -303,6 +311,7 @@ export type Database = {
           show_similar_products?: boolean | null
           show_star_reviews?: boolean | null
           show_stock_status?: boolean | null
+          show_video?: boolean | null
           similar_products?: string[] | null
           similar_products_title_color?: string | null
           star_count?: number | null
@@ -312,6 +321,9 @@ export type Database = {
           theme_color?: string
           updated_at?: string
           use_internal_cart?: boolean | null
+          video_autoplay?: boolean | null
+          video_pip_enabled?: boolean | null
+          video_url?: string | null
         }
         Relationships: []
       }

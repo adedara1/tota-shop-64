@@ -22,6 +22,10 @@ interface Product {
   button_text: string;
   currency: Database['public']['Enums']['currency_code'];
   options?: Record<string, string[]> | null;
+  video_url?: string;
+  show_video?: boolean;
+  video_pip_enabled?: boolean;
+  video_autoplay?: boolean;
 }
 
 const ProductDetail = () => {
@@ -143,6 +147,11 @@ const ProductDetail = () => {
             currency={product.currency}
             onButtonClick={handleProductClick}
             options={product.options || {}}
+            productId={product.id}
+            videoUrl={product.video_url}
+            showVideo={product.show_video}
+            videoPipEnabled={product.video_pip_enabled}
+            videoAutoplay={product.video_autoplay}
           />
         </div>
       </main>
