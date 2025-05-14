@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import PromoBar from "@/components/PromoBar";
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Database as DatabaseIcon } from "lucide-react";
 import { Loader2, AlertCircle } from "lucide-react";
 import ProductGallery from "@/components/ProductGallery";
+import VideoModal from "@/components/VideoModal";
 
 interface Product {
   id: string;
@@ -239,7 +241,7 @@ const ProductDetail = () => {
   const isWhatsApp = product.cart_url && product.cart_url.includes('wa.me');
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product.theme_color || "#000000" }}>
+    <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product?.theme_color || "#000000" }}>
       <PromoBar productId={id} />
       <div className="bg-white">
         <Navbar />
@@ -247,50 +249,50 @@ const ProductDetail = () => {
       <main className="container mx-auto py-4 md:py-12 px-4 max-w-[100vw]">
         <div className={`grid grid-cols-1 ${isMobile ? "" : "md:grid-cols-2"} gap-8 lg:gap-12`}>
           <ProductGallery 
-            images={productImages} 
+            images={product?.images || []} 
             optionImages={selectedOptionImages}
           />
           <div className="md:order-2 order-2 text-white">
             <ProductDetails
-              key={product.id}
-              name={product.name}
-              originalPrice={product.original_price}
-              discountedPrice={product.discounted_price}
-              description={product.description}
-              cartUrl={product.cart_url}
-              buttonText={product.button_text}
-              currency={product.currency}
+              key={product?.id}
+              name={product?.name || ""}
+              originalPrice={product?.original_price || 0}
+              discountedPrice={product?.discounted_price || 0}
+              description={product?.description || ""}
+              cartUrl={product?.cart_url || ""}
+              buttonText={product?.button_text || ""}
+              currency={product?.currency || "USD"}
               onButtonClick={handleProductClick}
-              options={product.options || {}}
+              options={product?.options || {}}
               onOptionImageChange={handleOptionImageChange}
-              useInternalCart={product.use_internal_cart}
+              useInternalCart={product?.use_internal_cart}
               onAddToCart={handleAddToCart}
-              productId={product.id}
-              optionTitleColor={product.option_title_color}
-              optionValueColor={product.option_value_color}
-              productNameColor={product.product_name_color}
-              originalPriceColor={product.original_price_color}
-              discountedPriceColor={product.discounted_price_color}
-              quantityTextColor={product.quantity_text_color}
-              showProductTrademark={product.show_product_trademark}
-              productTrademarkColor={product.product_trademark_color}
-              showStarReviews={product.show_star_reviews}
-              starReviewsColor={product.star_reviews_color}
-              reviewCount={product.review_count}
-              reviewCountColor={product.review_count_color}
-              starCount={product.star_count}
-              showStockStatus={product.show_stock_status}
-              stockStatusText={product.stock_status_text}
-              stockStatusColor={product.stock_status_color}
-              videoUrl={product.video_url}
-              showVideo={product.show_video}
-              videoPipEnabled={product.video_pip_enabled}
-              videoAutoplay={product.video_autoplay}
+              productId={product?.id}
+              optionTitleColor={product?.option_title_color}
+              optionValueColor={product?.option_value_color}
+              productNameColor={product?.product_name_color}
+              originalPriceColor={product?.original_price_color}
+              discountedPriceColor={product?.discounted_price_color}
+              quantityTextColor={product?.quantity_text_color}
+              showProductTrademark={product?.show_product_trademark}
+              productTrademarkColor={product?.product_trademark_color}
+              showStarReviews={product?.show_star_reviews}
+              starReviewsColor={product?.star_reviews_color}
+              reviewCount={product?.review_count}
+              reviewCountColor={product?.review_count_color}
+              starCount={product?.star_count}
+              showStockStatus={product?.show_stock_status}
+              stockStatusText={product?.stock_status_text}
+              stockStatusColor={product?.stock_status_color}
+              videoUrl={product?.video_url}
+              showVideo={product?.show_video}
+              videoPipEnabled={product?.video_pip_enabled}
+              videoAutoplay={product?.video_autoplay}
             />
           </div>
         </div>
 
-        {product.show_similar_products && product.similar_products && product.similar_products.length > 0 && (
+        {product?.show_similar_products && product?.similar_products && product?.similar_products.length > 0 && (
           <div className="mt-12 bg-white/10 p-6 rounded-lg text-white">
             <SimilarProducts 
               productId={product.id} 
@@ -300,6 +302,15 @@ const ProductDetail = () => {
           </div>
         )}
       </main>
+      
+      {/* Add VideoModal component */}
+      {product?.video_url && product?.show_video && (
+        <VideoModal 
+          videoSrc={product.video_url} 
+          videoTitle={`${product.name} - Vidéo`} 
+        />
+      )}
+      
       <Footer />
     </div>
   );
