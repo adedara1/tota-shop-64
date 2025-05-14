@@ -9,7 +9,7 @@ import ProductSelector from "@/components/ProductSelector";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { toast } from "sonner";
+import { useToast } from "@/components/ui/use-toast";
 import { ChevronRight, Eye, Trash, PenSquare } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import MediaUploader from "@/components/MediaUploader";
@@ -28,7 +28,7 @@ interface StoreData {
   name: string;
   products: string[];
   media_url?: string;
-  media_type?: string;
+  media_type?: "image" | "video";
   show_media?: boolean;
   description?: string;
   contact?: string;
@@ -244,7 +244,7 @@ const StoreForm = () => {
       // Set media data if available
       if (storeData.media_url) {
         setMediaUrl(storeData.media_url);
-        setMediaType(storeData.media_type || "image");
+        setMediaType(storeData.media_type as "image" | "video" || "image");
       } else {
         setMediaUrl("");
         setMediaType("image");

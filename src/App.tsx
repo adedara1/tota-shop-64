@@ -12,7 +12,7 @@ import Stats from './pages/Stats';
 import Contact from './pages/Contact';
 import Panel from './pages/Panel';
 import Auth from './pages/Auth';
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
 import {
   QueryClient,
   QueryClientProvider,
