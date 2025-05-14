@@ -48,6 +48,10 @@ interface Product {
   show_similar_products?: boolean;
   similar_products?: string[];
   similar_products_title_color?: string;
+  video_url?: string;
+  show_video?: boolean;
+  video_pip_enabled?: boolean;
+  video_autoplay?: boolean;
 }
 
 const ProductDetail = () => {
@@ -172,7 +176,6 @@ const ProductDetail = () => {
     });
   };
 
-  // Afficher un message si la base de données est déconnectée
   if (isConnected === false) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: "#000000" }}>
@@ -233,7 +236,6 @@ const ProductDetail = () => {
   }
 
   const productImages = product.images;
-  // Check if product has a WhatsApp URL in cart_url
   const isWhatsApp = product.cart_url && product.cart_url.includes('wa.me');
 
   return (
@@ -280,6 +282,10 @@ const ProductDetail = () => {
               showStockStatus={product.show_stock_status}
               stockStatusText={product.stock_status_text}
               stockStatusColor={product.stock_status_color}
+              videoUrl={product.video_url}
+              showVideo={product.show_video}
+              videoPipEnabled={product.video_pip_enabled}
+              videoAutoplay={product.video_autoplay}
             />
           </div>
         </div>
