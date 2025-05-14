@@ -32,7 +32,6 @@ interface ProductDetailsProps {
   productNameColor?: string;
   originalPriceColor?: string;
   discountedPriceColor?: string;
-  discountedPriceColor?: string;
   quantityTextColor?: string;
   showProductTrademark?: boolean;
   productTrademarkColor?: string;
@@ -294,8 +293,8 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
         <div className="my-4">
           <ProductVideo 
             videoUrl={videoUrl}
-            pipEnabled={videoPipEnabled}
-            autoPlay={videoAutoplay}
+            enablePip={videoPipEnabled}
+            autoplay={videoAutoplay}
             className="rounded-lg overflow-hidden shadow-md"
           />
         </div>

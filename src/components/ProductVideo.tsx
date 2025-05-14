@@ -8,9 +8,10 @@ interface ProductVideoProps {
   videoUrl: string;
   enablePip?: boolean;
   autoplay?: boolean;
+  className?: string;
 }
 
-const ProductVideo = ({ videoUrl, enablePip = false, autoplay = false }: ProductVideoProps) => {
+const ProductVideo = ({ videoUrl, enablePip = false, autoplay = false, className = '' }: ProductVideoProps) => {
   const [isVisible, setIsVisible] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -80,7 +81,7 @@ const ProductVideo = ({ videoUrl, enablePip = false, autoplay = false }: Product
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 max-w-xs" ref={containerRef}>
+    <div className={`fixed bottom-4 right-4 z-50 max-w-xs ${className}`} ref={containerRef}>
       {isVisible ? (
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="relative">
