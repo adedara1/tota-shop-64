@@ -1,187 +1,118 @@
 
-import { useState, useRef, useEffect } from 'react';
-import { PictureInPicture2, Play, Pause, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState, useEffect, useRef } from 'react';
+import { X, Video } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 
 interface ProductVideoProps {
   videoUrl: string;
-  pipEnabled?: boolean;
-  autoPlay?: boolean;
-  className?: string;
+  enablePip?: boolean;
+  autoplay?: boolean;
 }
 
-const ProductVideo = ({
-  videoUrl,
-  pipEnabled = false,
-  autoPlay = false,
-  className
-}: ProductVideoProps) => {
+const ProductVideo = ({ videoUrl, enablePip = false, autoplay = false }: ProductVideoProps) => {
+  const [isVisible, setIsVisible] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(autoPlay);
-  const [isPiPActive, setIsPiPActive] = useState(false);
-  const [isVideoVisible, setIsVideoVisible] = useState(true);
-  
-  // Handle play/pause
-  const togglePlay = () => {
-    if (!videoRef.current) return;
-    
-    if (isPlaying) {
-      videoRef.current.pause();
-    } else {
-      videoRef.current.play();
-    }
-    
-    setIsPlaying(!isPlaying);
-  };
-  
-  // Handle Picture in Picture mode
-  const togglePictureInPicture = async () => {
-    if (!videoRef.current) return;
-    
-    try {
-      if (document.pictureInPictureElement === videoRef.current) {
-        await document.exitPictureInPicture();
-        setIsPiPActive(false);
-      } else {
-        await videoRef.current.requestPictureInPicture();
-        setIsPiPActive(true);
-      }
-    } catch (error) {
-      console.error("Picture-in-Picture failed:", error);
-    }
-  };
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Toggle video visibility
-  const toggleVideoVisibility = () => {
-    setIsVideoVisible(!isVideoVisible);
-    
-    // Si on ferme la vidéo et qu'elle est en PiP, on quitte le mode PiP
-    if (isVideoVisible && isPiPActive && videoRef.current && document.pictureInPictureElement === videoRef.current) {
-      document.exitPictureInPicture().catch(err => console.error("Error exiting PiP:", err));
-      setIsPiPActive(false);
-    }
-
-    // Si on rouvre la vidéo et qu'elle doit jouer, on la lance
-    if (!isVideoVisible && autoPlay && videoRef.current) {
-      videoRef.current.play().catch(err => console.error("Error playing video:", err));
-      setIsPlaying(true);
-    }
-  };
-  
-  // Auto-enable PiP if requested - s'active automatiquement à l'atterrissage
+  // Initialize PIP if enabled
   useEffect(() => {
-    if (pipEnabled && videoRef.current && !isPiPActive && isVideoVisible) {
-      const enablePiP = async () => {
-        try {
-          // Only request PiP if video has started playing
-          if (videoRef.current && videoRef.current.readyState >= 2) {
-            await videoRef.current.requestPictureInPicture();
-            setIsPiPActive(true);
+    if (videoRef.current && enablePip) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0];
+          if (!entry.isIntersecting && isVisible && videoRef.current) {
+            try {
+              const videoElement = videoRef.current;
+              if (document.pictureInPictureElement !== videoElement && 
+                  videoElement.readyState >= 2 && // Has enough data to play
+                  !document.pictureInPictureElement) {
+                videoElement.requestPictureInPicture().catch(err => {
+                  // If PIP fails, we don't want to break the app
+                  console.error("PiP error:", err);
+                });
+              }
+            } catch (err) {
+              console.error("PiP not supported:", err);
+            }
           }
-        } catch (error) {
-          console.error("Could not enter Picture-in-Picture mode:", error);
-        }
-      };
+        },
+        { threshold: 0.1 }
+      );
 
-      // Activer PiP automatiquement après le chargement de la vidéo
-      const handleVideoReady = () => {
-        if (videoRef.current) {
-          videoRef.current.play()
-            .then(() => {
-              setIsPlaying(true);
-              enablePiP();
-            })
-            .catch(err => console.error("Error playing video:", err));
-        }
-      };
-      
-      if (videoRef.current.readyState >= 2) {
-        handleVideoReady();
-      } else {
-        videoRef.current.addEventListener('loadeddata', handleVideoReady, { once: true });
+      if (containerRef.current) {
+        observer.observe(containerRef.current);
       }
-      
+
       return () => {
-        if (videoRef.current) {
-          videoRef.current.removeEventListener('loadeddata', handleVideoReady);
+        if (containerRef.current) {
+          observer.unobserve(containerRef.current);
+        }
+        
+        // Exit PiP when component unmounts
+        if (document.pictureInPictureElement === videoRef.current) {
+          document.exitPictureInPicture().catch(err => {
+            console.error("Error exiting PiP:", err);
+          });
         }
       };
     }
-  }, [pipEnabled, videoRef.current, isVideoVisible]);
-  
-  // Handle PiP events
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    
-    const onEnterPiP = () => setIsPiPActive(true);
-    const onExitPiP = () => setIsPiPActive(false);
-    
-    video.addEventListener('enterpictureinpicture', onEnterPiP);
-    video.addEventListener('leavepictureinpicture', onExitPiP);
-    
-    return () => {
-      video.removeEventListener('enterpictureinpicture', onEnterPiP);
-      video.removeEventListener('leavepictureinpicture', onExitPiP);
-    };
-  }, []);
+  }, [enablePip, isVisible]);
 
-  // Si la vidéo est masquée, afficher uniquement le bouton pour la réouvrir
-  if (!isVideoVisible) {
-    return (
-      <div className="fixed bottom-4 right-4 z-50">
-        <button 
-          onClick={toggleVideoVisibility}
-          className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-full bg-opacity-70 hover:bg-opacity-90 transition-all shadow-lg"
-        >
-          <Play size={16} /> Voir la vidéo
-        </button>
-      </div>
-    );
-  }
-  
+  const handleClose = () => {
+    setIsVisible(false);
+    
+    // Exit PiP if active
+    if (document.pictureInPictureElement === videoRef.current) {
+      document.exitPictureInPicture().catch(err => {
+        console.error("Error exiting PiP:", err);
+      });
+    }
+    
+    // Pause the video
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
+  };
+
+  const handleShow = () => {
+    setIsVisible(true);
+  };
+
   return (
-    <div className={cn("relative w-full rounded-md overflow-hidden", className)}>
-      <video 
-        ref={videoRef}
-        src={videoUrl}
-        controls={false}
-        muted
-        autoPlay={autoPlay}
-        playsInline
-        className="w-full h-auto"
-        loop
-      />
-      
-      <div className="absolute top-2 right-2">
-        <button
-          onClick={toggleVideoVisibility}
-          className="p-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-75 transition-all"
-          aria-label="Fermer la vidéo"
+    <div className="fixed bottom-4 right-4 z-50 max-w-xs" ref={containerRef}>
+      {isVisible ? (
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="relative">
+            <AspectRatio ratio={16/9}>
+              <video 
+                ref={videoRef} 
+                src={videoUrl} 
+                controls 
+                autoPlay={autoplay}
+                className="w-full h-full object-cover"
+                controlsList="nodownload"
+              />
+            </AspectRatio>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={handleClose}
+              className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full p-1.5"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button 
+          onClick={handleShow}
+          variant="outline" 
+          className="bg-white/95 shadow-lg flex items-center gap-2"
         >
-          <X size={16} />
-        </button>
-      </div>
-      
-      <div className="absolute bottom-2 right-2 flex gap-2">
-        <button
-          onClick={togglePlay}
-          className="p-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-75 transition-all"
-          aria-label={isPlaying ? "Pause" : "Play"}
-        >
-          {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-        </button>
-        
-        {pipEnabled && (
-          <button
-            onClick={togglePictureInPicture}
-            className="p-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-75 transition-all"
-            aria-label="Picture in Picture"
-          >
-            <PictureInPicture2 size={16} />
-          </button>
-        )}
-      </div>
+          <Video size={16} /> Voir la vidéo
+        </Button>
+      )}
     </div>
   );
 };

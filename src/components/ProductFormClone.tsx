@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -850,3 +851,119 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
                 <Globe size={16} /> URL personnalisée
               </TabsTrigger>
             </TabsList>
+            
+            <TabsContent value="whatsapp" className="space-y-4">
+              <div>
+                <Label htmlFor="whatsapp-number">Numéro WhatsApp (avec indicatif)</Label>
+                <Input
+                  id="whatsapp-number"
+                  placeholder="Ex: 22507070707"
+                  value={whatsappNumber}
+                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Entrez le numéro complet avec l'indicatif pays, sans espaces ni symboles.
+                </p>
+              </div>
+              
+              <div>
+                <Label htmlFor="whatsapp-message">Message prérempli</Label>
+                <Input
+                  id="whatsapp-message"
+                  placeholder="Bonjour, je souhaite commander ce produit..."
+                  value={whatsappMessage}
+                  onChange={(e) => setWhatsappMessage(e.target.value)}
+                />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="custom">
+              <div>
+                <Label htmlFor="custom-url">URL personnalisée</Label>
+                <Input
+                  id="custom-url"
+                  type="url"
+                  placeholder="https://votre-site.com/panier"
+                  value={customUrl}
+                  onChange={(e) => setCustomUrl(e.target.value)}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      )}
+      
+      <div>
+        <Label htmlFor="button_text">Texte du bouton d'action</Label>
+        <Input
+          id="button_text"
+          name="button_text"
+          placeholder="Commander maintenant"
+          defaultValue={product?.button_text || "Commander maintenant"}
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="description">Description du produit</Label>
+        <div className="prose max-w-none">
+          <RichTextEditor value={description} onChange={setDescription} />
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <Label>Couleur du thème</Label>
+        <ColorSelector selectedColor={selectedColor} onColorSelect={setSelectedColor} />
+      </div>
+      
+      <div className="flex items-center space-x-2 my-4">
+        <Checkbox 
+          id="show-similar-products" 
+          checked={showSimilarProducts} 
+          onCheckedChange={(checked) => {
+            setShowSimilarProducts(checked === true);
+          }}
+        />
+        <Label htmlFor="show-similar-products" className="font-medium cursor-pointer">
+          Afficher des produits similaires
+        </Label>
+      </div>
+      
+      {showSimilarProducts && (
+        <div className="ml-6 space-y-4 border-l-2 border-gray-200 pl-4">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => setShowSimilarProductsSelector(true)}
+          >
+            Sélectionner des produits similaires
+            {similarProducts.length > 0 && ` (${similarProducts.length} sélectionnés)`}
+          </Button>
+          
+          <ColorInput 
+            label="Couleur du titre de la section produits similaires" 
+            value={similarProductsTitleColor} 
+            onChange={setSimilarProductsTitleColor}
+          />
+        </div>
+      )}
+      
+      <div className="flex gap-4 pt-4">
+        <Button type="submit" disabled={loading} className="flex-1">
+          {loading ? "Traitement en cours..." : product ? "Mettre à jour" : "Créer le produit"}
+        </Button>
+        <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
+          Annuler
+        </Button>
+      </div>
+      
+      <SimilarProductsSelector
+        open={showSimilarProductsSelector}
+        onOpenChange={setShowSimilarProductsSelector}
+        onSave={handleSimilarProductsSelect}
+        initialSelectedProducts={similarProducts}
+      />
+    </form>
+  );
+};
+
+export default ProductFormClone;
