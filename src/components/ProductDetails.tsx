@@ -7,6 +7,7 @@ import { Badge } from "./ui/badge";
 import { useCart } from "@/hooks/use-cart";
 import { toast } from "@/hooks/use-toast";
 import ProductVideo from "./ProductVideo";
+import VideoModal from "./VideoModal";
 
 interface OptionValue {
   value: string;
@@ -288,19 +289,25 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
         </div>
       )}
       
-      {/* Ajout de la vidéo ici avant le contenu principal */}
-      {showVideo && videoUrl && (
+      {showVideo && videoUrl && !videoPipEnabled && (
         <div className="my-4">
           <ProductVideo 
             videoUrl={videoUrl}
-            enablePip={videoPipEnabled}
+            enablePip={false}
             autoplay={videoAutoplay}
             className="rounded-lg overflow-hidden shadow-md"
           />
         </div>
       )}
       
-      <div className="flex items-center gap-4">
+      {showVideo && videoUrl && videoPipEnabled && (
+        <VideoModal 
+          videoSrc={videoUrl} 
+          videoTitle={name}
+        />
+      )}
+      
+      <div className="flex items-center">
         <div className="flex items-center">
           <span className="text-gray-400 line-through text-2xl" style={{ color: originalPriceColor }}>{originalPrice}</span>
           <span className="text-gray-400 line-through text-2xl ml-1" style={{ color: originalPriceColor }}>{displayCurrency}</span>
@@ -323,7 +330,6 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
         </div>
       )}
       
-      {/* Hide quantity selection for custom URL products */}
       {!isCustomUrl && (
         <div className="mb-6">
           <h3 className="text-sm font-medium mb-3" style={{ color: quantityTextColor }}>Quantité</h3>
@@ -347,7 +353,6 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
         </div>
       )}
       
-      {/* Hide options for custom URL products */}
       {!isCustomUrl && Object.entries(options).map(([optionTitle, optionValues]) => (
         <ProductOptions
           key={optionTitle}
@@ -382,7 +387,6 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
         </div>
       )}
       
-      {/* Updated buttons section - both buttons visible by default */}
       <div className="flex flex-col sm:flex-row gap-3">
         <button 
           onClick={handleButtonClick}
