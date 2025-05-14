@@ -1,5 +1,6 @@
 
-import { supabase, isSupabaseConnected } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
+import { isSupabaseConnected } from "@/integrations/supabase/utils";
 
 // A simple wrapper function to initialize Supabase
 export const initSupabase = async (): Promise<boolean> => {

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { supabase, isSupabaseConnected } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
+import { isSupabaseConnected } from "@/integrations/supabase/utils";
 import Navbar from "@/components/Navbar";
 import PromoBar from "@/components/PromoBar";
 import { Input } from "@/components/ui/input";

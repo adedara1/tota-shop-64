@@ -1,7 +1,7 @@
-
 import React from "react";
 import { useState, useEffect } from "react";
-import { supabase, isSupabaseConnected } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
+import { isSupabaseConnected } from "@/integrations/supabase/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

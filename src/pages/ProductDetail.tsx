@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import PromoBar from "@/components/PromoBar";
@@ -6,7 +5,8 @@ import Navbar from "@/components/Navbar";
 import ProductDetails from "@/components/ProductDetails";
 import SimilarProducts from "@/components/SimilarProducts";
 import Footer from "@/components/Footer";
-import { supabase, isSupabaseConnected } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
+import { isSupabaseConnected } from "@/integrations/supabase/utils";
 import { toast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
 import { useIsMobile } from "@/hooks/use-mobile";
