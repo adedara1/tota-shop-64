@@ -40,7 +40,8 @@ export interface StoreData {
   name: string;
   products: string[];
   media_url?: string;
-  media_type?: "image" | "video";
+  // Updated to accept any string but still maintain type safety for our application's use
+  media_type?: string;
   show_media?: boolean;
   description?: string;
   contact?: string;
