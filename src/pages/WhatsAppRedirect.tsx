@@ -21,14 +21,25 @@ interface WhatsAppRedirect {
   created_at: string;
 }
 
+interface WhatsAppDetailedVisit {
+  id: string;
+  whatsapp_redirect_id: string;
+  is_facebook_webview: boolean;
+  user_agent: string;
+  visit_date: string;
+  created_at: string;
+}
+
 const WhatsAppRedirect = () => {
   const [name, setName] = useState('');
   const [urlName, setUrlName] = useState('');
   const [redirectCode, setRedirectCode] = useState('');
   const [waitSeconds, setWaitSeconds] = useState<number>(0);
   const [redirects, setRedirects] = useState<WhatsAppRedirect[]>([]);
+  const [detailedVisits, setDetailedVisits] = useState<WhatsAppDetailedVisit[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [visitsLoading, setVisitsLoading] = useState(false);
 
   // Charger les redirections existantes
   const fetchRedirects = async () => {
@@ -46,8 +57,29 @@ const WhatsAppRedirect = () => {
     }
   };
 
+  // Charger les visites détaillées
+  const fetchDetailedVisits = async () => {
+    setVisitsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('whatsapp_detailed_visits')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100); // Limiter à 100 dernières visites
+      
+      if (error) throw error;
+      setDetailedVisits(data || []);
+    } catch (error: any) {
+      toast.error(`Erreur lors du chargement des visites: ${error.message}`);
+      console.error("Erreur fetchDetailedVisits:", error);
+    } finally {
+      setVisitsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchRedirects();
+    fetchDetailedVisits();
   }, []);
 
   // Générer un URL name à partir du nom
@@ -203,6 +235,28 @@ const WhatsAppRedirect = () => {
     }
   };
 
+  const handleDeleteVisit = async (id: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet enregistrement de visite?')) {
+      try {
+        const { error } = await supabase
+          .from('whatsapp_detailed_visits')
+          .delete()
+          .eq('id', id);
+        
+        if (error) {
+          console.error("Erreur lors de la suppression de la visite:", error);
+          throw error;
+        }
+        
+        toast.success('Enregistrement de visite supprimé avec succès');
+        fetchDetailedVisits();
+      } catch (error: any) {
+        console.error("Erreur dans handleDeleteVisit:", error);
+        toast.error(`Erreur: ${error.message}`);
+      }
+    }
+  };
+
   const toggleActive = async (id: string, currentStatus: boolean) => {
     try {
       console.log(`${currentStatus ? 'Désactivation' : 'Activation'} de la redirection avec ID:`, id);
@@ -314,7 +368,7 @@ const WhatsAppRedirect = () => {
         </form>
       </div>
       
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
         <h2 className="text-xl font-semibold mb-4">Redirections existantes</h2>
         
         {redirects.length === 0 ? (
@@ -355,8 +409,7 @@ const WhatsAppRedirect = () => {
                     <TableCell>{new Date(redirect.created_at).toLocaleString()}</TableCell>
                     <TableCell>
                       <Link 
-                        to={`/whatsapp/${redirect.url_name || redirect.id}`} 
-                        target="_blank"
+                        to={`/whatsapp/${redirect.url_name || redirect.id}`}
                         className="text-blue-600 hover:underline"
                       >
                         Ouvrir
@@ -394,6 +447,64 @@ const WhatsAppRedirect = () => {
                           <Trash className="h-4 w-4" />
                         </Button>
                       </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h2 className="text-xl font-semibold mb-4">Historique des visites</h2>
+        
+        {visitsLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            <span className="ml-2">Chargement des données...</span>
+          </div>
+        ) : detailedVisits.length === 0 ? (
+          <p className="text-gray-500">Aucune visite enregistrée.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Redirection ID</TableHead>
+                  <TableHead>Facebook WebView</TableHead>
+                  <TableHead>User Agent</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {detailedVisits.map((visit) => (
+                  <TableRow key={visit.id}>
+                    <TableCell>{new Date(visit.visit_date).toLocaleString()}</TableCell>
+                    <TableCell className="max-w-[100px] truncate">{visit.whatsapp_redirect_id}</TableCell>
+                    <TableCell>
+                      {visit.is_facebook_webview ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Oui
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          Non
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate">{visit.user_agent}</TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleDeleteVisit(visit.id)}
+                        className="text-red-500 hover:text-red-700"
+                        title="Supprimer"
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

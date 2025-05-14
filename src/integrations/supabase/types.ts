@@ -483,6 +483,44 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_detailed_visits: {
+        Row: {
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          is_facebook_webview: boolean | null
+          user_agent: string | null
+          visit_date: string | null
+          whatsapp_redirect_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          is_facebook_webview?: boolean | null
+          user_agent?: string | null
+          visit_date?: string | null
+          whatsapp_redirect_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          is_facebook_webview?: boolean | null
+          user_agent?: string | null
+          visit_date?: string | null
+          whatsapp_redirect_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_detailed_visits_whatsapp_redirect_id_fkey"
+            columns: ["whatsapp_redirect_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_redirects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_redirects: {
         Row: {
           created_at: string

@@ -3,17 +3,24 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 const WhatsAppRedirectPage = () => {
   const { nom } = useParams<{ nom: string }>();
   const navigate = useNavigate();
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [redirectInfo, setRedirectInfo] = useState<{
+    id: string;
+    name: string;
+    redirect_url: string;
+  } | null>(null);
+  const [isFacebookWebView] = useState(() => /FBAN|FBAV/.test(navigator.userAgent));
   
   useEffect(() => {
     const fetchRedirectInfo = async () => {
       try {
+        setLoading(true);
         console.log("Recherche de redirection pour:", nom);
         
         if (!nom || nom.trim() === '') {
@@ -53,7 +60,7 @@ const WhatsAppRedirectPage = () => {
           throw new Error('Cette redirection a été désactivée');
         }
         
-        // Enregistrer la visite dans les statistiques
+        // Enregistrer la visite dans les statistiques générales
         if (data.id) {
           try {
             await supabase.rpc('increment_whatsapp_visit', {
@@ -67,39 +74,53 @@ const WhatsAppRedirectPage = () => {
             // Ne pas interrompre le processus de redirection si l'enregistrement échoue
           }
         }
+
+        // Enregistrer les détails de visite avec les informations sur Facebook WebView
+        try {
+          const visitData = {
+            whatsapp_redirect_id: data.id,
+            is_facebook_webview: isFacebookWebView,
+            user_agent: navigator.userAgent || ''
+          };
+          
+          const { error: detailError } = await supabase
+            .from('whatsapp_detailed_visits')
+            .insert(visitData);
+            
+          if (detailError) {
+            console.error("Erreur lors de l'enregistrement des détails de la visite:", detailError);
+          }
+        } catch (detailError) {
+          console.error("Erreur lors de l'enregistrement des détails de la visite:", detailError);
+        }
         
-        // Définir l'URL de redirection et le compte à rebours
-        setRedirectUrl(data.redirect_url);
-        setCountdown(data.wait_minutes); // Déjà en secondes
+        // Définir les informations de redirection
+        setRedirectInfo({
+          id: data.id,
+          name: data.name,
+          redirect_url: data.redirect_url
+        });
         
       } catch (error: any) {
         console.error('Erreur lors de la récupération de la redirection:', error);
         setError(error.message || 'Une erreur est survenue');
         // Afficher une notification toast pour les erreurs
         toast.error(error.message || 'Une erreur est survenue lors de la redirection');
+      } finally {
+        setLoading(false);
       }
     };
     
     fetchRedirectInfo();
-  }, [nom, navigate]);
-  
-  useEffect(() => {
-    // Gérer le compte à rebours si défini
-    if (countdown !== null && countdown > 0) {
-      const timer = setInterval(() => {
-        setCountdown(prev => (prev !== null && prev > 0) ? prev - 1 : 0);
-      }, 1000);
-      
-      return () => clearInterval(timer);
-    } else if (countdown === 0 && redirectUrl) {
-      // Rediriger vers WhatsApp quand le compte à rebours atteint zéro
-      console.log("Redirection vers:", redirectUrl);
-      performRedirect(redirectUrl);
-    }
-  }, [countdown, redirectUrl]);
+  }, [nom, isFacebookWebView]);
   
   // Fonction pour gérer la redirection vers WhatsApp
-  const performRedirect = (url: string) => {
+  const handleRedirect = () => {
+    if (!redirectInfo?.redirect_url) return;
+    
+    console.log("Redirection vers:", redirectInfo.redirect_url);
+    const url = redirectInfo.redirect_url;
+    
     // Déterminer si nous sommes sur iOS, Android ou Web
     const userAgent = navigator.userAgent || navigator.vendor;
     
@@ -145,12 +166,27 @@ const WhatsAppRedirectPage = () => {
     }
   };
   
-  // Formater le temps restant (en secondes)
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
+  // Message spécial pour Facebook WebView
+  if (isFacebookWebView) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
+          <h1 className="text-2xl font-bold text-blue-600 mb-4">Facebook WebView détecté</h1>
+          <p className="text-gray-700 mb-6">
+            Pour une meilleure expérience, veuillez ouvrir ce lien dans votre navigateur web.
+          </p>
+          <div className="mb-4">
+            <Button 
+              onClick={() => window.open(window.location.href, '_system')}
+              className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 w-full"
+            >
+              Ouvrir dans mon navigateur
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   if (error) {
     return (
@@ -169,32 +205,45 @@ const WhatsAppRedirectPage = () => {
     );
   }
   
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+            <p className="text-gray-700">Chargement en cours...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
       <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-        <h1 className="text-2xl font-bold text-green-600 mb-4">Redirection WhatsApp</h1>
+        <h1 className="text-2xl font-bold text-green-600 mb-4">
+          {redirectInfo?.name || "Redirection WhatsApp"}
+        </h1>
         
-        {countdown !== null && countdown > 0 ? (
-          <>
-            <p className="text-gray-700 mb-2">
-              Vous serez redirigé vers WhatsApp dans:
-            </p>
-            <div className="text-3xl font-bold text-blue-600 mb-6">
-              {formatTime(countdown)}
-            </div>
-            <button
-              onClick={() => setCountdown(0)}
-              className="bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700"
-            >
-              Rediriger maintenant
-            </button>
-          </>
-        ) : (
-          <div className="flex flex-col items-center space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
-            <p className="text-gray-700">Redirection en cours...</p>
-          </div>
-        )}
+        <p className="text-gray-700 mb-6">
+          Cliquez sur le bouton ci-dessous pour ouvrir WhatsApp
+        </p>
+        
+        <Button
+          onClick={handleRedirect}
+          className="bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 w-full"
+        >
+          Ouvrir dans WhatsApp
+        </Button>
+        
+        <div className="mt-6">
+          <a 
+            href="/"
+            className="text-blue-600 hover:underline"
+          >
+            Retour à l'accueil
+          </a>
+        </div>
       </div>
     </div>
   );
