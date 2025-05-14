@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ProductSelector from "@/components/ProductSelector";
-import { createStore, fetchStores, deleteStore, updateStore, fetchStoreById, supabase, StoreData, handleSupabaseError } from "@/integrations/supabase/client";
+import { supabase, createStore, fetchStores, deleteStore, updateStore, fetchStoreById, StoreData, handleSupabaseError } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,7 @@ interface Product {
   currency: string;
 }
 
+// Update the Store interface to match StoreData
 interface Store extends StoreData {}
 
 const StoreForm = () => {
