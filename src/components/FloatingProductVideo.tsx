@@ -7,11 +7,13 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
 interface FloatingProductVideoProps {
   videoUrl: string;
   autoplay?: boolean;
+  enablePip?: boolean;
 }
 
-const FloatingProductVideo = ({ videoUrl, autoplay = false }: FloatingProductVideoProps) => {
+const FloatingProductVideo = ({ videoUrl, autoplay = false, enablePip = false }: FloatingProductVideoProps) => {
   const [isVisible, setIsVisible] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Fonction pour fermer la vidéo
   const handleClose = () => {
@@ -19,6 +21,13 @@ const FloatingProductVideo = ({ videoUrl, autoplay = false }: FloatingProductVid
     // Pause la vidéo quand on la ferme
     if (videoRef.current) {
       videoRef.current.pause();
+    }
+
+    // Sortir du mode PiP si actif
+    if (document.pictureInPictureElement === videoRef.current) {
+      document.exitPictureInPicture().catch(err => {
+        console.error("Error exiting PiP:", err);
+      });
     }
   };
 
@@ -49,10 +58,55 @@ const FloatingProductVideo = ({ videoUrl, autoplay = false }: FloatingProductVid
     console.log("Facebook WebView détecté:", isFBWebView);
   }, []);
 
+  // Initialize PIP if enabled
+  useEffect(() => {
+    if (videoRef.current && enablePip) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0];
+          if (!entry.isIntersecting && isVisible && videoRef.current) {
+            try {
+              const videoElement = videoRef.current;
+              if (document.pictureInPictureElement !== videoElement && 
+                  videoElement.readyState >= 2 && // Has enough data to play
+                  !document.pictureInPictureElement) {
+                videoElement.requestPictureInPicture().catch(err => {
+                  // If PIP fails, we don't want to break the app
+                  console.error("PiP error:", err);
+                });
+              }
+            } catch (err) {
+              console.error("PiP not supported:", err);
+            }
+          }
+        },
+        { threshold: 0.1 }
+      );
+
+      if (containerRef.current) {
+        observer.observe(containerRef.current);
+      }
+
+      return () => {
+        if (containerRef.current) {
+          observer.unobserve(containerRef.current);
+        }
+        
+        // Exit PiP when component unmounts
+        if (document.pictureInPictureElement === videoRef.current) {
+          document.exitPictureInPicture().catch(err => {
+            console.error("Error exiting PiP:", err);
+          });
+        }
+      };
+    }
+  }, [enablePip, isVisible]);
+
   return (
     <div className="fixed bottom-4 right-4 z-50 max-w-xs shadow-lg" 
+         ref={containerRef}
          style={{ 
-           position: isFacebookWebView ? 'absolute' : 'fixed', 
+           position: isFacebookWebView ? 'absolute' : 'fixed',
            maxWidth: '280px'
          }}>
       {isVisible ? (

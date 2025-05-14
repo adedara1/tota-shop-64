@@ -159,6 +159,7 @@ const ProductDetail = () => {
         <FloatingProductVideo
           videoUrl={product.video_url}
           autoplay={product.video_autoplay}
+          enablePip={product.video_pip_enabled}
         />
       )}
     </div>
