@@ -33,7 +33,7 @@ const ProductDetail = () => {
   const { id } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-
+  
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -138,7 +138,6 @@ const ProductDetail = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
           <ProductGallery images={product.images} />
           <ProductDetails
-            key={product.id}
             name={product.name}
             originalPrice={product.original_price}
             discountedPrice={product.discounted_price}
@@ -152,16 +151,17 @@ const ProductDetail = () => {
           />
         </div>
       </main>
-      <Footer />
       
-      {/* Vidéo flottante en mode PiP */}
+      {/* Vidéo flottante dans le coin inférieur droit */}
       {product.show_video && product.video_url && (
-        <FloatingProductVideo
-          videoUrl={product.video_url}
+        <FloatingProductVideo 
+          videoUrl={product.video_url} 
+          enablePip={product.video_pip_enabled} 
           autoplay={product.video_autoplay}
-          enablePip={product.video_pip_enabled}
         />
       )}
+      
+      <Footer />
     </div>
   );
 };

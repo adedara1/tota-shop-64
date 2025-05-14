@@ -35,7 +35,7 @@ const WhatsAppRedirect = () => {
     const fetchRedirectUrl = async () => {
       try {
         const { data, error } = await supabase
-          .from('redirects')
+          .from('whatsapp_redirects') // Correction: utilisez la table qui existe réellement
           .select('*')
           .eq('is_active', true)
           .single();
