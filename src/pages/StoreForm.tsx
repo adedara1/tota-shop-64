@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -5,10 +6,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ProductSelector from "@/components/ProductSelector";
-import { supabase, createStore, fetchStores, deleteStore, updateStore, fetchStoreById, StoreData, handleSupabaseError } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { ChevronRight, Eye, Trash, PenSquare } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import MediaUploader from "@/components/MediaUploader";
@@ -22,8 +23,100 @@ interface Product {
   currency: string;
 }
 
-// Update the Store interface to match StoreData
+interface StoreData {
+  id?: string;
+  name: string;
+  products: string[];
+  media_url?: string;
+  media_type?: string;
+  show_media?: boolean;
+  description?: string;
+  contact?: string;
+  address?: string;
+  created_at?: string;
+  updated_at?: string;
+  slug?: string;
+}
+
 interface Store extends StoreData {}
+
+// Fonctions d'aide pour l'interaction avec Supabase
+const createStore = async (storeData: StoreData): Promise<Store> => {
+  // Générer un slug à partir du nom
+  const slug = storeData.name.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '');
+  const dataWithSlug = { ...storeData, slug };
+  
+  const { data, error } = await supabase
+    .from('stores')
+    .insert(dataWithSlug)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+const fetchStores = async (): Promise<StoreData[]> => {
+  const { data, error } = await supabase
+    .from('stores')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+};
+
+const fetchStoreById = async (id: string): Promise<StoreData | null> => {
+  const { data, error } = await supabase
+    .from('stores')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return null;
+    }
+    throw error;
+  }
+
+  return data;
+};
+
+const updateStore = async (id: string, storeData: Partial<StoreData>): Promise<StoreData> => {
+  // Si le nom est mis à jour, mettre à jour le slug aussi
+  if (storeData.name) {
+    storeData.slug = storeData.name.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '');
+  }
+  
+  const { data, error } = await supabase
+    .from('stores')
+    .update(storeData)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+const deleteStore = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('stores')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+};
+
+const handleSupabaseError = (error: any, toastFn: any): void => {
+  console.error("Supabase Error:", error);
+  toastFn({
+    title: "Erreur",
+    description: error?.message || "Une erreur inattendue s'est produite",
+    variant: "destructive"
+  });
+};
 
 const StoreForm = () => {
   const navigate = useNavigate();
@@ -107,7 +200,7 @@ const StoreForm = () => {
           title: "Succès",
           description: "Votre boutique a été mise à jour avec succès"
         });
-        navigate(`/store/${updatedStore.id}`);
+        navigate(`/store/${updatedStore.slug}`);
         setEditingStoreId(null);
       } else {
         // Create a new store
@@ -117,7 +210,7 @@ const StoreForm = () => {
           title: "Succès",
           description: "Votre boutique a été créée avec succès"
         });
-        navigate(`/store/${newStore.id}`);
+        navigate(`/store/${newStore.slug}`);
       }
       
       setSelectedProducts([]);
@@ -341,7 +434,7 @@ const StoreForm = () => {
                             <Button 
                               size="sm" 
                               variant="outline"
-                              onClick={() => navigate(`/store/${store.id}`)}
+                              onClick={() => navigate(`/store/${store.slug || store.id}`)}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>

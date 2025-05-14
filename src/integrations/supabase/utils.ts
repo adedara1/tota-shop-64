@@ -37,13 +37,18 @@ export interface StoreData {
   address?: string;
   created_at?: string;
   updated_at?: string;
+  slug?: string;
 }
 
 // Store related functions
 export const createStore = async (storeData: StoreData): Promise<StoreData> => {
+  // Générer un slug à partir du nom
+  const slug = storeData.name.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '');
+  const dataWithSlug = { ...storeData, slug };
+  
   const { data, error } = await supabase
     .from('stores')
-    .insert(storeData)
+    .insert(dataWithSlug)
     .select()
     .single();
 
@@ -80,6 +85,11 @@ export const fetchStoreById = async (id: string): Promise<StoreData | null> => {
 };
 
 export const updateStore = async (id: string, storeData: Partial<StoreData>): Promise<StoreData> => {
+  // Si le nom est mis à jour, mettre à jour le slug aussi
+  if (storeData.name) {
+    storeData.slug = storeData.name.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '');
+  }
+  
   const { data, error } = await supabase
     .from('stores')
     .update(storeData)
