@@ -6,7 +6,6 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "./ui/badge";
 import { useCart } from "@/hooks/use-cart";
 import { toast } from "@/hooks/use-toast";
-import ProductVideo from "./ProductVideo";
 import VideoModal from "./VideoModal";
 
 interface OptionValue {
@@ -150,7 +149,7 @@ const ProductDetails = ({
       return newSelectedOptions;
     });
   };
-  
+
   const handleButtonClick = () => {
     if (onButtonClick) {
       onButtonClick();
@@ -289,17 +288,21 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
         </div>
       )}
       
+      {/* Afficher la vidéo intégrée uniquement si showVideo est true, videoUrl est défini et videoPipEnabled est false */}
       {showVideo && videoUrl && !videoPipEnabled && (
         <div className="my-4">
-          <ProductVideo 
-            videoUrl={videoUrl}
-            enablePip={false}
-            autoplay={videoAutoplay}
-            className="rounded-lg overflow-hidden shadow-md"
-          />
+          <iframe
+            src={videoUrl}
+            title={name}
+            className="w-full aspect-video rounded-lg overflow-hidden shadow-md"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
         </div>
       )}
       
+      {/* Afficher VideoModal uniquement si showVideo est true, videoUrl est défini et videoPipEnabled est true */}
       {showVideo && videoUrl && videoPipEnabled && (
         <VideoModal 
           videoSrc={videoUrl} 
@@ -312,7 +315,7 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
           <span className="text-gray-400 line-through text-2xl" style={{ color: originalPriceColor }}>{originalPrice}</span>
           <span className="text-gray-400 line-through text-2xl ml-1" style={{ color: originalPriceColor }}>{displayCurrency}</span>
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center ml-2">
           <span className="text-3xl" style={{ color: discountedPriceColor }}>{totalPrice}</span>
           <span className="text-3xl ml-1" style={{ color: discountedPriceColor }}>{displayCurrency}</span>
         </div>

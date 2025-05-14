@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Database as DatabaseIcon } from "lucide-react";
 import { Loader2, AlertCircle } from "lucide-react";
 import ProductGallery from "@/components/ProductGallery";
-import VideoModal from "@/components/VideoModal";
 
 interface Product {
   id: string;
@@ -71,6 +70,7 @@ const ProductDetail = () => {
       try {
         const connected = await isSupabaseConnected();
         console.log("État de la connexion Supabase (ProductDetail):", connected);
+        setIsConnected(connected);
         
         if (!connected) {
           toast({
@@ -302,15 +302,6 @@ const ProductDetail = () => {
           </div>
         )}
       </main>
-      
-      {/* Add VideoModal component */}
-      {product?.video_url && product?.show_video && (
-        <VideoModal 
-          videoSrc={product.video_url} 
-          videoTitle={`${product.name} - Vidéo`} 
-        />
-      )}
-      
       <Footer />
     </div>
   );
