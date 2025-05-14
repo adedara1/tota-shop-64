@@ -409,7 +409,7 @@ const WhatsAppRedirect = () => {
                     <TableCell>{new Date(redirect.created_at).toLocaleString()}</TableCell>
                     <TableCell>
                       <Link 
-                        to={`/whatsapp/${redirect.url_name || redirect.id}`}
+                        to={`/contact/${redirect.url_name || redirect.id}`}
                         className="text-blue-600 hover:underline"
                       >
                         Ouvrir

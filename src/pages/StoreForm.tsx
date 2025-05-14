@@ -23,6 +23,7 @@ interface Product {
   currency: string;
 }
 
+// Définir l'interface StoreData
 interface StoreData {
   id?: string;
   name: string;
@@ -38,10 +39,18 @@ interface StoreData {
   slug?: string;
 }
 
-interface Store extends StoreData {}
+// Fonction d'aide pour gérer les erreurs Supabase
+const handleSupabaseError = (error: any, toast: any): void => {
+  console.error("Supabase Error:", error);
+  toast({
+    title: "Erreur",
+    description: error?.message || "Une erreur inattendue s'est produite",
+    variant: "destructive"
+  });
+};
 
-// Fonctions d'aide pour l'interaction avec Supabase
-const createStore = async (storeData: StoreData): Promise<Store> => {
+// Fonctions pour interagir avec la base de données
+const createStore = async (storeData: StoreData): Promise<StoreData> => {
   // Générer un slug à partir du nom
   const slug = storeData.name.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '');
   const dataWithSlug = { ...storeData, slug };
@@ -75,6 +84,7 @@ const fetchStoreById = async (id: string): Promise<StoreData | null> => {
 
   if (error) {
     if (error.code === 'PGRST116') {
+      // No rows found
       return null;
     }
     throw error;
@@ -109,22 +119,13 @@ const deleteStore = async (id: string): Promise<void> => {
   if (error) throw error;
 };
 
-const handleSupabaseError = (error: any, toastFn: any): void => {
-  console.error("Supabase Error:", error);
-  toastFn({
-    title: "Erreur",
-    description: error?.message || "Une erreur inattendue s'est produite",
-    variant: "destructive"
-  });
-};
-
 const StoreForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [stores, setStores] = useState<Store[]>([]);
+  const [stores, setStores] = useState<StoreData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
   const [mediaUrl, setMediaUrl] = useState<string>("");
@@ -244,7 +245,8 @@ const StoreForm = () => {
       // Set media data if available
       if (storeData.media_url) {
         setMediaUrl(storeData.media_url);
-        setMediaType(storeData.media_type as "image" | "video" || "image");
+        // Convertir le type en "image" | "video"
+        setMediaType((storeData.media_type as "image" | "video") || "image");
       } else {
         setMediaUrl("");
         setMediaType("image");
@@ -427,7 +429,7 @@ const StoreForm = () => {
                     {stores.map((store) => (
                       <TableRow key={store.id}>
                         <TableCell className="font-medium">{store.name}</TableCell>
-                        <TableCell>{new Date(store.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>{new Date(store.created_at as string).toLocaleDateString()}</TableCell>
                         <TableCell>{store.products.length} produits</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -441,14 +443,14 @@ const StoreForm = () => {
                             <Button 
                               size="sm" 
                               variant="outline"
-                              onClick={() => handleEditStore(store.id)}
+                              onClick={() => handleEditStore(store.id as string)}
                             >
                               <PenSquare className="h-4 w-4" />
                             </Button>
                             <Button 
                               size="sm" 
                               variant="outline"
-                              onClick={() => handleDeleteStore(store.id)}
+                              onClick={() => handleDeleteStore(store.id as string)}
                             >
                               <Trash className="h-4 w-4" />
                             </Button>

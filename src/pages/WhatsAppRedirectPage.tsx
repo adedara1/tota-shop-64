@@ -166,23 +166,25 @@ const WhatsAppRedirectPage = () => {
     }
   };
   
-  // Message spécial pour Facebook WebView
+  // Interface simplifiée pour Facebook WebView
   if (isFacebookWebView) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
         <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-          <h1 className="text-2xl font-bold text-blue-600 mb-4">Facebook WebView détecté</h1>
+          <h1 className="text-2xl font-bold text-green-600 mb-4">
+            {redirectInfo?.name || "Redirection WhatsApp"}
+          </h1>
+          
           <p className="text-gray-700 mb-6">
-            Pour une meilleure expérience, veuillez ouvrir ce lien dans votre navigateur web.
+            Cliquez sur le bouton ci-dessous pour ouvrir WhatsApp
           </p>
-          <div className="mb-4">
-            <Button 
-              onClick={() => window.open(window.location.href, '_system')}
-              className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 w-full"
-            >
-              Ouvrir dans mon navigateur
-            </Button>
-          </div>
+          
+          <Button
+            onClick={handleRedirect}
+            className="bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 w-full"
+          >
+            Ouvrir dans WhatsApp
+          </Button>
         </div>
       </div>
     );
