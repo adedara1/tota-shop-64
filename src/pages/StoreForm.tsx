@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,8 @@ const StoreForm = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
   const [mediaUrl, setMediaUrl] = useState<string>("");
-  const [mediaType, setMediaType] = useState<"image" | "video">("image");
+  // Update the type to string to match the updated StoreData interface
+  const [mediaType, setMediaType] = useState<string>("image");
   const [showMedia, setShowMedia] = useState<boolean>(true);
   const [storeName, setStoreName] = useState<string>("Ma boutique");
 
