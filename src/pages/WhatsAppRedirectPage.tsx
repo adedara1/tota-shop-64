@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
 const WhatsAppRedirectPage = () => {
@@ -107,11 +107,7 @@ const WhatsAppRedirectPage = () => {
         console.error('Erreur lors de la récupération de la redirection:', error);
         setError(error.message || 'Une erreur est survenue');
         // Afficher une notification toast pour les erreurs
-        toast({
-          title: "Erreur",
-          description: error.message || 'Une erreur est survenue lors de la redirection',
-          variant: "destructive"
-        });
+        toast.error(error.message || 'Une erreur est survenue lors de la redirection');
       } finally {
         setLoading(false);
       }

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,11 +55,7 @@ const WhatsAppRedirect = () => {
       if (error) throw error;
       setRedirects(data || []);
     } catch (error: any) {
-      toast({
-        title: "Erreur",
-        description: `Erreur lors du chargement des redirections: ${error.message}`,
-        variant: "destructive"
-      });
+      toast.error(`Erreur lors du chargement des redirections: ${error.message}`);
       console.error("Erreur fetchRedirects:", error);
     }
   };
@@ -96,11 +92,7 @@ const WhatsAppRedirect = () => {
       
       setDetailedVisits(visitsWithRedirectNames);
     } catch (error: any) {
-      toast({
-        title: "Erreur",
-        description: `Erreur lors du chargement des visites: ${error.message}`,
-        variant: "destructive"
-      });
+      toast.error(`Erreur lors du chargement des visites: ${error.message}`);
       console.error("Erreur fetchDetailedVisits:", error);
     } finally {
       setVisitsLoading(false);
@@ -197,11 +189,7 @@ const WhatsAppRedirect = () => {
       const duplicates = existingWithSameUrlName?.filter(item => editingId ? item.id !== editingId : true) || [];
       
       if (duplicates.length > 0) {
-        toast({
-          title: "Erreur",
-          description: "Ce nom d'URL est déjà utilisé. Veuillez en choisir un autre.",
-          variant: "destructive"
-        });
+        toast.error("Ce nom d'URL est déjà utilisé. Veuillez en choisir un autre.");
         setLoading(false);
         return;
       }
@@ -231,10 +219,7 @@ const WhatsAppRedirect = () => {
           throw error;
         }
         
-        toast({
-          title: "Succès",
-          description: "Redirection mise à jour avec succès"
-        });
+        toast.success("Redirection mise à jour avec succès");
         setEditingId(null);
       } else {
         // Créer une nouvelle redirection
@@ -248,10 +233,7 @@ const WhatsAppRedirect = () => {
           throw error;
         }
         
-        toast({
-          title: "Succès",
-          description: "Redirection créée avec succès"
-        });
+        toast.success("Redirection créée avec succès");
       }
       
       // Réinitialiser le formulaire et rafraîchir la liste
@@ -262,11 +244,7 @@ const WhatsAppRedirect = () => {
       fetchRedirects();
     } catch (error: any) {
       console.error("Erreur dans handleSubmit:", error);
-      toast({
-        title: "Erreur",
-        description: `${error.message}`,
-        variant: "destructive"
-      });
+      toast.error(`${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -295,18 +273,11 @@ const WhatsAppRedirect = () => {
           throw error;
         }
         
-        toast({
-          title: "Succès",
-          description: "Redirection supprimée avec succès"
-        });
+        toast.success("Redirection supprimée avec succès");
         fetchRedirects();
       } catch (error: any) {
         console.error("Erreur dans handleDelete:", error);
-        toast({
-          title: "Erreur",
-          description: `${error.message}`,
-          variant: "destructive"
-        });
+        toast.error(`${error.message}`);
       }
     }
   };
@@ -324,18 +295,11 @@ const WhatsAppRedirect = () => {
           throw error;
         }
         
-        toast({
-          title: "Succès",
-          description: "Enregistrement de visite supprimé avec succès"
-        });
+        toast.success("Enregistrement de visite supprimé avec succès");
         fetchDetailedVisits();
       } catch (error: any) {
         console.error("Erreur dans handleDeleteVisit:", error);
-        toast({
-          title: "Erreur", 
-          description: `${error.message}`,
-          variant: "destructive"
-        });
+        toast.error(`${error.message}`);
       }
     }
   };
@@ -344,28 +308,22 @@ const WhatsAppRedirect = () => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer TOUT l\'historique des visites? Cette action est irréversible.')) {
       setDeleteLoading(true);
       try {
+        // Correction: Supprimer sans utiliser de condition
         const { error } = await supabase
           .from('whatsapp_detailed_visits')
           .delete()
-          .neq('id', 'no-match'); // Condition toujours vraie pour supprimer toutes les entrées
+          .gt('id', ''); // Utiliser une condition toujours vraie au lieu de neq
         
         if (error) {
           console.error("Erreur lors de la suppression de l'historique:", error);
           throw error;
         }
         
-        toast({
-          title: "Succès",
-          description: "L'historique des visites a été entièrement supprimé"
-        });
+        toast.success("L'historique des visites a été entièrement supprimé");
         setDetailedVisits([]);
       } catch (error: any) {
         console.error("Erreur dans handleDeleteAllVisits:", error);
-        toast({
-          title: "Erreur",
-          description: `${error.message}`,
-          variant: "destructive"
-        });
+        toast.error(`${error.message}`);
       } finally {
         setDeleteLoading(false);
       }
@@ -385,18 +343,11 @@ const WhatsAppRedirect = () => {
         throw error;
       }
       
-      toast({
-        title: "Succès",
-        description: `Redirection ${currentStatus ? 'désactivée' : 'activée'} avec succès`
-      });
+      toast.success(`Redirection ${currentStatus ? 'désactivée' : 'activée'} avec succès`);
       fetchRedirects();
     } catch (error: any) {
       console.error("Erreur dans toggleActive:", error);
-      toast({
-        title: "Erreur",
-        description: `${error.message}`,
-        variant: "destructive"
-      });
+      toast.error(`${error.message}`);
     }
   };
 
