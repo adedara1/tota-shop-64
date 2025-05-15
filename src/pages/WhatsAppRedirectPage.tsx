@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 
 const WhatsAppRedirectPage = () => {
@@ -14,6 +14,7 @@ const WhatsAppRedirectPage = () => {
     id: string;
     name: string;
     redirect_url: string;
+    wait_minutes: number;
   } | null>(null);
   const [isFacebookWebView] = useState(() => /FBAN|FBAV/.test(navigator.userAgent));
   
@@ -98,14 +99,19 @@ const WhatsAppRedirectPage = () => {
         setRedirectInfo({
           id: data.id,
           name: data.name,
-          redirect_url: data.redirect_url
+          redirect_url: data.redirect_url,
+          wait_minutes: data.wait_minutes || 0
         });
         
       } catch (error: any) {
         console.error('Erreur lors de la récupération de la redirection:', error);
         setError(error.message || 'Une erreur est survenue');
         // Afficher une notification toast pour les erreurs
-        toast.error(error.message || 'Une erreur est survenue lors de la redirection');
+        toast({
+          title: "Erreur",
+          description: error.message || 'Une erreur est survenue lors de la redirection',
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }

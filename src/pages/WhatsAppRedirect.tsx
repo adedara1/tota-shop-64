@@ -1,13 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash, Edit, ToggleLeft, ToggleRight, Check, X } from "lucide-react";
+import { Trash, Edit, ToggleLeft, ToggleRight, Check, X, RefreshCw } from "lucide-react";
 
 interface WhatsAppRedirect {
   id: string;
@@ -41,6 +42,7 @@ const WhatsAppRedirect = () => {
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [visitsLoading, setVisitsLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Charger les redirections existantes
   const fetchRedirects = async () => {
@@ -53,7 +55,11 @@ const WhatsAppRedirect = () => {
       if (error) throw error;
       setRedirects(data || []);
     } catch (error: any) {
-      toast.error(`Erreur lors du chargement des redirections: ${error.message}`);
+      toast({
+        title: "Erreur",
+        description: `Erreur lors du chargement des redirections: ${error.message}`,
+        variant: "destructive"
+      });
       console.error("Erreur fetchRedirects:", error);
     }
   };
@@ -90,7 +96,11 @@ const WhatsAppRedirect = () => {
       
       setDetailedVisits(visitsWithRedirectNames);
     } catch (error: any) {
-      toast.error(`Erreur lors du chargement des visites: ${error.message}`);
+      toast({
+        title: "Erreur",
+        description: `Erreur lors du chargement des visites: ${error.message}`,
+        variant: "destructive"
+      });
       console.error("Erreur fetchDetailedVisits:", error);
     } finally {
       setVisitsLoading(false);
@@ -101,6 +111,31 @@ const WhatsAppRedirect = () => {
     fetchRedirects();
     fetchDetailedVisits();
   }, []);
+
+  // Fonction pour identifier l'application Facebook
+  const detectFacebookApp = (userAgent: string) => {
+    if (!userAgent) return null;
+    
+    if (userAgent.includes('FBAV/')) {
+      // Extraire la version de Facebook App
+      const fbavMatch = userAgent.match(/FBAV\/([0-9\.]+)/);
+      return fbavMatch ? `Facebook App v${fbavMatch[1]}` : 'Facebook App';
+    } else if (userAgent.includes('FBAN/')) {
+      // Identifier l'application spécifique
+      if (userAgent.includes('FBAN/MessengerLiteForiOS') || userAgent.includes('FBAN/MessengerLite')) {
+        return 'Messenger Lite';
+      } else if (userAgent.includes('FBAN/Messenger') || userAgent.includes('FBAN/MESSENGER')) {
+        return 'Messenger';
+      } else if (userAgent.includes('FBAN/FBIOS') || userAgent.includes('FBAN/FBAV')) {
+        return 'Facebook iOS';
+      } else if (userAgent.includes('FBAN/FB4A')) {
+        return 'Facebook Android';
+      } else {
+        return 'App Facebook';
+      }
+    }
+    return null;
+  };
 
   // Générer un URL name à partir du nom
   const generateUrlName = (inputName: string) => {
@@ -162,7 +197,11 @@ const WhatsAppRedirect = () => {
       const duplicates = existingWithSameUrlName?.filter(item => editingId ? item.id !== editingId : true) || [];
       
       if (duplicates.length > 0) {
-        toast.error("Ce nom d'URL est déjà utilisé. Veuillez en choisir un autre.");
+        toast({
+          title: "Erreur",
+          description: "Ce nom d'URL est déjà utilisé. Veuillez en choisir un autre.",
+          variant: "destructive"
+        });
         setLoading(false);
         return;
       }
@@ -192,7 +231,10 @@ const WhatsAppRedirect = () => {
           throw error;
         }
         
-        toast.success('Redirection mise à jour avec succès');
+        toast({
+          title: "Succès",
+          description: "Redirection mise à jour avec succès"
+        });
         setEditingId(null);
       } else {
         // Créer une nouvelle redirection
@@ -206,7 +248,10 @@ const WhatsAppRedirect = () => {
           throw error;
         }
         
-        toast.success('Redirection créée avec succès');
+        toast({
+          title: "Succès",
+          description: "Redirection créée avec succès"
+        });
       }
       
       // Réinitialiser le formulaire et rafraîchir la liste
@@ -217,7 +262,11 @@ const WhatsAppRedirect = () => {
       fetchRedirects();
     } catch (error: any) {
       console.error("Erreur dans handleSubmit:", error);
-      toast.error(`Erreur: ${error.message}`);
+      toast({
+        title: "Erreur",
+        description: `${error.message}`,
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -246,11 +295,18 @@ const WhatsAppRedirect = () => {
           throw error;
         }
         
-        toast.success('Redirection supprimée avec succès');
+        toast({
+          title: "Succès",
+          description: "Redirection supprimée avec succès"
+        });
         fetchRedirects();
       } catch (error: any) {
         console.error("Erreur dans handleDelete:", error);
-        toast.error(`Erreur: ${error.message}`);
+        toast({
+          title: "Erreur",
+          description: `${error.message}`,
+          variant: "destructive"
+        });
       }
     }
   };
@@ -268,11 +324,50 @@ const WhatsAppRedirect = () => {
           throw error;
         }
         
-        toast.success('Enregistrement de visite supprimé avec succès');
+        toast({
+          title: "Succès",
+          description: "Enregistrement de visite supprimé avec succès"
+        });
         fetchDetailedVisits();
       } catch (error: any) {
         console.error("Erreur dans handleDeleteVisit:", error);
-        toast.error(`Erreur: ${error.message}`);
+        toast({
+          title: "Erreur", 
+          description: `${error.message}`,
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const handleDeleteAllVisits = async () => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer TOUT l\'historique des visites? Cette action est irréversible.')) {
+      setDeleteLoading(true);
+      try {
+        const { error } = await supabase
+          .from('whatsapp_detailed_visits')
+          .delete()
+          .neq('id', 'no-match'); // Condition toujours vraie pour supprimer toutes les entrées
+        
+        if (error) {
+          console.error("Erreur lors de la suppression de l'historique:", error);
+          throw error;
+        }
+        
+        toast({
+          title: "Succès",
+          description: "L'historique des visites a été entièrement supprimé"
+        });
+        setDetailedVisits([]);
+      } catch (error: any) {
+        console.error("Erreur dans handleDeleteAllVisits:", error);
+        toast({
+          title: "Erreur",
+          description: `${error.message}`,
+          variant: "destructive"
+        });
+      } finally {
+        setDeleteLoading(false);
       }
     }
   };
@@ -290,11 +385,18 @@ const WhatsAppRedirect = () => {
         throw error;
       }
       
-      toast.success(`Redirection ${currentStatus ? 'désactivée' : 'activée'} avec succès`);
+      toast({
+        title: "Succès",
+        description: `Redirection ${currentStatus ? 'désactivée' : 'activée'} avec succès`
+      });
       fetchRedirects();
     } catch (error: any) {
       console.error("Erreur dans toggleActive:", error);
-      toast.error(`Erreur: ${error.message}`);
+      toast({
+        title: "Erreur",
+        description: `${error.message}`,
+        variant: "destructive"
+      });
     }
   };
 
@@ -479,13 +581,26 @@ const WhatsAppRedirect = () => {
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Historique des visites</h2>
-          <Button 
-            variant="outline" 
-            onClick={fetchDetailedVisits} 
-            disabled={visitsLoading}
-          >
-            Rafraîchir
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={fetchDetailedVisits} 
+              disabled={visitsLoading}
+              className="flex items-center gap-1"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Rafraîchir
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteAllVisits}
+              disabled={deleteLoading || detailedVisits.length === 0}
+              className="flex items-center gap-1"
+            >
+              <Trash className="h-4 w-4" />
+              Supprimer tout
+            </Button>
+          </div>
         </div>
         
         {visitsLoading ? (
@@ -502,53 +617,57 @@ const WhatsAppRedirect = () => {
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Nom de la redirection</TableHead>
-                  <TableHead>Facebook WebView</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead>Bouton cliqué</TableHead>
                   <TableHead>User Agent</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {detailedVisits.map((visit) => (
-                  <TableRow key={visit.id}>
-                    <TableCell>{new Date(visit.created_at).toLocaleString()}</TableCell>
-                    <TableCell>{visit.redirect_name}</TableCell>
-                    <TableCell>
-                      {visit.is_facebook_webview ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          Oui
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                          Non
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {visit.clicked_open_button ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          <Check className="h-3 w-3" /> Oui
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          <X className="h-3 w-3" /> Non
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate">{visit.user_agent}</TableCell>
-                    <TableCell>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleDeleteVisit(visit.id)}
-                        className="text-red-500 hover:text-red-700"
-                        title="Supprimer"
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {detailedVisits.map((visit) => {
+                  const facebookApp = detectFacebookApp(visit.user_agent);
+                  
+                  return (
+                    <TableRow key={visit.id}>
+                      <TableCell>{new Date(visit.created_at).toLocaleString()}</TableCell>
+                      <TableCell>{visit.redirect_name}</TableCell>
+                      <TableCell>
+                        {visit.is_facebook_webview || facebookApp ? (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {facebookApp || "Facebook WebView"}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            Navigateur
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {visit.clicked_open_button ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <Check className="h-3 w-3" /> Oui
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            <X className="h-3 w-3" /> Non
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate">{visit.user_agent}</TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleDeleteVisit(visit.id)}
+                          className="text-red-500 hover:text-red-700"
+                          title="Supprimer"
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
