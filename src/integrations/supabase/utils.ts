@@ -30,7 +30,7 @@ export interface StoreData {
   name: string;
   products: string[];
   media_url?: string;
-  media_type?: string;
+  media_type?: "image" | "video" | string; // Added string here to fix type issues
   show_media?: boolean;
   description?: string;
   contact?: string;

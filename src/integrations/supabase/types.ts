@@ -488,6 +488,7 @@ export type Database = {
       }
       whatsapp_detailed_visits: {
         Row: {
+          clicked_open_button: boolean | null
           created_at: string | null
           id: string
           ip_address: string | null
@@ -497,6 +498,7 @@ export type Database = {
           whatsapp_redirect_id: string | null
         }
         Insert: {
+          clicked_open_button?: boolean | null
           created_at?: string | null
           id?: string
           ip_address?: string | null
@@ -506,6 +508,7 @@ export type Database = {
           whatsapp_redirect_id?: string | null
         }
         Update: {
+          clicked_open_button?: boolean | null
           created_at?: string | null
           id?: string
           ip_address?: string | null
@@ -606,6 +609,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_redirect_name_by_id: {
+        Args: { redirect_id: string }
+        Returns: string
+      }
       increment_button_click: {
         Args: {
           button_name_param: string

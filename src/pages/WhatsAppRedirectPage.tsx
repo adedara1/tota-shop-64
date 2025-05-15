@@ -115,11 +115,33 @@ const WhatsAppRedirectPage = () => {
   }, [nom, isFacebookWebView]);
   
   // Fonction pour gérer la redirection vers WhatsApp
-  const handleRedirect = () => {
+  const handleRedirect = async () => {
     if (!redirectInfo?.redirect_url) return;
     
     console.log("Redirection vers:", redirectInfo.redirect_url);
     const url = redirectInfo.redirect_url;
+
+    // Enregistrer le clic sur le bouton
+    try {
+      const { data: visitData } = await supabase
+        .from('whatsapp_detailed_visits')
+        .select('id')
+        .eq('whatsapp_redirect_id', redirectInfo.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+        
+      if (visitData) {
+        await supabase
+          .from('whatsapp_detailed_visits')
+          .update({ clicked_open_button: true })
+          .eq('id', visitData.id);
+        
+        console.log("Clic sur le bouton enregistré pour la visite ID:", visitData.id);
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'enregistrement du clic sur le bouton:", error);
+    }
     
     // Déterminer si nous sommes sur iOS, Android ou Web
     const userAgent = navigator.userAgent || navigator.vendor;
@@ -174,10 +196,6 @@ const WhatsAppRedirectPage = () => {
           <h1 className="text-2xl font-bold text-green-600 mb-4">
             {redirectInfo?.name || "Redirection WhatsApp"}
           </h1>
-          
-          <p className="text-gray-700 mb-6">
-            Cliquez sur le bouton ci-dessous pour ouvrir WhatsApp
-          </p>
           
           <Button
             onClick={handleRedirect}

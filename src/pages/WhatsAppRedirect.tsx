@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash, Edit, ToggleLeft, ToggleRight } from "lucide-react";
+import { Trash, Edit, ToggleLeft, ToggleRight, Check, X } from "lucide-react";
 
 interface WhatsAppRedirect {
   id: string;
@@ -24,7 +23,9 @@ interface WhatsAppRedirect {
 interface WhatsAppDetailedVisit {
   id: string;
   whatsapp_redirect_id: string;
+  redirect_name?: string;
   is_facebook_webview: boolean;
+  clicked_open_button: boolean;
   user_agent: string;
   visit_date: string;
   created_at: string;
@@ -57,7 +58,7 @@ const WhatsAppRedirect = () => {
     }
   };
 
-  // Charger les visites détaillées
+  // Charger les visites détaillées avec les noms de redirection
   const fetchDetailedVisits = async () => {
     setVisitsLoading(true);
     try {
@@ -68,7 +69,26 @@ const WhatsAppRedirect = () => {
         .limit(100); // Limiter à 100 dernières visites
       
       if (error) throw error;
-      setDetailedVisits(data || []);
+      
+      // Récupérer les noms des redirections
+      const visitsWithRedirectNames = await Promise.all((data || []).map(async (visit) => {
+        if (visit.whatsapp_redirect_id) {
+          const { data: nameData } = await supabase.rpc('get_redirect_name_by_id', {
+            redirect_id: visit.whatsapp_redirect_id
+          });
+          
+          return {
+            ...visit,
+            redirect_name: nameData || 'Non trouvé'
+          };
+        }
+        return {
+          ...visit,
+          redirect_name: 'Non trouvé'
+        };
+      }));
+      
+      setDetailedVisits(visitsWithRedirectNames);
     } catch (error: any) {
       toast.error(`Erreur lors du chargement des visites: ${error.message}`);
       console.error("Erreur fetchDetailedVisits:", error);
@@ -320,7 +340,7 @@ const WhatsAppRedirect = () => {
               required
             />
             <p className="text-sm text-gray-500 mt-1">
-              Ce nom sera utilisé dans l'URL: /whatsapp/<span className="font-mono">{urlName || 'nom-url'}</span>
+              Ce nom sera utilisé dans l'URL: /contact/<span className="font-mono">{urlName || 'nom-url'}</span>
             </p>
           </div>
           
@@ -457,7 +477,16 @@ const WhatsAppRedirect = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold mb-4">Historique des visites</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Historique des visites</h2>
+          <Button 
+            variant="outline" 
+            onClick={fetchDetailedVisits} 
+            disabled={visitsLoading}
+          >
+            Rafraîchir
+          </Button>
+        </div>
         
         {visitsLoading ? (
           <div className="flex items-center justify-center py-8">
@@ -472,8 +501,9 @@ const WhatsAppRedirect = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
-                  <TableHead>Redirection ID</TableHead>
+                  <TableHead>Nom de la redirection</TableHead>
                   <TableHead>Facebook WebView</TableHead>
+                  <TableHead>Bouton cliqué</TableHead>
                   <TableHead>User Agent</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -481,8 +511,8 @@ const WhatsAppRedirect = () => {
               <TableBody>
                 {detailedVisits.map((visit) => (
                   <TableRow key={visit.id}>
-                    <TableCell>{new Date(visit.visit_date).toLocaleString()}</TableCell>
-                    <TableCell className="max-w-[100px] truncate">{visit.whatsapp_redirect_id}</TableCell>
+                    <TableCell>{new Date(visit.created_at).toLocaleString()}</TableCell>
+                    <TableCell>{visit.redirect_name}</TableCell>
                     <TableCell>
                       {visit.is_facebook_webview ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -491,6 +521,17 @@ const WhatsAppRedirect = () => {
                       ) : (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                           Non
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {visit.clicked_open_button ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <Check className="h-3 w-3" /> Oui
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          <X className="h-3 w-3" /> Non
                         </span>
                       )}
                     </TableCell>
