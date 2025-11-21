@@ -210,7 +210,7 @@ const DirectOrderForm = ({
       {/* H2 qui s'affiche uniquement s'il y a plus d'un article */}
       {hasMultipleItems && (
         <h2 className="text-lg font-bold text-black mt-4">
-          Vous ete sur le point de commander tout les produit listé ci dessous : cliqué Je ne veux pas en rouge pour retirer ce que vous ne desirer pas .
+          Vous êtes sur le point de commander tous les produits listés ci-dessous. Cliquez sur 'Je ne veux pas' en rouge pour retirer ceux que vous ne désirez pas.
         </h2>
       )}
 
