@@ -63,6 +63,9 @@ const DirectOrderForm = ({
   
   const currentProductTotal = productPrice * quantity;
   const grandTotal = cartTotalPrice + currentProductTotal;
+  
+  // Vérifier s'il y a plus d'un article (article actuel + articles du panier)
+  const hasMultipleItems = (quantity > 0 ? 1 : 0) + cartItems.length > 1;
 
   // Mise à jour de la quantité du produit actuel
   const handleCurrentProductQuantityChange = (newQuantity: number) => {
@@ -203,6 +206,13 @@ const DirectOrderForm = ({
       <FormInput name="phone" icon={Phone} placeholder="Téléphone" type="tel" />
       <FormInput name="address" icon={MapPin} placeholder="Ville & quartier" />
       <FormInput name="delivery_time" icon={Calendar} placeholder="Heure de livraison souhaitée" />
+      
+      {/* H2 qui s'affiche uniquement s'il y a plus d'un article */}
+      {hasMultipleItems && (
+        <h2 className="text-lg font-bold text-black mt-4">
+          Vous ete sur le point de commander tout les produit listé ci dessous : cliqué Je ne veux pas en rouge pour retirer ce que vous ne desirer pas .
+        </h2>
+      )}
 
       {/* Liste des articles */}
       <div className="space-y-3 pt-2">
