@@ -7,6 +7,7 @@ import { Badge } from "./ui/badge";
 import { useCart } from "@/hooks/use-cart";
 import { toast } from "@/hooks/use-toast";
 import VideoModal from "./VideoModal";
+import DirectOrderForm from "./DirectOrderForm";
 
 interface OptionValue {
   value: string;
@@ -155,29 +156,9 @@ const ProductDetails = ({
       onButtonClick();
     }
     
-    if (useInternalCart) {
-      if (productId) {
-        addToCart({
-          id: productId,
-          name: name,
-          price: discountedPrice,
-          quantity: quantity,
-          options: selectedOptions,
-          image: Object.values(selectedOptions)
-            .find((opt: any) => opt.image)?.image || null
-        });
-        
-        toast({
-          title: "Produit ajouté au panier",
-          description: `${quantity} × ${name} ajouté au panier`,
-        });
-        
-        setAddedToCart(true);
-      }
-      return;
-    }
+    // This function is only used for external links (when useInternalCart is false)
     
-    // If using custom URL (not internal cart and not whatsapp)
+    // If using custom URL (not whatsapp)
     if (!cartUrl.includes('wa.me')) {
       let finalUrl = cartUrl;
       const params = new URLSearchParams();
@@ -226,33 +207,6 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
     }
   };
 
-  const handleOrderNowClick = () => {
-    // First add to cart
-    if (productId) {
-      addToCart({
-        id: productId,
-        name: name,
-        price: discountedPrice,
-        quantity: quantity,
-        options: selectedOptions,
-        image: Object.values(selectedOptions)
-          .find((opt: any) => opt.image)?.image || null
-      });
-      
-      toast({
-        title: "Produit ajouté au panier",
-        description: `${quantity} × ${name} ajouté au panier`,
-      });
-      
-      // Then navigate to payment page
-      navigate('/paiement');
-    }
-  };
-
-  const goToCart = () => {
-    navigate('/paiement');
-  };
-
   const increaseQuantity = () => {
     setQuantity(prev => prev + 1);
   };
@@ -264,6 +218,14 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
   // Check if using custom URL (not WhatsApp)
   const isCustomUrl = cartUrl && !cartUrl.includes('wa.me') && !useInternalCart;
   const isWhatsApp = cartUrl && cartUrl.includes('wa.me');
+  
+  // Determine if we should show the direct order form (when internal cart is enabled)
+  const showDirectOrderForm = useInternalCart;
+
+  // Find the image for the order submission
+  const orderImage = Object.values(selectedOptions)
+    .find((opt: any) => opt.image)?.image || null;
+
 
   return (
     <div className="space-y-6 max-w-full">
@@ -333,6 +295,20 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
         </div>
       )}
       
+      {/* --- DIRECT ORDER FORM INSERTION --- */}
+      {showDirectOrderForm && productId && (
+        <DirectOrderForm
+          productId={productId}
+          productName={name}
+          productPrice={discountedPrice}
+          quantity={quantity}
+          selectedOptions={selectedOptions}
+          productImage={orderImage}
+          buttonText={buttonText}
+        />
+      )}
+      {/* ------------------------------------- */}
+      
       {!isCustomUrl && (
         <div className="mb-6">
           <h3 className="text-sm font-medium mb-3" style={{ color: quantityTextColor }}>Quantité</h3>
@@ -390,24 +366,17 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
         </div>
       )}
       
-      <div className="flex flex-col sm:flex-row gap-3">
-        <button 
-          onClick={handleButtonClick}
-          className="block flex-1 bg-orange-500 text-white py-3 px-6 rounded hover:bg-orange-600 transition-colors text-center"
-        >
-          {buttonText}
-        </button>
-        
-        {useInternalCart && (
+      {/* Only show the old button if we are NOT using the internal cart/direct order form */}
+      {!showDirectOrderForm && (
+        <div className="flex flex-col sm:flex-row gap-3">
           <button 
-            onClick={handleOrderNowClick}
-            className="block flex-1 bg-gray-800 text-white py-3 px-6 rounded hover:bg-gray-900 transition-colors text-center flex items-center justify-center"
+            onClick={handleButtonClick}
+            className="block flex-1 bg-orange-500 text-white py-3 px-6 rounded hover:bg-orange-600 transition-colors text-center"
           >
-            <ShoppingCart className="mr-2" size={18} />
-            Commander maintenant
+            {buttonText}
           </button>
-        )}
-      </div>
+        </div>
+      )}
       
       <div className="space-y-4 pt-6">
         <div className="mt-6 text-gray-600 prose max-w-full overflow-hidden break-words">
