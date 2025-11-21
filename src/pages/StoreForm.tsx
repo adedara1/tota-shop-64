@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -29,14 +28,15 @@ interface StoreData {
   name: string;
   products: string[];
   media_url?: string;
-  media_type?: "image" | "video";
-  show_media?: boolean;
-  description?: string;
-  contact?: string;
-  address?: string;
-  created_at?: string;
-  updated_at?: string;
-  slug?: string;
+  // Correction: Utiliser string | null pour correspondre au type Supabase
+  media_type?: "image" | "video" | string | null; 
+  show_media?: boolean | null;
+  description?: string | null;
+  contact?: string | null;
+  address?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  slug?: string | null;
 }
 
 // Fonction d'aide pour gérer les erreurs Supabase
@@ -62,7 +62,7 @@ const createStore = async (storeData: StoreData): Promise<StoreData> => {
     .single();
 
   if (error) throw error;
-  return data;
+  return data as unknown as StoreData;
 };
 
 const fetchStores = async (): Promise<StoreData[]> => {
@@ -72,7 +72,7 @@ const fetchStores = async (): Promise<StoreData[]> => {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return data as unknown as StoreData[] || [];
 };
 
 const fetchStoreById = async (id: string): Promise<StoreData | null> => {
@@ -90,7 +90,7 @@ const fetchStoreById = async (id: string): Promise<StoreData | null> => {
     throw error;
   }
 
-  return data;
+  return data as unknown as StoreData;
 };
 
 const updateStore = async (id: string, storeData: Partial<StoreData>): Promise<StoreData> => {
@@ -107,7 +107,7 @@ const updateStore = async (id: string, storeData: Partial<StoreData>): Promise<S
     .single();
 
   if (error) throw error;
-  return data;
+  return data as unknown as StoreData;
 };
 
 const deleteStore = async (id: string): Promise<void> => {
