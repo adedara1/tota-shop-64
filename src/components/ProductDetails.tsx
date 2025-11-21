@@ -333,6 +333,7 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
           selectedOptions={selectedOptions}
           productImage={orderImage}
           buttonText={buttonText}
+          currency={displayCurrency} {/* PASSING CURRENCY HERE */}
         />
       )}
       {/* ------------------------------------- */}

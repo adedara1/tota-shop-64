@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { generateCustomerLabel, generateCustomerColor } from "@/utils/customerUtils";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useCart } from "@/hooks/use-cart";
+import { useNavigate } from "react-router-dom";
 
 // Schéma de validation pour le formulaire de commande
 const formSchema = z.object({
@@ -27,6 +29,7 @@ interface DirectOrderFormProps {
   selectedOptions: Record<string, any>;
   productImage: string | null;
   buttonText: string;
+  currency: string; // Ajout de la propriété manquante
 }
 
 const DirectOrderForm = ({
@@ -38,6 +41,7 @@ const DirectOrderForm = ({
   selectedOptions,
   productImage,
   buttonText,
+  currency,
 }: DirectOrderFormProps) => {
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(formSchema),
@@ -49,9 +53,15 @@ const DirectOrderForm = ({
     },
   });
   
+  const { items: cartItems, totalPrice: cartTotalPrice, clearCart } = useCart();
+  const navigate = useNavigate();
+  
   const [quantity, setQuantity] = useState(initialQuantity);
 
   const { handleSubmit, formState: { isSubmitting } } = form;
+  
+  const currentProductTotal = productPrice * quantity;
+  const grandTotal = cartTotalPrice + currentProductTotal;
 
   const increaseQuantity = () => {
     const newQuantity = quantity + 1;
@@ -88,7 +98,7 @@ const DirectOrderForm = ({
           customer_address: values.address,
           label: customerLabel,
           label_color: labelColor,
-          total_amount: productPrice * quantity,
+          total_amount: grandTotal,
         })
         .select('id')
         .single();
@@ -96,8 +106,8 @@ const DirectOrderForm = ({
       if (cartError) throw cartError;
       const cartId = cartData.id;
 
-      // 4. Enregistrer l'article du panier (ligne de commande)
-      const { error: itemError } = await supabase.from('cart_items').insert({
+      // 4. Enregistrer l'article actuel (ligne de commande)
+      const currentItem = {
         product_id: productId,
         name: productName,
         price: productPrice,
@@ -108,19 +118,37 @@ const DirectOrderForm = ({
         },
         image: productImage,
         cart_id: cartId,
-      });
+      };
+      
+      // 5. Enregistrer les articles du panier existant (s'il y en a)
+      const existingCartItems = cartItems.map(item => ({
+        product_id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        options: {
+          ...item.options,
+          customer: customerInfo
+        },
+        image: item.image,
+        cart_id: cartId,
+        is_shared_cart: true, // Marquer comme partagé si c'est un article du panier
+      }));
+      
+      const itemsToInsert = [currentItem, ...existingCartItems];
+      
+      const { error: itemError } = await supabase.from('cart_items').insert(itemsToInsert);
       
       if (itemError) {
-        console.error("Error saving order item:", itemError);
+        console.error("Error saving order items:", itemError);
         throw itemError;
       }
       
-      toast({
-        title: "Commande enregistrée",
-        description: `Votre commande de ${quantity} × ${productName} a été enregistrée et est visible dans le Panel.`,
-      });
-
-      form.reset();
+      // 6. Vider le panier local
+      clearCart();
+      
+      // 7. Rediriger vers la page de succès
+      navigate('/succes');
 
     } catch (error) {
       console.error("Error processing direct order:", error);
@@ -156,13 +184,13 @@ const DirectOrderForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 border border-black p-4 rounded-lg max-w-md mx-auto md:mx-0">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 border border-black p-4 rounded-lg max-w-[60%] mx-auto md:mx-0">
       <FormInput name="name" icon={User} placeholder="Nom complet" />
       <FormInput name="phone" icon={Phone} placeholder="Téléphone" type="tel" />
       <FormInput name="address" icon={MapPin} placeholder="Ville & quartier" />
       <FormInput name="delivery_time" icon={Calendar} placeholder="Heure de livraison souhaitée" />
 
-      {/* Sélecteur de quantité déplacé ici */}
+      {/* Sélecteur de quantité */}
       <div className="mb-6">
         <h3 className="text-sm font-medium mb-3 text-black">Quantité</h3>
         <div className="flex items-center">
@@ -184,6 +212,33 @@ const DirectOrderForm = ({
         </div>
       </div>
       
+      {/* Récapitulatif du panier (Étape 2) */}
+      <div className="border-t border-b py-3 space-y-2">
+        <h4 className="font-semibold text-black">Récapitulatif de la commande</h4>
+        
+        {cartItems.length > 0 && (
+          <div className="text-sm text-gray-700 space-y-1">
+            <p className="font-medium">Articles déjà dans le panier ({cartItems.length}):</p>
+            {cartItems.map(item => (
+              <div key={item.id} className="flex justify-between text-xs">
+                <span>{item.quantity}x {item.name}</span>
+                <span>{item.price * item.quantity} {currency}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <div className="flex justify-between font-medium text-black">
+          <span>Produit actuel ({quantity}x)</span>
+          <span>{currentProductTotal} {currency}</span>
+        </div>
+        
+        <div className="flex justify-between font-bold text-lg text-black pt-2 border-t border-gray-200">
+          <span>Total général:</span>
+          <span>{grandTotal} {currency}</span>
+        </div>
+      </div>
+
       <Button 
         type="submit" 
         disabled={isSubmitting}

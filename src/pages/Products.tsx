@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { isSupabaseConnected } from "@/integrations/supabase/utils";
 import Navbar from "@/components/Navbar";
 import PromoBar from "@/components/PromoBar";
 import { Input } from "@/components/ui/input";
-import { Search, Star, Database } from "lucide-react";
+import { Search, Star, Database, ShoppingBag, ShoppingCart } from "lucide-react";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +14,7 @@ import Footer from "@/components/Footer";
 import { defaultSettings, ProductsPageSettings } from "@/models/products-page-settings";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useCart } from "@/hooks/use-cart";
 
 // Reste de l'interface inchangée
 interface RawSettingsResponse {
@@ -32,6 +33,17 @@ interface RawSettingsResponse {
   created_at?: string;
   updated_at?: string;
 }
+
+interface Product {
+  id: string;
+  name: string;
+  original_price: number;
+  discounted_price: number;
+  currency: string;
+  images: string[];
+  use_internal_cart: boolean;
+}
+
 const Products = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -39,6 +51,8 @@ const Products = () => {
   const [settings, setSettings] = useState<ProductsPageSettings>(defaultSettings);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [isCheckingConnection, setIsCheckingConnection] = useState(true);
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
 
   // Vérifier si la connexion à Supabase est active
   useEffect(() => {
@@ -128,7 +142,7 @@ const Products = () => {
       console.log("Tentative de récupération des produits, état de connexion:", isConnected);
       if (!isConnected) return [];
       try {
-        let query = supabase.from("products").select("*");
+        let query = supabase.from("products").select("id, name, original_price, discounted_price, currency, images, use_internal_cart");
         if (query.eq) {
           query = query.eq('is_visible', true);
         }
@@ -150,7 +164,7 @@ const Products = () => {
           throw error;
         }
         console.log("Produits récupérés:", data?.length || 0, "produits");
-        return data || [];
+        return data as Product[] || [];
       } catch (error) {
         console.error("Erreur:", error);
         return [];
@@ -191,6 +205,17 @@ const Products = () => {
       stars.push(<Star key={i} size={12} className={i < Math.floor(rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />);
     }
     return stars;
+  };
+  
+  const handleAddToCart = (product: Product) => {
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.discounted_price,
+      quantity: 1,
+      options: {},
+      image: product.images && product.images.length > 0 ? product.images[0] : null
+    });
   };
 
   // Afficher un message si la vérification de connexion est en cours
@@ -296,8 +321,8 @@ const Products = () => {
 
           {/* Products Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {currentProducts.length > 0 ? currentProducts.map(product => <Link key={product.id} to={`/product/${product.id}`}>
-                  <Card className="rounded-lg overflow-hidden border border-gray-200 transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+            {currentProducts.length > 0 ? currentProducts.map(product => <Card key={product.id} className="rounded-lg overflow-hidden border border-gray-200 transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+                  <Link to={`/product/${product.id}`}>
                     <div className="relative">
                       {product.discounted_price < product.original_price && <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
                           Promo
@@ -306,7 +331,7 @@ const Products = () => {
                         <img src={product.images && product.images.length > 0 ? product.images[0] : "/placeholder.svg"} alt={product.name} className="w-full h-full object-contain transition-transform duration-300 hover:scale-105" />
                       </div>
                     </div>
-                    <CardContent className="p-4">
+                    <CardContent className="p-4 pb-2">
                       <h3 className="font-serif text-sm uppercase tracking-wider text-center mb-2">{product.name}</h3>
                       {settings.show_ratings && <div className="flex justify-center mb-2">
                           {renderStars(4.5)}
@@ -318,8 +343,28 @@ const Products = () => {
                           </> : <span className="font-medium">{product.original_price} {product.currency}</span>}
                       </div>
                     </CardContent>
-                  </Card>
-                </Link>) : <div className="col-span-4 text-center py-12">
+                  </Link>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex justify-between p-4 pt-2 gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1 text-xs"
+                      onClick={() => navigate(`/product/${product.id}`)}
+                    >
+                      <ShoppingBag className="h-4 w-4 mr-1" /> Payer
+                    </Button>
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="flex-1 text-xs"
+                      onClick={() => handleAddToCart(product)}
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-1" /> Ajouter
+                    </Button>
+                  </div>
+                </Card>) : <div className="col-span-4 text-center py-12">
                 <p className="text-gray-500">Aucun produit trouvé</p>
               </div>}
           </div>

@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import ProductDetail from './pages/ProductDetail';
@@ -26,6 +25,7 @@ import StoreForm from './pages/StoreForm';
 import Store from './pages/Store';
 import WhatsAppRedirect from './pages/WhatsAppRedirect';
 import WhatsAppRedirectPage from './pages/WhatsAppRedirectPage';
+import Success from './pages/Success';
 
 const App = () => {
   const queryClient = new QueryClient();
@@ -56,6 +56,7 @@ const App = () => {
               <Route path="/store/:slug" element={<Store />} />
               <Route path="/contact/:nom" element={<WhatsAppRedirectPage />} />
               <Route path="/whatsapp" element={<WhatsAppRedirect />} />
+              <Route path="/succes" element={<Success />} />
               
               {/* Protected routes */}
               <Route element={<ProtectedRoute />}>
