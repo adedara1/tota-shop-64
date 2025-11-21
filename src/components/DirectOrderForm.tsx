@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useCart } from "@/hooks/use-cart";
 import { useNavigate } from "react-router-dom";
+import CartItemCard from "./CartItemCard"; // Import du nouveau composant
 
 // Schéma de validation pour le formulaire de commande
 const formSchema = z.object({
@@ -29,7 +30,7 @@ interface DirectOrderFormProps {
   selectedOptions: Record<string, any>;
   productImage: string | null;
   buttonText: string;
-  currency: string; // Ajout de la propriété manquante
+  currency: string;
 }
 
 const DirectOrderForm = ({
@@ -53,7 +54,7 @@ const DirectOrderForm = ({
     },
   });
   
-  const { items: cartItems, totalPrice: cartTotalPrice, clearCart } = useCart();
+  const { items: cartItems, totalPrice: cartTotalPrice, clearCart, updateQuantity: updateCartItemQuantity } = useCart();
   const navigate = useNavigate();
   
   const [quantity, setQuantity] = useState(initialQuantity);
@@ -63,19 +64,27 @@ const DirectOrderForm = ({
   const currentProductTotal = productPrice * quantity;
   const grandTotal = cartTotalPrice + currentProductTotal;
 
-  const increaseQuantity = () => {
-    const newQuantity = quantity + 1;
+  // Mise à jour de la quantité du produit actuel
+  const handleCurrentProductQuantityChange = (newQuantity: number) => {
     setQuantity(newQuantity);
     onQuantityChange(newQuantity);
   };
 
-  const decreaseQuantity = () => {
-    const newQuantity = quantity > 1 ? quantity - 1 : 1;
-    setQuantity(newQuantity);
-    onQuantityChange(newQuantity);
+  // Mise à jour de la quantité d'un article du panier
+  const handleCartItemQuantityChange = (id: string, newQuantity: number) => {
+    updateCartItemQuantity(id, newQuantity);
   };
 
   const onSubmit = async (values: OrderFormValues) => {
+    if (quantity === 0 && cartItems.length === 0) {
+      toast({
+        title: "Panier vide",
+        description: "Veuillez ajouter au moins un article à votre commande.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       // 1. Préparer les informations client
       const customerInfo = {
@@ -106,21 +115,26 @@ const DirectOrderForm = ({
       if (cartError) throw cartError;
       const cartId = cartData.id;
 
-      // 4. Enregistrer l'article actuel (ligne de commande)
-      const currentItem = {
-        product_id: productId,
-        name: productName,
-        price: productPrice,
-        quantity: quantity,
-        options: {
-          ...selectedOptions,
-          customer: customerInfo // Ajouter les détails client aux options
-        },
-        image: productImage,
-        cart_id: cartId,
-      };
+      const itemsToInsert = [];
       
-      // 5. Enregistrer les articles du panier existant (s'il y en a)
+      // 4. Enregistrer l'article actuel (si quantité > 0)
+      if (quantity > 0) {
+        const currentItem = {
+          product_id: productId,
+          name: productName,
+          price: productPrice,
+          quantity: quantity,
+          options: {
+            ...selectedOptions,
+            customer: customerInfo // Ajouter les détails client aux options
+          },
+          image: productImage,
+          cart_id: cartId,
+        };
+        itemsToInsert.push(currentItem);
+      }
+      
+      // 5. Enregistrer les articles du panier existant
       const existingCartItems = cartItems.map(item => ({
         product_id: item.id,
         name: item.name,
@@ -132,10 +146,10 @@ const DirectOrderForm = ({
         },
         image: item.image,
         cart_id: cartId,
-        is_shared_cart: true, // Marquer comme partagé si c'est un article du panier
+        is_shared_cart: true,
       }));
       
-      const itemsToInsert = [currentItem, ...existingCartItems];
+      itemsToInsert.push(...existingCartItems);
       
       const { error: itemError } = await supabase.from('cart_items').insert(itemsToInsert);
       
@@ -175,7 +189,7 @@ const DirectOrderForm = ({
             {...field}
             type={type}
             placeholder={placeholder}
-            className="flex-1 px-4 py-3 text-base focus:outline-none text-black" // Ajout de text-black
+            className="flex-1 px-4 py-3 text-base focus:outline-none text-black"
           />
         </div>
         {error && <p className="text-xs text-red-500 mt-1">{error.message}</p>}
@@ -190,49 +204,38 @@ const DirectOrderForm = ({
       <FormInput name="address" icon={MapPin} placeholder="Ville & quartier" />
       <FormInput name="delivery_time" icon={Calendar} placeholder="Heure de livraison souhaitée" />
 
-      {/* Sélecteur de quantité */}
-      <div className="mb-6">
-        <h3 className="text-sm font-medium mb-3 text-black">Quantité</h3>
-        <div className="flex items-center">
-          <button 
-            type="button"
-            onClick={decreaseQuantity}
-            className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-300 text-black"
-          >
-            <Minus size={16} />
-          </button>
-          <span className="mx-4 text-black">{quantity}</span>
-          <button 
-            type="button"
-            onClick={increaseQuantity}
-            className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-300 text-black"
-          >
-            <Plus size={16} />
-          </button>
-        </div>
-      </div>
-      
-      {/* Récapitulatif du panier (Étape 2) */}
-      <div className="border-t border-b py-3 space-y-2">
-        <h4 className="font-semibold text-black">Récapitulatif de la commande</h4>
-        
-        {cartItems.length > 0 && (
-          <div className="text-sm text-gray-700 space-y-1">
-            <p className="font-medium">Articles déjà dans le panier ({cartItems.length}):</p>
-            {cartItems.map(item => (
-              <div key={item.id} className="flex justify-between text-xs">
-                <span>{item.quantity}x {item.name}</span>
-                <span>{item.price * item.quantity} {currency}</span>
-              </div>
-            ))}
-          </div>
+      {/* Liste des articles (remplace l'ancien sélecteur de quantité et récapitulatif) */}
+      <div className="space-y-3 pt-2">
+        {/* Article actuel */}
+        {quantity > 0 && (
+          <CartItemCard
+            id={productId}
+            name={productName}
+            price={productPrice}
+            quantity={quantity}
+            image={productImage}
+            currency={currency}
+            isCurrentProduct={true}
+            onQuantityChange={handleCurrentProductQuantityChange}
+          />
         )}
         
-        <div className="flex justify-between font-medium text-black">
-          <span>Produit actuel ({quantity}x)</span>
-          <span>{currentProductTotal} {currency}</span>
-        </div>
+        {/* Articles du panier */}
+        {cartItems.map(item => (
+          <CartItemCard
+            key={item.id}
+            id={item.id}
+            name={item.name}
+            price={item.price}
+            quantity={item.quantity}
+            image={item.image}
+            currency={currency}
+            isCurrentProduct={false}
+            onQuantityChange={(newQuantity) => handleCartItemQuantityChange(item.id, newQuantity)}
+          />
+        ))}
         
+        {/* Total général */}
         <div className="flex justify-between font-bold text-lg text-black pt-2 border-t border-gray-200">
           <span>Total général:</span>
           <span>{grandTotal} {currency}</span>
@@ -241,7 +244,7 @@ const DirectOrderForm = ({
 
       <Button 
         type="submit" 
-        disabled={isSubmitting}
+        disabled={isSubmitting || (quantity === 0 && cartItems.length === 0)}
         className="w-full bg-gray-800 text-white py-3 px-6 rounded hover:bg-gray-900 transition-colors text-center flex items-center justify-center"
       >
         <ShoppingCart className="mr-2" size={18} />

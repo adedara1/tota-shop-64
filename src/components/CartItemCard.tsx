@@ -1,0 +1,118 @@
+import { Plus, Minus, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useCart } from "@/hooks/use-cart";
+
+interface CartItemCardProps {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string | null;
+  currency: string;
+  isCurrentProduct: boolean;
+  onQuantityChange?: (newQuantity: number) => void;
+}
+
+const CartItemCard = ({
+  id,
+  name,
+  price,
+  quantity,
+  image,
+  currency,
+  isCurrentProduct,
+  onQuantityChange,
+}: CartItemCardProps) => {
+  const { removeFromCart } = useCart();
+  const displayCurrency = currency === 'XOF' || currency === 'XAF' ? 'CFA' : currency;
+  const totalItemPrice = price * quantity;
+
+  const handleRemove = () => {
+    if (isCurrentProduct) {
+      // Si c'est le produit actuel, on ne peut pas le retirer, on le met à 0 quantité
+      if (onQuantityChange) {
+        onQuantityChange(0);
+      }
+    } else {
+      // Si c'est un article du panier, on le retire du panier
+      removeFromCart(id);
+    }
+  };
+
+  const handleQuantityChange = (delta: number) => {
+    const newQuantity = quantity + delta;
+    if (newQuantity > 0 && onQuantityChange) {
+      onQuantityChange(newQuantity);
+    } else if (newQuantity === 0) {
+      handleRemove();
+    }
+  };
+
+  return (
+    <div className={cn(
+      "relative p-4 rounded-lg border-2",
+      isCurrentProduct ? "border-black bg-gray-100" : "border-gray-300 bg-white"
+    )}>
+      {/* Coin supérieur droit: Bouton Retirer */}
+      <button
+        type="button"
+        onClick={handleRemove}
+        className="absolute top-0 right-0 bg-red-600 text-white text-xs font-medium px-3 py-1 rounded-bl-lg rounded-tr-lg flex items-center gap-1 hover:bg-red-700 transition-colors z-10"
+      >
+        Je ne veux pas <X size={12} />
+      </button>
+
+      <div className="flex items-center justify-between">
+        {/* Colonne de gauche: Nom du produit et Sélecteur de quantité */}
+        <div className="flex flex-col space-y-2">
+          {/* Nom du produit */}
+          <span className="text-lg font-bold text-black">
+            {name}
+          </span>
+
+          {/* Sélecteur de quantité (remplace le bloc violet) */}
+          <div className="flex items-center bg-purple-600 text-white px-3 py-1 rounded-md w-fit">
+            <button 
+              type="button"
+              onClick={() => handleQuantityChange(-1)}
+              className="p-1 hover:bg-purple-700 rounded-full"
+            >
+              <Minus size={14} />
+            </button>
+            <span className="mx-3 font-medium">{quantity}</span>
+            <button 
+              type="button"
+              onClick={() => handleQuantityChange(1)}
+              className="p-1 hover:bg-purple-700 rounded-full"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Colonne de droite: Prix et Image */}
+        <div className="flex flex-col items-end space-y-1">
+          {/* Prix total de l'article */}
+          <span className="text-xl font-bold text-black">
+            {totalItemPrice} {displayCurrency}
+          </span>
+
+          {/* Image du produit (remplace le prix barré) */}
+          <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-300 bg-white flex items-center justify-center">
+            {image ? (
+              <img 
+                src={image} 
+                alt={name} 
+                className="w-full h-full object-cover" 
+              />
+            ) : (
+              <X size={16} className="text-gray-400" />
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CartItemCard;
