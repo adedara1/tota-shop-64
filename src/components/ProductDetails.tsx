@@ -207,25 +207,16 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
     }
   };
 
-  const increaseQuantity = () => {
-    setQuantity(prev => prev + 1);
-  };
-
-  const decreaseQuantity = () => {
-    setQuantity(prev => (prev > 1 ? prev - 1 : 1));
-  };
-
-  // Check if using custom URL (not WhatsApp)
-  const isCustomUrl = cartUrl && !cartUrl.includes('wa.me') && !useInternalCart;
-  const isWhatsApp = cartUrl && cartUrl.includes('wa.me');
-  
-  // Determine if we should show the direct order form (when internal cart is enabled)
-  const showDirectOrderForm = useInternalCart;
-
   // Find the image for the order submission
   const orderImage = Object.values(selectedOptions)
     .find((opt: any) => opt.image)?.image || null;
 
+
+  // Check if using custom URL (not WhatsApp)
+  const isCustomUrl = cartUrl && !cartUrl.includes('wa.me') && !useInternalCart;
+  
+  // Determine if we should show the direct order form (when internal cart is enabled)
+  const showDirectOrderForm = useInternalCart;
 
   return (
     <div className="space-y-6 max-w-full">
@@ -295,43 +286,7 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
         </div>
       )}
       
-      {/* --- DIRECT ORDER FORM INSERTION --- */}
-      {showDirectOrderForm && productId && (
-        <DirectOrderForm
-          productId={productId}
-          productName={name}
-          productPrice={discountedPrice}
-          quantity={quantity}
-          selectedOptions={selectedOptions}
-          productImage={orderImage}
-          buttonText={buttonText}
-        />
-      )}
-      {/* ------------------------------------- */}
-      
-      {!isCustomUrl && (
-        <div className="mb-6">
-          <h3 className="text-sm font-medium mb-3" style={{ color: quantityTextColor }}>Quantité</h3>
-          <div className="flex items-center">
-            <button 
-              onClick={decreaseQuantity}
-              className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-300"
-              style={{ color: quantityTextColor }}
-            >
-              <Minus size={16} />
-            </button>
-            <span className="mx-4" style={{ color: quantityTextColor }}>{quantity}</span>
-            <button 
-              onClick={increaseQuantity}
-              className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-300"
-              style={{ color: quantityTextColor }}
-            >
-              <Plus size={16} />
-            </button>
-          </div>
-        </div>
-      )}
-      
+      {/* Options du produit */}
       {!isCustomUrl && Object.entries(options).map(([optionTitle, optionValues]) => (
         <ProductOptions
           key={optionTitle}
@@ -350,6 +305,7 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
         />
       ))}
       
+      {/* Affichage des options sélectionnées */}
       {!isCustomUrl && Object.keys(selectedOptions).length > 0 && (
         <div className="bg-white/80 p-3 rounded-md">
           <h3 className="text-sm font-medium mb-2" style={{ color: optionTitleColor }}>Options sélectionnées:</h3>
@@ -365,6 +321,21 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
           </ul>
         </div>
       )}
+      
+      {/* --- DIRECT ORDER FORM INSERTION --- */}
+      {showDirectOrderForm && productId && (
+        <DirectOrderForm
+          productId={productId}
+          productName={name}
+          productPrice={discountedPrice}
+          initialQuantity={quantity}
+          onQuantityChange={setQuantity}
+          selectedOptions={selectedOptions}
+          productImage={orderImage}
+          buttonText={buttonText}
+        />
+      )}
+      {/* ------------------------------------- */}
       
       {/* Only show the old button if we are NOT using the internal cart/direct order form */}
       {!showDirectOrderForm && (

@@ -1,11 +1,12 @@
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { User, Phone, MapPin, Calendar, ShoppingCart } from "lucide-react";
+import { User, Phone, MapPin, Calendar, ShoppingCart, Plus, Minus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { generateCustomerLabel, generateCustomerColor } from "@/utils/customerUtils";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 // Schéma de validation pour le formulaire de commande
 const formSchema = z.object({
@@ -21,7 +22,8 @@ interface DirectOrderFormProps {
   productId: string;
   productName: string;
   productPrice: number;
-  quantity: number;
+  initialQuantity: number;
+  onQuantityChange: (quantity: number) => void;
   selectedOptions: Record<string, any>;
   productImage: string | null;
   buttonText: string;
@@ -31,7 +33,8 @@ const DirectOrderForm = ({
   productId,
   productName,
   productPrice,
-  quantity,
+  initialQuantity,
+  onQuantityChange,
   selectedOptions,
   productImage,
   buttonText,
@@ -45,8 +48,22 @@ const DirectOrderForm = ({
       delivery_time: "",
     },
   });
+  
+  const [quantity, setQuantity] = useState(initialQuantity);
 
   const { handleSubmit, formState: { isSubmitting } } = form;
+
+  const increaseQuantity = () => {
+    const newQuantity = quantity + 1;
+    setQuantity(newQuantity);
+    onQuantityChange(newQuantity);
+  };
+
+  const decreaseQuantity = () => {
+    const newQuantity = quantity > 1 ? quantity - 1 : 1;
+    setQuantity(newQuantity);
+    onQuantityChange(newQuantity);
+  };
 
   const onSubmit = async (values: OrderFormValues) => {
     try {
@@ -130,7 +147,7 @@ const DirectOrderForm = ({
             {...field}
             type={type}
             placeholder={placeholder}
-            className="flex-1 px-4 py-3 text-base focus:outline-none"
+            className="flex-1 px-4 py-3 text-base focus:outline-none text-black" // Ajout de text-black
           />
         </div>
         {error && <p className="text-xs text-red-500 mt-1">{error.message}</p>}
@@ -139,12 +156,34 @@ const DirectOrderForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 border border-black p-4 rounded-lg">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 border border-black p-4 rounded-lg max-w-md mx-auto md:mx-0">
       <FormInput name="name" icon={User} placeholder="Nom complet" />
       <FormInput name="phone" icon={Phone} placeholder="Téléphone" type="tel" />
       <FormInput name="address" icon={MapPin} placeholder="Ville & quartier" />
       <FormInput name="delivery_time" icon={Calendar} placeholder="Heure de livraison souhaitée" />
 
+      {/* Sélecteur de quantité déplacé ici */}
+      <div className="mb-6">
+        <h3 className="text-sm font-medium mb-3 text-black">Quantité</h3>
+        <div className="flex items-center">
+          <button 
+            type="button"
+            onClick={decreaseQuantity}
+            className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-300 text-black"
+          >
+            <Minus size={16} />
+          </button>
+          <span className="mx-4 text-black">{quantity}</span>
+          <button 
+            type="button"
+            onClick={increaseQuantity}
+            className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-300 text-black"
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+      </div>
+      
       <Button 
         type="submit" 
         disabled={isSubmitting}
