@@ -62,53 +62,49 @@ const CartItemCard = ({
         Je ne veux pas <X size={12} />
       </button>
 
-      <div className="flex items-center justify-between">
-        {/* Colonne de gauche: Nom du produit et Sélecteur de quantité */}
-        <div className="flex flex-col space-y-2">
-          {/* Nom du produit */}
-          <span className="text-lg font-bold text-black">
-            {name}
-          </span>
+      {/* Nom du produit */}
+      <span className="text-lg font-bold text-black block mb-3">
+        {name}
+      </span>
 
-          {/* Sélecteur de quantité (remplace le bloc violet) */}
-          <div className="flex items-center bg-purple-600 text-white px-3 py-1 rounded-md w-fit">
-            <button 
-              type="button"
-              onClick={() => handleQuantityChange(-1)}
-              className="p-1 hover:bg-purple-700 rounded-full"
-            >
-              <Minus size={14} />
-            </button>
-            <span className="mx-3 font-medium">{quantity}</span>
-            <button 
-              type="button"
-              onClick={() => handleQuantityChange(1)}
-              className="p-1 hover:bg-purple-700 rounded-full"
-            >
-              <Plus size={14} />
-            </button>
-          </div>
+      {/* Ligne d'action: Sélecteur | Prix | Image */}
+      <div className="flex items-center justify-between">
+        
+        {/* Sélecteur de quantité */}
+        <div className="flex items-center bg-purple-600 text-white px-3 py-1 rounded-md w-fit flex-shrink-0">
+          <button 
+            type="button"
+            onClick={() => handleQuantityChange(-1)}
+            className="p-1 hover:bg-purple-700 rounded-full"
+          >
+            <Minus size={14} />
+          </button>
+          <span className="mx-3 font-medium">{quantity}</span>
+          <button 
+            type="button"
+            onClick={() => handleQuantityChange(1)}
+            className="p-1 hover:bg-purple-700 rounded-full"
+          >
+            <Plus size={14} />
+          </button>
         </div>
 
-        {/* Colonne de droite: Prix et Image */}
-        <div className="flex flex-col items-end space-y-1">
-          {/* Prix total de l'article */}
-          <span className="text-xl font-bold text-black">
-            {totalItemPrice} {displayCurrency}
-          </span>
+        {/* Prix total de l'article (Positionné au milieu) */}
+        <span className="text-xl font-bold text-black mx-4 flex-grow text-right">
+          {totalItemPrice} {displayCurrency}
+        </span>
 
-          {/* Image du produit (remplace le prix barré) */}
-          <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-300 bg-white flex items-center justify-center">
-            {image ? (
-              <img 
-                src={image} 
-                alt={name} 
-                className="w-full h-full object-cover" 
-              />
-            ) : (
-              <X size={16} className="text-gray-400" />
-            )}
-          </div>
+        {/* Image du produit */}
+        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-300 bg-white flex items-center justify-center flex-shrink-0">
+          {image ? (
+            <img 
+              src={image} 
+              alt={name} 
+              className="w-full h-full object-cover" 
+            />
+          ) : (
+            <X size={16} className="text-gray-400" />
+          )}
         </div>
       </div>
     </div>
