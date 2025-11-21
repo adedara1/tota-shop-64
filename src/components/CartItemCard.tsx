@@ -94,8 +94,8 @@ const CartItemCard = ({
           {totalItemPrice} {displayCurrency}
         </span>
 
-        {/* Image du produit */}
-        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-300 bg-white flex items-center justify-center flex-shrink-0">
+        {/* Image du produit - carrée (70% de la hauteur du CartItemCard) */}
+        <div className="w-24 h-24 rounded-md overflow-hidden border border-gray-300 bg-white flex items-center justify-center flex-shrink-0">
           {image ? (
             <img 
               src={image} 
@@ -103,7 +103,7 @@ const CartItemCard = ({
               className="w-full h-full object-cover" 
             />
           ) : (
-            <X size={16} className="text-gray-400" />
+            <X size={24} className="text-gray-400" />
           )}
         </div>
       </div>

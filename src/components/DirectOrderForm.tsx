@@ -9,14 +9,14 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useCart } from "@/hooks/use-cart";
 import { useNavigate } from "react-router-dom";
-import CartItemCard from "./CartItemCard"; // Import du nouveau composant
+import CartItemCard from "./CartItemCard";
 
 // Schéma de validation pour le formulaire de commande
 const formSchema = z.object({
   name: z.string().min(2, "Le nom est requis"),
   phone: z.string().min(8, "Le téléphone est requis"),
-  address: z.string().optional(), // Ville & quartier
-  delivery_time: z.string().optional(), // Heure de livraison
+  address: z.string().optional(),
+  delivery_time: z.string().optional(),
 });
 
 type OrderFormValues = z.infer<typeof formSchema>;
@@ -126,7 +126,7 @@ const DirectOrderForm = ({
           quantity: quantity,
           options: {
             ...selectedOptions,
-            customer: customerInfo // Ajouter les détails client aux options
+            customer: customerInfo
           },
           image: productImage,
           cart_id: cartId,
@@ -204,7 +204,7 @@ const DirectOrderForm = ({
       <FormInput name="address" icon={MapPin} placeholder="Ville & quartier" />
       <FormInput name="delivery_time" icon={Calendar} placeholder="Heure de livraison souhaitée" />
 
-      {/* Liste des articles (remplace l'ancien sélecteur de quantité et récapitulatif) */}
+      {/* Liste des articles */}
       <div className="space-y-3 pt-2">
         {/* Article actuel */}
         {quantity > 0 && (
@@ -234,6 +234,13 @@ const DirectOrderForm = ({
             onQuantityChange={(newQuantity) => handleCartItemQuantityChange(item.id, newQuantity)}
           />
         ))}
+        
+        {/* Message panel */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+          <p className="text-yellow-800 font-medium">
+            Svp , veuillez commander uniquement que si vous etes pret a recevoir le produit dès que l un de nos collaborateur va vous appeler . soyez responsables🙏✨
+          </p>
+        </div>
         
         {/* Total général */}
         <div className="flex justify-between font-bold text-lg text-black pt-2 border-t border-gray-200">
