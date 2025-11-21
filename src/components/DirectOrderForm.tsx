@@ -210,7 +210,7 @@ const DirectOrderForm = ({
       {/* H2 qui s'affiche uniquement s'il y a plus d'un article */}
       {hasMultipleItems && (
         <h2 className="text-lg font-bold text-black mt-4">
-          Vous êtes sur le point de commander tous les produits listés ci-dessous : cliquez sur "Je ne veux pas" en rouge pour retirer ce que vous ne désirez pas.
+          Vous ete sur le point de commander tout les produit listé ci dessous : cliqué Je ne veux pas en rouge pour retirer ce que vous ne desirer pas .
         </h2>
       )}
 
@@ -243,7 +243,7 @@ const DirectOrderForm = ({
             isCurrentProduct={false}
             onQuantityChange={(newQuantity) => handleCartItemQuantityChange(item.id, newQuantity)}
           />
-        )}
+        ))}
         
         {/* Message panel */}
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
