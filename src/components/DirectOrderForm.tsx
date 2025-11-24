@@ -206,7 +206,7 @@ const DirectOrderForm = ({
       <FormInput name="phone" icon={Phone} placeholder="Téléphone" type="tel" />
       <FormInput name="address" icon={MapPin} placeholder="Ville & quartier" />
       
-      <FormInput name="call_time" icon={Calendar} placeholder="Heure à laquelle on peut vous appeler" />
+      <FormInput name="call_time" icon={Calendar} placeholder="On vous appelle à quelle heure" />
       
       {/* H2 qui s'affiche uniquement s'il y a plus d'un article */}
       {hasMultipleItems && (
