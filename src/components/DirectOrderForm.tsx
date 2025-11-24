@@ -16,7 +16,7 @@ const formSchema = z.object({
   name: z.string().min(2, "Le nom est requis"),
   phone: z.string().min(8, "Le téléphone est requis"),
   address: z.string().optional(),
-  delivery_time: z.string().optional(),
+  call_time: z.string().optional(), // Renommé de delivery_time à call_time
 });
 
 type OrderFormValues = z.infer<typeof formSchema>;
@@ -50,7 +50,7 @@ const DirectOrderForm = ({
       name: "",
       phone: "",
       address: "",
-      delivery_time: "",
+      call_time: "", // Mis à jour ici
     },
   });
   
@@ -94,7 +94,7 @@ const DirectOrderForm = ({
         name: values.name,
         phone: values.phone,
         address: values.address,
-        delivery_time: values.delivery_time,
+        call_time: values.call_time, // Utilisation de call_time
       };
 
       // 2. Générer le label et la couleur du client
@@ -205,7 +205,7 @@ const DirectOrderForm = ({
       <FormInput name="name" icon={User} placeholder="Nom complet" />
       <FormInput name="phone" icon={Phone} placeholder="Téléphone" type="tel" />
       <FormInput name="address" icon={MapPin} placeholder="Ville & quartier" />
-      <FormInput name="delivery_time" icon={Calendar} placeholder="Heure de livraison souhaitée" />
+      <FormInput name="call_time" icon={Calendar} placeholder="Heure à laquelle on peut vous appeler" />
       
       {/* H2 qui s'affiche uniquement s'il y a plus d'un article */}
       {hasMultipleItems && (

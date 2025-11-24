@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Database as DatabaseIcon } from "lucide-react";
 import { Loader2, AlertCircle } from "lucide-react";
 import ProductGallery from "@/components/ProductGallery";
+import { useScrollToTop } from "@/hooks/use-scroll-to-top";
 
 interface Product {
   id: string;
@@ -64,7 +65,10 @@ const ProductDetail = () => {
   const { addToCart } = useCart();
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [connectionChecked, setConnectionChecked] = useState(false);
-  const [isCheckingConnection, setIsCheckingConnection] = useState(true); // <-- Correction: Déclaration de l'état manquant
+  const [isCheckingConnection, setIsCheckingConnection] = useState(true);
+
+  // Utilisation du hook pour le défilement
+  useScrollToTop();
 
   useEffect(() => {
     const checkConnection = async () => {
