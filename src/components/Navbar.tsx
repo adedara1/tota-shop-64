@@ -2,18 +2,25 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { X, Menu, ShoppingBag } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
+import { useAppBranding } from "./AppSettingsForm";
+
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { data: branding } = useAppBranding();
+  const appName = branding?.appName || "Digit-Sarl";
+  
   const {
     totalItems
   } = useCart();
+  
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
+  
   return <nav className="py-6 relative">
       <div className="container mx-auto flex justify-between items-center px-4">
-        <Link to="/products" className="text-xl font-serif italic">Digit-Sarl</Link>
+        <Link to="/products" className="text-xl font-serif italic">{appName}</Link>
 
         {/* Desktop Menu */}
         <div className="hidden md:flex items-center space-x-8">

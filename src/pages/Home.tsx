@@ -1,12 +1,15 @@
-
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/AppSidebar"
 import Navbar from "@/components/Navbar"
 import PromoBar from "@/components/PromoBar"
 import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
+import { useAppBranding } from "@/components/AppSettingsForm"
 
 const Home = () => {
+  const { data: branding } = useAppBranding();
+  const appName = branding?.appName || "Total-Service";
+  
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full" style={{ backgroundColor: "#f1eee9" }}>
@@ -15,7 +18,7 @@ const Home = () => {
           <PromoBar />
           <Navbar />
           <main className="container mx-auto py-12 px-4">
-            <h1 className="text-4xl font-bold mb-6">Bienvenue sur Total-Service</h1>
+            <h1 className="text-4xl font-bold mb-6">Bienvenue sur {appName}</h1>
             <p className="text-lg text-gray-600 mb-12">
               Gérez vos produits et suivez vos ventes depuis votre tableau de bord.
             </p>

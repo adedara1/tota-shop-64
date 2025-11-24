@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Home, PlusCircle, Mail, BarChart, Layers, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import AppSettingsForm from "@/components/AppSettingsForm";
 
 const MenuPanel = ({ title, description, icon, url }: { title: string, description: string, icon: React.ReactNode, url: string }) => {
   return (
@@ -99,6 +99,9 @@ const Dashboard = () => {
               </Link>
             </CardContent>
           </Card>
+          
+          {/* Nouveau: Configuration du nom de l'application */}
+          <AppSettingsForm />
         </div>
         
         <h2 className="text-2xl font-bold mb-6">Menu Principal</h2>
