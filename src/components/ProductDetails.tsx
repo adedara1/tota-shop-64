@@ -28,6 +28,7 @@ interface ProductDetailsProps {
   useInternalCart?: boolean;
   onAddToCart?: (productData: any, quantity: number, selectedOptions: Record<string, any>) => void;
   productId?: string;
+  productImage?: string | null; // <-- Nouvelle prop
   optionTitleColor?: string;
   optionValueColor?: string;
   productNameColor?: string;
@@ -64,6 +65,7 @@ const ProductDetails = ({
   useInternalCart = false,
   onAddToCart,
   productId,
+  productImage = null, // <-- Utilisation de la nouvelle prop
   optionTitleColor = "#000000",
   optionValueColor = "#000000",
   productNameColor = "#000000",
@@ -207,9 +209,11 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
     }
   };
 
-  // Find the image for the order submission
-  const orderImage = Object.values(selectedOptions)
+  // Find the image for the order submission: prioritize option image, fallback to main product image
+  const optionImage = Object.values(selectedOptions)
     .find((opt: any) => opt.image)?.image || null;
+    
+  const orderImage = optionImage || productImage;
 
 
   // Check if using custom URL (not WhatsApp)

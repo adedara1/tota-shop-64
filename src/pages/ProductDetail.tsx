@@ -64,9 +64,11 @@ const ProductDetail = () => {
   const { addToCart } = useCart();
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [connectionChecked, setConnectionChecked] = useState(false);
+  const [isCheckingConnection, setIsCheckingConnection] = useState(true); // <-- Correction: Déclaration de l'état manquant
 
   useEffect(() => {
     const checkConnection = async () => {
+      setIsCheckingConnection(true);
       try {
         const connected = await isSupabaseConnected();
         console.log("État de la connexion Supabase (ProductDetail):", connected);
@@ -89,6 +91,8 @@ const ProductDetail = () => {
           variant: "destructive",
         });
         setConnectionChecked(true);
+      } finally {
+        setIsCheckingConnection(false);
       }
     };
     
@@ -237,7 +241,7 @@ const ProductDetail = () => {
     );
   }
 
-  const productImages = product.images;
+  const productImage = product.images && product.images.length > 0 ? product.images[0] : null;
   const isWhatsApp = product.cart_url && product.cart_url.includes('wa.me');
 
   return (
@@ -263,11 +267,12 @@ const ProductDetail = () => {
               buttonText={product?.button_text || ""}
               currency={product?.currency || "USD"}
               onButtonClick={handleProductClick}
-              options={product?.options || {}}
+              options={product?.options || {} as Record<string, any>}
               onOptionImageChange={handleOptionImageChange}
               useInternalCart={product?.use_internal_cart}
               onAddToCart={handleAddToCart}
               productId={product?.id}
+              productImage={productImage} 
               optionTitleColor={product?.option_title_color}
               optionValueColor={product?.option_value_color}
               productNameColor={product?.product_name_color}

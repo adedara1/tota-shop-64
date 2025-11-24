@@ -94,13 +94,14 @@ const CartItemCard = ({
           {totalItemPrice} {displayCurrency}
         </span>
 
-        {/* Image du produit - carrée (70% de la hauteur du CartItemCard) */}
+        {/* Image du produit - carrée (96x96px) */}
         <div className="w-24 h-24 rounded-md overflow-hidden border border-gray-300 bg-white flex items-center justify-center flex-shrink-0">
           {image ? (
             <img 
               src={image} 
               alt={name} 
-              className="w-full h-full object-cover" 
+              // Utiliser object-contain pour s'assurer que l'image entière est visible
+              className="w-full h-full object-contain" 
             />
           ) : (
             <X size={24} className="text-gray-400" />
