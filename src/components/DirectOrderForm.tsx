@@ -201,7 +201,7 @@ const DirectOrderForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 border border-black p-4 rounded-lg max-w-[60%] mx-auto md:mx-0">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 border border-black p-4 rounded-lg max-w-full md:max-w-[60%] mx-auto md:mx-0">
       <FormInput name="name" icon={User} placeholder="Nom complet" />
       <FormInput name="phone" icon={Phone} placeholder="Téléphone" type="tel" />
       <FormInput name="address" icon={MapPin} placeholder="Ville & quartier" />
