@@ -279,7 +279,7 @@ const ProductDetail = () => {
               useInternalCart={product?.use_internal_cart}
               onAddToCart={handleAddToCart}
               productId={product?.id}
-              productSlug={product?.slug} {/* PASSING SLUG HERE */}
+              productSlug={product?.slug}
               productImage={productImage} 
               optionTitleColor={product?.option_title_color}
               optionValueColor={product?.option_value_color}
