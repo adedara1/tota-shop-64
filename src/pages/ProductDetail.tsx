@@ -54,11 +54,11 @@ interface Product {
   show_video?: boolean;
   video_pip_enabled?: boolean;
   video_autoplay?: boolean;
-  slug?: string; // Ajout du slug
+  slug?: string;
 }
 
 const ProductDetail = () => {
-  const { slug } = useParams(); // Utilisation de slug au lieu de id
+  const { id } = useParams(); // Utilisation de id au lieu de slug
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedOptionImages, setSelectedOptionImages] = useState<string[]>([]);
@@ -106,14 +106,14 @@ const ProductDetail = () => {
 
   useEffect(() => {
     const fetchProduct = async () => {
-      if (!connectionChecked || !slug) return;
+      if (!connectionChecked || !id) return;
       
       try {
-        // Recherche par slug
+        // Recherche par ID
         const { data, error } = await supabase
           .from("products")
           .select("*")
-          .eq("slug", slug)
+          .eq("id", id)
           .maybeSingle();
 
         if (error) throw error;
@@ -155,10 +155,10 @@ const ProductDetail = () => {
       }
     };
 
-    if (slug && connectionChecked) {
+    if (id && connectionChecked) {
       fetchProduct();
     }
-  }, [slug, connectionChecked]);
+  }, [id, connectionChecked]);
 
   const handleProductClick = async () => {
     if (product?.id) {

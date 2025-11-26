@@ -323,7 +323,7 @@ const Products = () => {
           {/* Products Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {currentProducts.length > 0 ? currentProducts.map(product => <Card key={product.id} className="rounded-lg overflow-hidden border border-gray-200 transition-all duration-300 hover:shadow-md hover:-translate-y-1">
-                  <Link to={`/product/${product.slug}`} className="block">
+                  <Link to={`/product/${product.id}`} className="block">
                     <div className="relative">
                       {product.discounted_price < product.original_price && <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
                           Promo
@@ -352,7 +352,7 @@ const Products = () => {
                       variant="outline" 
                       size="sm" 
                       className="flex-1 text-xs"
-                      onClick={() => navigate(`/product/${product.slug}`)}
+                      onClick={() => navigate(`/product/${product.id}`)}
                     >
                       <ShoppingBag className="h-4 w-4 mr-1" /> Payer
                     </Button>

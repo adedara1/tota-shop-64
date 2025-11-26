@@ -23,7 +23,6 @@ type OrderFormValues = z.infer<typeof formSchema>;
 
 interface DirectOrderFormProps {
   productId: string;
-  productSlug: string; // <-- Ajout du slug
   productName: string;
   productPrice: number;
   initialQuantity: number;
@@ -36,7 +35,6 @@ interface DirectOrderFormProps {
 
 const DirectOrderForm = ({
   productId,
-  productSlug, // <-- Utilisation du slug
   productName,
   productPrice,
   initialQuantity,
@@ -165,12 +163,12 @@ const DirectOrderForm = ({
       
       // 6. Stocker les données de conversion pour le Meta Pixel
       const conversionData = {
-        // Utiliser le slug pour le suivi Meta Pixel
-        productSlugs: itemsToInsert.map(item => item.name.toLowerCase().replace(/\s+/g, '-')).filter(Boolean),
+        // Utiliser les IDs pour le suivi Meta Pixel
+        productIds: itemsToInsert.map(item => item.product_id).filter(Boolean),
         value: grandTotal,
         currency: currency,
-        // Si l'achat vient d'une seule page produit, on stocke son slug
-        sourceProductSlug: (quantity > 0 && cartItems.length === 0) ? productSlug : null
+        // Si l'achat vient d'une seule page produit, on stocke son ID
+        sourceProductId: (quantity > 0 && cartItems.length === 0) ? productId : null
       };
       
       localStorage.setItem('meta_conversion_data', JSON.stringify(conversionData));
