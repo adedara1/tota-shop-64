@@ -26,6 +26,7 @@ import Store from './pages/Store';
 import WhatsAppRedirect from './pages/WhatsAppRedirect';
 import WhatsAppRedirectPage from './pages/WhatsAppRedirectPage';
 import Success from './pages/Success';
+import MetaPixelTracker from '@/components/MetaPixelTracker';
 
 const App = () => {
   const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => {
         <CartProvider>
           <Toaster />
           <QueryClientProvider client={queryClient}>
+            <MetaPixelTracker /> {/* Ajout du tracker ici */}
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<Index />} />

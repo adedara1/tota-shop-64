@@ -100,7 +100,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
           
-          {/* Nouveau: Configuration du nom de l'application */}
+          {/* Configuration des paramètres globaux (Nom de l'app, Pixel ID) */}
           <AppSettingsForm />
         </div>
         
