@@ -53,16 +53,37 @@ const MetaPixelTracker = () => {
 
     // 3. Suivre l'événement d'achat sur la page /succes
     if (location.pathname === '/succes') {
-      // Récupérer le total de la commande si possible (ici, nous utilisons une valeur statique simple pour l'exemple)
-      // Dans une application réelle, vous devriez récupérer le montant réel de la commande.
-      const purchaseData = {
-        value: 0, // Remplacer par le montant réel de la commande
-        currency: 'XOF', // Remplacer par la devise réelle
-      };
+      const conversionDataString = localStorage.getItem('meta_conversion_data');
       
-      // Envoi de l'événement Purchase
-      window.fbq('track', 'Purchase', purchaseData);
-      console.log("Meta Pixel: Événement 'Purchase' envoyé sur /succes", purchaseData);
+      if (conversionDataString) {
+        try {
+          const conversionData = JSON.parse(conversionDataString);
+          
+          const purchaseData: Record<string, any> = {
+            value: conversionData.value || 0,
+            currency: conversionData.currency || 'XOF',
+            content_type: 'product',
+            content_ids: conversionData.productIds || [],
+          };
+          
+          // Si l'achat provient d'une seule page produit, nous pouvons ajouter l'ID de la source
+          if (conversionData.sourceProductId) {
+            purchaseData.source_product_id = conversionData.sourceProductId;
+          }
+          
+          // Envoi de l'événement Purchase
+          window.fbq('track', 'Purchase', purchaseData);
+          console.log("Meta Pixel: Événement 'Purchase' envoyé sur /succes", purchaseData);
+          
+          // Nettoyer les données après l'envoi
+          localStorage.removeItem('meta_conversion_data');
+          
+        } catch (e) {
+          console.error("Erreur lors de l'analyse des données de conversion:", e);
+        }
+      } else {
+        console.log("Meta Pixel: Page /succes atteinte, mais aucune donnée de conversion trouvée.");
+      }
     }
     
     // Suivre les vues de page pour les changements de route

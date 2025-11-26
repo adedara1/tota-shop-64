@@ -161,10 +161,21 @@ const DirectOrderForm = ({
         throw itemError;
       }
       
-      // 6. Vider le panier local
+      // 6. Stocker les données de conversion pour le Meta Pixel
+      const conversionData = {
+        productIds: itemsToInsert.map(item => item.product_id).filter(id => id !== null),
+        value: grandTotal,
+        currency: currency,
+        // Si l'achat vient d'une seule page produit, on peut stocker son ID
+        sourceProductId: (quantity > 0 && cartItems.length === 0) ? productId : null
+      };
+      
+      localStorage.setItem('meta_conversion_data', JSON.stringify(conversionData));
+      
+      // 7. Vider le panier local
       clearCart();
       
-      // 7. Rediriger vers la page de succès
+      // 8. Rediriger vers la page de succès
       navigate('/succes');
 
     } catch (error) {
