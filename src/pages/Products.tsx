@@ -352,7 +352,7 @@ const Products = () => {
                       variant="outline" 
                       size="sm" 
                       className="flex-1 text-xs"
-                      onClick={() => navigate(`/product/${product.slug}`)} {/* CHANGÉ ICI */}
+                      onClick={() => navigate(`/product/${product.slug}`)}
                     >
                       <ShoppingBag className="h-4 w-4 mr-1" /> Payer
                     </Button>
