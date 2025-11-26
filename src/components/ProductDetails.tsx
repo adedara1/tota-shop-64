@@ -328,17 +328,19 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
       
       {/* --- DIRECT ORDER FORM INSERTION --- */}
       {showDirectOrderForm && productId && (
-        <DirectOrderForm
-          productId={productId}
-          productName={name}
-          productPrice={discountedPrice}
-          initialQuantity={quantity}
-          onQuantityChange={setQuantity}
-          selectedOptions={selectedOptions}
-          productImage={orderImage}
-          buttonText={buttonText}
-          currency={displayCurrency}
-        />
+        <div className="flex justify-center w-full"> {/* Ajout d'un conteneur flex pour centrer */}
+          <DirectOrderForm
+            productId={productId}
+            productName={name}
+            productPrice={discountedPrice}
+            initialQuantity={quantity}
+            onQuantityChange={setQuantity}
+            selectedOptions={selectedOptions}
+            productImage={orderImage}
+            buttonText={buttonText}
+            currency={displayCurrency}
+          />
+        </div>
       )}
       {/* ------------------------------------- */}
       
