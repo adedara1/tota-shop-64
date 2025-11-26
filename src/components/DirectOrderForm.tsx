@@ -167,8 +167,9 @@ const DirectOrderForm = ({
         productIds: itemsToInsert.map(item => item.product_id).filter(Boolean),
         value: grandTotal,
         currency: currency,
-        // Si l'achat vient d'une seule page produit, on stocke son ID
-        sourceProductId: (quantity > 0 && cartItems.length === 0) ? productId : null
+        // Si l'achat vient d'une seule page produit, on stocke son ID et son nom
+        sourceProductId: (quantity > 0 && cartItems.length === 0) ? productId : null,
+        sourceProductName: (quantity > 0 && cartItems.length === 0) ? productName : null,
       };
       
       localStorage.setItem('meta_conversion_data', JSON.stringify(conversionData));
