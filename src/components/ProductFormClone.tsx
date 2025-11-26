@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -452,6 +451,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
 
       if (product) {
         // Mode édition
+        // Le slug est géré par le trigger DB
         const { error: updateError } = await supabase
           .from("products")
           .update(productData)
@@ -469,6 +469,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
 
       } else {
         // Mode création
+        // Le slug est géré par le trigger DB
         const { error: insertError } = await supabase
           .from("products")
           .insert(productData);

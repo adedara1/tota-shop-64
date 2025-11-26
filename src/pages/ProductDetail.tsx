@@ -54,10 +54,11 @@ interface Product {
   show_video?: boolean;
   video_pip_enabled?: boolean;
   video_autoplay?: boolean;
+  slug?: string; // Ajout du slug
 }
 
 const ProductDetail = () => {
-  const { id } = useParams();
+  const { slug } = useParams(); // Utilisation de slug au lieu de id
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedOptionImages, setSelectedOptionImages] = useState<string[]>([]);
@@ -105,13 +106,14 @@ const ProductDetail = () => {
 
   useEffect(() => {
     const fetchProduct = async () => {
-      if (!connectionChecked) return;
+      if (!connectionChecked || !slug) return;
       
       try {
+        // Recherche par slug
         const { data, error } = await supabase
           .from("products")
           .select("*")
-          .eq("id", id)
+          .eq("slug", slug)
           .maybeSingle();
 
         if (error) throw error;
@@ -133,8 +135,9 @@ const ProductDetail = () => {
         
         setProduct(transformedData);
 
+        // Increment view count using product ID
         const { error: statsError } = await supabase.rpc('increment_product_view', {
-          product_id_param: id
+          product_id_param: data.id
         });
 
         if (statsError) {
@@ -152,15 +155,15 @@ const ProductDetail = () => {
       }
     };
 
-    if (id && connectionChecked) {
+    if (slug && connectionChecked) {
       fetchProduct();
     }
-  }, [id, connectionChecked]);
+  }, [slug, connectionChecked]);
 
   const handleProductClick = async () => {
-    if (id) {
+    if (product?.id) {
       const { error } = await supabase.rpc('increment_product_click', {
-        product_id_param: id
+        product_id_param: product.id
       });
 
       if (error) {
@@ -213,7 +216,7 @@ const ProductDetail = () => {
   if (loading) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: "#000000" }}>
-        <PromoBar productId={id} />
+        <PromoBar productId={product?.id} />
         <div className="bg-white">
           <Navbar />
         </div>
@@ -250,7 +253,7 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden" style={{ backgroundColor: product?.theme_color || "#000000" }}>
-      <PromoBar productId={id} />
+      <PromoBar productId={product.id} />
       <div className="bg-white">
         <Navbar />
       </div>
@@ -276,6 +279,7 @@ const ProductDetail = () => {
               useInternalCart={product?.use_internal_cart}
               onAddToCart={handleAddToCart}
               productId={product?.id}
+              productSlug={product?.slug} {/* PASSING SLUG HERE */}
               productImage={productImage} 
               optionTitleColor={product?.option_title_color}
               optionValueColor={product?.option_value_color}

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
@@ -24,7 +23,7 @@ const SimilarProducts = ({ productId, similarProducts, titleColor = "#FFFFFF" }:
       try {
         const { data, error } = await supabase
           .from("products")
-          .select("id, name, images, original_price, discounted_price, currency, star_count")
+          .select("id, name, images, original_price, discounted_price, currency, star_count, slug") // Fetch slug
           .in("id", similarProducts)
           .eq("is_visible", true);
 
@@ -54,7 +53,7 @@ const SimilarProducts = ({ productId, similarProducts, titleColor = "#FFFFFF" }:
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {products.map((product) => (
           <Link 
-            to={`/product/${product.id}`} 
+            to={`/product/${product.slug}`} {/* CHANGÉ ICI */}
             key={product.id}
             className="group"
           >

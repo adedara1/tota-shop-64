@@ -63,12 +63,13 @@ const MetaPixelTracker = () => {
             value: conversionData.value || 0,
             currency: conversionData.currency || 'XOF',
             content_type: 'product',
-            content_ids: conversionData.productIds || [],
+            // Utiliser les slugs pour content_ids
+            content_ids: conversionData.productSlugs || [],
           };
           
-          // Si l'achat provient d'une seule page produit, nous pouvons ajouter l'ID de la source
-          if (conversionData.sourceProductId) {
-            purchaseData.source_product_id = conversionData.sourceProductId;
+          // Si l'achat provient d'une seule page produit, nous pouvons ajouter le slug de la source
+          if (conversionData.sourceProductSlug) {
+            purchaseData.source_product_id = conversionData.sourceProductSlug;
           }
           
           // Envoi de l'événement Purchase

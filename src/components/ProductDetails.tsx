@@ -28,7 +28,8 @@ interface ProductDetailsProps {
   useInternalCart?: boolean;
   onAddToCart?: (productData: any, quantity: number, selectedOptions: Record<string, any>) => void;
   productId?: string;
-  productImage?: string | null; // <-- Nouvelle prop
+  productSlug?: string; // <-- Nouvelle prop: Slug
+  productImage?: string | null;
   optionTitleColor?: string;
   optionValueColor?: string;
   productNameColor?: string;
@@ -65,7 +66,8 @@ const ProductDetails = ({
   useInternalCart = false,
   onAddToCart,
   productId,
-  productImage = null, // <-- Utilisation de la nouvelle prop
+  productSlug, // <-- Utilisation de la nouvelle prop
+  productImage = null,
   optionTitleColor = "#000000",
   optionValueColor = "#000000",
   productNameColor = "#000000",
@@ -327,7 +329,7 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
       )}
       
       {/* --- DIRECT ORDER FORM INSERTION --- */}
-      {showDirectOrderForm && productId && (
+      {showDirectOrderForm && productId && productSlug && (
         <DirectOrderForm
           productId={productId}
           productName={name}
@@ -338,6 +340,7 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
           productImage={orderImage}
           buttonText={buttonText}
           currency={displayCurrency}
+          productSlug={productSlug} {/* PASSING SLUG HERE */}
         />
       )}
       {/* ------------------------------------- */}

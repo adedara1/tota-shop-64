@@ -42,6 +42,7 @@ interface Product {
   currency: string;
   images: string[];
   use_internal_cart: boolean;
+  slug: string; // Ajout du slug
 }
 
 const Products = () => {
@@ -142,7 +143,7 @@ const Products = () => {
       console.log("Tentative de récupération des produits, état de connexion:", isConnected);
       if (!isConnected) return [];
       try {
-        let query = supabase.from("products").select("id, name, original_price, discounted_price, currency, images, use_internal_cart");
+        let query = supabase.from("products").select("id, name, original_price, discounted_price, currency, images, use_internal_cart, slug");
         if (query.eq) {
           query = query.eq('is_visible', true);
         }
@@ -322,7 +323,7 @@ const Products = () => {
           {/* Products Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {currentProducts.length > 0 ? currentProducts.map(product => <Card key={product.id} className="rounded-lg overflow-hidden border border-gray-200 transition-all duration-300 hover:shadow-md hover:-translate-y-1">
-                  <Link to={`/product/${product.id}`}>
+                  <Link to={`/product/${product.slug}`} className="block"> {/* CHANGÉ ICI */}
                     <div className="relative">
                       {product.discounted_price < product.original_price && <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
                           Promo
@@ -351,7 +352,7 @@ const Products = () => {
                       variant="outline" 
                       size="sm" 
                       className="flex-1 text-xs"
-                      onClick={() => navigate(`/product/${product.id}`)}
+                      onClick={() => navigate(`/product/${product.slug}`)} {/* CHANGÉ ICI */}
                     >
                       <ShoppingBag className="h-4 w-4 mr-1" /> Payer
                     </Button>
