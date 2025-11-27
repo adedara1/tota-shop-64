@@ -49,11 +49,16 @@ const handleSupabaseError = (error: any, toast: any): void => {
   });
 };
 
+// Helper pour générer un slug propre
+const generateSlug = (input: string): string => {
+  return input.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '').replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
+};
+
 // Fonctions pour interagir avec la base de données
 const createStore = async (storeData: StoreData): Promise<StoreData> => {
-  // Générer un slug à partir du nom
-  const slug = storeData.name.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '');
-  const dataWithSlug = { ...storeData, slug };
+  // Utiliser le slug fourni ou en générer un
+  const finalSlug = storeData.slug || generateSlug(storeData.name);
+  const dataWithSlug = { ...storeData, slug: finalSlug };
   
   const { data, error } = await supabase
     .from('stores')
@@ -94,9 +99,12 @@ const fetchStoreById = async (id: string): Promise<StoreData | null> => {
 };
 
 const updateStore = async (id: string, storeData: Partial<StoreData>): Promise<StoreData> => {
-  // Si le nom est mis à jour, mettre à jour le slug aussi
-  if (storeData.name) {
-    storeData.slug = storeData.name.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '');
+  // Si le nom est mis à jour, mettre à jour le slug si non fourni
+  if (storeData.name && !storeData.slug) {
+    storeData.slug = generateSlug(storeData.name);
+  } else if (storeData.slug) {
+    // S'assurer que le slug fourni est propre
+    storeData.slug = generateSlug(storeData.slug);
   }
   
   const { data, error } = await supabase
@@ -132,10 +140,19 @@ const StoreForm = () => {
   const [mediaType, setMediaType] = useState<"image" | "video">("image");
   const [showMedia, setShowMedia] = useState<boolean>(true);
   const [storeName, setStoreName] = useState<string>("Ma boutique");
+  const [storeSlug, setStoreSlug] = useState<string>("");
+  const [isSlugManuallySet, setIsSlugManuallySet] = useState(false);
 
   useEffect(() => {
     loadStores();
   }, []);
+  
+  // Synchroniser le slug avec le nom si l'utilisateur n'a pas saisi manuellement
+  useEffect(() => {
+    if (!isSlugManuallySet) {
+      setStoreSlug(generateSlug(storeName));
+    }
+  }, [storeName, isSlugManuallySet]);
 
   const loadStores = async () => {
     setIsLoading(true);
@@ -162,6 +179,12 @@ const StoreForm = () => {
   const handleShowMediaChange = (show: boolean) => {
     setShowMedia(show);
   };
+  
+  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newSlug = generateSlug(e.target.value);
+    setStoreSlug(newSlug);
+    setIsSlugManuallySet(true);
+  };
 
   const onSubmit = async () => {
     if (selectedProducts.length === 0) {
@@ -181,16 +204,46 @@ const StoreForm = () => {
       });
       return;
     }
+    
+    if (!storeSlug.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Le slug de l'URL est requis",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsSubmitting(true);
 
     try {
+      // Vérifier l'unicité du slug avant de soumettre
+      const { data: existingStores, error: checkError } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('slug', storeSlug);
+        
+      if (checkError) throw checkError;
+      
+      const duplicates = existingStores.filter(s => s.id !== editingStoreId);
+      
+      if (duplicates.length > 0) {
+        toast({
+          title: "Erreur de Slug",
+          description: "Ce nom d'URL (slug) est déjà utilisé. Veuillez en choisir un autre.",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       const storeData: StoreData = {
         name: storeName,
         products: selectedProducts.map(p => p.id),
         media_url: mediaUrl || undefined,
         media_type: mediaUrl ? mediaType : undefined,
-        show_media: showMedia
+        show_media: showMedia,
+        slug: storeSlug
       };
 
       if (editingStoreId) {
@@ -217,6 +270,8 @@ const StoreForm = () => {
       setSelectedProducts([]);
       setMediaUrl("");
       setStoreName("Ma boutique");
+      setStoreSlug("");
+      setIsSlugManuallySet(false);
       loadStores(); // Refresh the stores list
     } catch (error) {
       console.error("Error creating/updating store:", error);
@@ -239,8 +294,10 @@ const StoreForm = () => {
       
       setEditingStoreId(storeId);
       
-      // Set store name
+      // Set store name and slug
       setStoreName(storeData.name);
+      setStoreSlug(storeData.slug || generateSlug(storeData.name));
+      setIsSlugManuallySet(!!storeData.slug); // Si un slug existe, il est considéré comme défini manuellement
       
       // Set media data if available
       if (storeData.media_url) {
@@ -329,9 +386,29 @@ const StoreForm = () => {
                   id="store-name"
                   type="text"
                   value={storeName}
-                  onChange={(e) => setStoreName(e.target.value)}
+                  onChange={(e) => {
+                    setStoreName(e.target.value);
+                    if (!isSlugManuallySet) {
+                      setStoreSlug(generateSlug(e.target.value));
+                    }
+                  }}
                   placeholder="Entrez le nom de votre boutique"
                 />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="store-slug">Nom d'URL (Slug)</Label>
+                <Input 
+                  id="store-slug"
+                  type="text"
+                  value={storeSlug}
+                  onChange={handleSlugChange}
+                  onBlur={() => setIsSlugManuallySet(true)}
+                  placeholder="Ex: ma-super-boutique"
+                />
+                <p className="text-sm text-gray-500">
+                  URL d'accès: /store/<span className="font-mono text-blue-600">{storeSlug || 'slug-automatique'}</span>
+                </p>
               </div>
               
               <Button 
@@ -388,7 +465,7 @@ const StoreForm = () => {
             <CardFooter className="flex justify-end">
               <Button 
                 type="button" 
-                disabled={isSubmitting || selectedProducts.length === 0 || !storeName.trim()} 
+                disabled={isSubmitting || selectedProducts.length === 0 || !storeName.trim() || !storeSlug.trim()} 
                 onClick={onSubmit}
               >
                 {isSubmitting ? "Traitement en cours..." : editingStoreId ? "Mettre à jour ma boutique" : "Créer ma boutique"}
@@ -420,6 +497,7 @@ const StoreForm = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nom</TableHead>
+                      <TableHead>Slug</TableHead>
                       <TableHead>Date de création</TableHead>
                       <TableHead>Produits</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -429,8 +507,9 @@ const StoreForm = () => {
                     {stores.map((store) => (
                       <TableRow key={store.id}>
                         <TableCell className="font-medium">{store.name}</TableCell>
+                        <TableCell>{store.slug || 'N/A'}</TableCell>
                         <TableCell>{new Date(store.created_at as string).toLocaleDateString()}</TableCell>
-                        <TableCell>{store.products.length} produits</TableCell>
+                        <TableCell>{store.products?.length || 0} produits</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button 
