@@ -739,6 +739,12 @@ const Panel = () => {
                                       <TableCell>{getCustomerInfo(selectedOrder)?.address}</TableCell>
                                     </TableRow>
                                   )}
+                                  {getCustomerInfo(selectedOrder)?.call_time && (
+                                    <TableRow>
+                                      <TableCell className="font-medium">Heure d'appel</TableCell>
+                                      <TableCell>{getCustomerInfo(selectedOrder)?.call_time}</TableCell>
+                                    </TableRow>
+                                  )}
                                 </TableBody>
                               </Table>
                             </div>

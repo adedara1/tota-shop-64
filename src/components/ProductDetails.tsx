@@ -81,7 +81,7 @@ const ProductDetails = ({
   reviewCountColor = "#000000",
   starCount = 5,
   showStockStatus = true,
-  stockStatusText = "In stock, ready to ship",
+  stockStatusText = "En stock, prêt à être expédié",
   stockStatusColor = "#00AA00",
   stockStatusBgColor = "#FFFFFF", // NOUVEAU
   videoUrl,
@@ -269,36 +269,41 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
         />
       )}
       
-      <div className="flex items-center">
+      {/* Section Prix et Statut de Stock */}
+      <div className="flex flex-wrap items-center gap-4">
+        {/* Prix */}
         <div className="flex items-center">
-          <span className="text-gray-400 line-through text-2xl" style={{ color: originalPriceColor }}>{originalPrice}</span>
-          <span className="text-gray-400 line-through text-2xl ml-1" style={{ color: originalPriceColor }}>{displayCurrency}</span>
+          <div className="flex items-center">
+            <span className="text-gray-400 line-through text-2xl" style={{ color: originalPriceColor }}>{originalPrice}</span>
+            <span className="text-gray-400 line-through text-2xl ml-1" style={{ color: originalPriceColor }}>{displayCurrency}</span>
+          </div>
+          <div className="flex items-center ml-2">
+            <span className="text-3xl" style={{ color: discountedPriceColor }}>{totalPrice}</span>
+            <span className="text-3xl ml-1" style={{ color: discountedPriceColor }}>{displayCurrency}</span>
+          </div>
+          {discountPercentage > 0 && (
+            <Badge variant="destructive" className="bg-orange-500 hover:bg-orange-600 ml-2">
+              {discountPercentage}% OFF
+            </Badge>
+          )}
         </div>
-        <div className="flex items-center ml-2">
-          <span className="text-3xl" style={{ color: discountedPriceColor }}>{totalPrice}</span>
-          <span className="text-3xl ml-1" style={{ color: discountedPriceColor }}>{displayCurrency}</span>
-        </div>
-        {discountPercentage > 0 && (
-          <Badge variant="destructive" className="bg-orange-500 hover:bg-orange-600 ml-2">
-            {discountPercentage}% OFF
-          </Badge>
+        
+        {/* Statut de Stock */}
+        {showStockStatus && (
+          <div 
+            className="relative border border-black rounded-lg p-3 animate-blink w-fit"
+            style={{ backgroundColor: stockStatusBgColor }}
+          >
+            {/* Ligne rouge centrée horizontalement en bas */}
+            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-1 bg-red-500"></div>
+            
+            <div className="flex items-center justify-center mt-2 text-sm">
+              <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+              <span style={{ color: stockStatusColor }}>{stockStatusText}</span>
+            </div>
+          </div>
         )}
       </div>
-      
-      {showStockStatus && (
-        <div 
-          className="relative border border-black rounded-lg p-3 mt-4 animate-blink w-full max-w-xs md:max-w-sm mx-auto" // Ajustement de la largeur et centrage
-          style={{ backgroundColor: stockStatusBgColor }}
-        >
-          {/* Ligne rouge centrée horizontalement en bas */}
-          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-1 bg-red-500"></div>
-          
-          <div className="flex items-center justify-center mt-2 text-sm">
-            <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-            <span style={{ color: stockStatusColor }}>{stockStatusText}</span>
-          </div>
-        </div>
-      )}
       
       {/* Options du produit */}
       {!isCustomUrl && Object.entries(options).map(([optionTitle, optionValues]) => (

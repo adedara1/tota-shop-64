@@ -5,6 +5,7 @@ export interface Customer {
   email?: string;
   phone: string;
   address?: string;
+  call_time?: string; // Ajout de call_time
 }
 
 // Generate a consistent color for a customer based on their name
