@@ -40,7 +40,7 @@ interface Product {
   show_product_trademark?: boolean;
   product_trademark_color?: string;
   show_star_reviews?: boolean;
-  star_reviews_color?: string;
+  starReviewsColor?: string;
   review_count?: number;
   review_count_color?: string;
   star_count?: number;
@@ -106,8 +106,15 @@ const ProductDetail = () => {
 
   useEffect(() => {
     const fetchProduct = async () => {
-      if (!connectionChecked || !id) return;
+      // S'assurer que l'ID est présent et que la connexion a été vérifiée
+      if (!connectionChecked || !id) {
+        if (connectionChecked && !id) {
+          setLoading(false); // Si pas d'ID mais connexion OK, on arrête le chargement
+        }
+        return;
+      }
       
+      setLoading(true);
       try {
         // Recherche par ID
         const { data, error } = await supabase
@@ -215,13 +222,16 @@ const ProductDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: "#000000" }}>
+      <div className="min-h-screen" style={{ backgroundColor: product?.theme_color || "#000000" }}>
         <PromoBar productId={product?.id} />
         <div className="bg-white">
           <Navbar />
         </div>
         <div className="container mx-auto py-12 px-4">
-          <div className="text-center text-white">Chargement...</div>
+          <div className="text-center text-white">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-white" />
+            <p className="mt-2">Chargement...</p>
+          </div>
         </div>
         <Footer />
       </div>
