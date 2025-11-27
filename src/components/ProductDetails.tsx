@@ -45,6 +45,7 @@ interface ProductDetailsProps {
   showStockStatus?: boolean;
   stockStatusText?: string;
   stockStatusColor?: string;
+  stockStatusBgColor?: string; // NOUVEAU
   videoUrl?: string;
   showVideo?: boolean;
   videoPipEnabled?: boolean;
@@ -82,6 +83,7 @@ const ProductDetails = ({
   showStockStatus = true,
   stockStatusText = "In stock, ready to ship",
   stockStatusColor = "#00AA00",
+  stockStatusBgColor = "#FFFFFF", // NOUVEAU
   videoUrl,
   showVideo = false,
   videoPipEnabled = false,
@@ -284,9 +286,14 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
       </div>
       
       {showStockStatus && (
-        <div className="relative border border-black rounded-lg p-3 mt-4 animate-blink">
-          <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
-          <div className="flex items-center mt-2 text-sm">
+        <div 
+          className="relative border border-black rounded-lg p-3 mt-4 animate-blink w-full md:w-[40%]" // Réduction de la largeur à 40%
+          style={{ backgroundColor: stockStatusBgColor }}
+        >
+          {/* Ligne rouge centrée */}
+          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-1/2 h-1 bg-red-500"></div>
+          
+          <div className="flex items-center justify-center mt-2 text-sm">
             <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
             <span style={{ color: stockStatusColor }}>{stockStatusText}</span>
           </div>

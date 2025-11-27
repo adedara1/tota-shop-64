@@ -68,6 +68,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
   const [showStockStatus, setShowStockStatus] = useState(true);
   const [stockStatusText, setStockStatusText] = useState("In stock, ready to ship");
   const [stockStatusColor, setStockStatusColor] = useState("#00AA00");
+  const [stockStatusBgColor, setStockStatusBgColor] = useState("#FFFFFF"); // NOUVEAU: Couleur de fond du statut de stock
   const [similarProductsTitleColor, setSimilarProductsTitleColor] = useState("#FFFFFF");
   
   const [whatsappNumber, setWhatsappNumber] = useState("");
@@ -119,6 +120,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
       setShowStockStatus(product.show_stock_status || false);
       setStockStatusText(product.stock_status_text || "In stock, ready to ship");
       setStockStatusColor(product.stock_status_color || "#00AA00");
+      setStockStatusBgColor(product.stock_status_bg_color || "#FFFFFF"); // NOUVEAU
       setSimilarProductsTitleColor(product.similar_products_title_color || "#FFFFFF");
       
       setUseInternalCart(product.use_internal_cart || false);
@@ -438,6 +440,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
         show_stock_status: showStockStatus,
         stock_status_text: stockStatusText,
         stock_status_color: stockStatusColor,
+        stock_status_bg_color: stockStatusBgColor, // NOUVEAU
         show_similar_products: showSimilarProducts,
         similar_products: similarProducts,
         similar_products_title_color: similarProductsTitleColor,
@@ -734,6 +737,13 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
             onChange={setStockStatusColor}
             defaultColor="#00AA00"
           />
+          
+          <ColorInput 
+            label="Couleur de fond du bloc de statut" 
+            value={stockStatusBgColor} 
+            onChange={setStockStatusBgColor}
+            defaultColor="#FFFFFF"
+          />
         </div>
       )}
 
@@ -743,7 +753,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
           id="currency-clone"
           name="currency"
           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-          defaultValue="XOF"
+          defaultValue={product?.currency || "XOF"}
           required
         >
           {CURRENCIES.map(currency => (
