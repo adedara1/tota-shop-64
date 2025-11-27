@@ -322,80 +322,24 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
     setLoading(true);
 
     try {
-      const formData = new FormData(e.currentTarget);
-      const imageUrls: string[] = [];
-      let uploadedVideoUrl: string | null = null;
-
-      // Upload images
-      if (images.length > 0) {
-        for (const image of images) {
-          try {
-            const sanitizedName = sanitizeFileName(image.name);
-            const fileName = `${crypto.randomUUID()}-${sanitizedName}`;
-            console.log("Uploading image:", fileName);
-            
-            const { data: uploadData, error: uploadError } = await supabase.storage
-              .from("products")
-              .upload(fileName, image);
-
-            if (uploadError) {
-              console.error("Error uploading image:", uploadError);
-              throw new Error(`Erreur de téléchargement de l'image: ${uploadError.message}`);
-            }
-
-            const { data: { publicUrl } } = supabase.storage
-              .from("products")
-              .getPublicUrl(fileName);
-
-            console.log("Image uploaded successfully:", publicUrl);
-            imageUrls.push(publicUrl);
-          } catch (imageError) {
-            console.error("Error processing image:", imageError);
-            toast({
-              title: "Erreur",
-              description: "Problème lors du téléchargement d'une image. Veuillez réessayer.",
-              variant: "destructive",
-            });
-            setLoading(false);
-            return; // Stop the submission if image upload fails
-          }
-        }
-      }
-
-      // Upload video if provided
-      if (videoFile) {
-        try {
-          const sanitizedName = sanitizeFileName(videoFile.name);
-          const fileName = `video-${crypto.randomUUID()}-${sanitizedName}`;
-          console.log("Uploading video:", fileName);
-          
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from("products")
-            .upload(fileName, videoFile);
-
-          if (uploadError) {
-            console.error("Error uploading video:", uploadError);
-            throw new Error(`Erreur de téléchargement de la vidéo: ${uploadError.message}`);
-          }
-
-          const { data: { publicUrl } } = supabase.storage
-            .from("products")
-            .getPublicUrl(fileName);
-
-          console.log("Video uploaded successfully:", publicUrl);
-          uploadedVideoUrl = publicUrl;
-        } catch (videoError) {
-          console.error("Error processing video:", videoError);
-          toast({
-            title: "Erreur",
-            description: "Problème lors du téléchargement de la vidéo. Veuillez réessayer.",
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
-        }
-      }
-
+      const form = e.currentTarget;
+      
+      // --- 1. Lecture des champs de formulaire ---
+      const name = (form.elements.namedItem("name") as HTMLInputElement)?.value.trim();
+      const originalPriceStr = (form.elements.namedItem("original_price") as HTMLInputElement)?.value;
+      const discountedPriceStr = (form.elements.namedItem("discounted_price") as HTMLInputElement)?.value;
+      const currency = (form.elements.namedItem("currency") as HTMLSelectElement)?.value as CurrencyCode;
+      const buttonText = (form.elements.namedItem("button_text") as HTMLInputElement)?.value.trim();
+      
+      // Validation de base
+      if (!name) throw new Error("Le nom du produit est requis.");
+      if (!originalPriceStr || isNaN(parseInt(originalPriceStr))) throw new Error("Le prix original est requis et doit être un nombre.");
+      if (!discountedPriceStr || isNaN(parseInt(discountedPriceStr))) throw new Error("Le prix réduit est requis et doit être un nombre.");
+      
+      const original_price = parseInt(originalPriceStr);
+      const discounted_price = parseInt(discountedPriceStr);
+      
+      // --- 2. Gestion des URLs ---
       let cartUrl = "";
       
       if (useInternalCart) {
@@ -405,21 +349,51 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
           cartUrl = customUrl;
         } else if (urlType === 'whatsapp') {
           const cleanWhatsappNumber = whatsappNumber.replace(/\D/g, '');
+          if (!cleanWhatsappNumber) throw new Error("Le numéro WhatsApp est requis si le panier interne n'est pas utilisé.");
           cartUrl = `https://wa.me/${cleanWhatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
         }
       }
+      
+      if (!cartUrl || cartUrl === "#") throw new Error("L'URL du panier ou le numéro WhatsApp est requis.");
 
+      // --- 3. Upload des médias (Images et Vidéo) ---
+      const imageUrls: string[] = [];
+      let uploadedVideoUrl: string | null = null;
+
+      // Upload images
+      if (images.length > 0) {
+        for (const image of images) {
+          const sanitizedName = sanitizeFileName(image.name);
+          const fileName = `${crypto.randomUUID()}-${sanitizedName}`;
+          const { error: uploadError } = await supabase.storage.from("products").upload(fileName, image);
+          if (uploadError) throw new Error(`Erreur de téléchargement de l'image: ${uploadError.message}`);
+          const { data: { publicUrl } } = supabase.storage.from("products").getPublicUrl(fileName);
+          imageUrls.push(publicUrl);
+        }
+      }
+
+      // Upload video
+      if (videoFile) {
+        const sanitizedName = sanitizeFileName(videoFile.name);
+        const fileName = `video-${crypto.randomUUID()}-${sanitizedName}`;
+        const { error: uploadError } = await supabase.storage.from("products").upload(fileName, videoFile);
+        if (uploadError) throw new Error(`Erreur de téléchargement de la vidéo: ${uploadError.message}`);
+        const { data: { publicUrl } } = supabase.storage.from("products").getPublicUrl(fileName);
+        uploadedVideoUrl = publicUrl;
+      }
+
+      // --- 4. Construction de l'objet de données ---
       const productData = {
-        name: formData.get("name") as string,
-        original_price: parseInt(formData.get("original_price") as string) || 0,
-        discounted_price: parseInt(formData.get("discounted_price") as string) || 0,
+        name: name,
+        original_price: original_price,
+        discounted_price: discounted_price,
         description: description || "",
-        cart_url: cartUrl || "#",
+        cart_url: cartUrl,
         theme_color: selectedColor,
         images: imageUrls.length > 0 ? imageUrls : product?.images || [],
         is_visible: true,
-        button_text: formData.get("button_text") as string || "Contactez-nous sur WhatsApp",
-        currency: formData.get("currency") as Database['public']['Enums']['currency_code'] || "XOF",
+        button_text: buttonText || "Contactez-nous sur WhatsApp",
+        currency: currency,
         options: optionTypes.length > 0 ? optionValues : null,
         use_internal_cart: useInternalCart,
         hide_promo_bar: hidePromoBar,
@@ -440,7 +414,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
         show_stock_status: showStockStatus,
         stock_status_text: stockStatusText,
         stock_status_color: stockStatusColor,
-        stock_status_bg_color: stockStatusBgColor, // NOUVEAU
+        stock_status_bg_color: stockStatusBgColor,
         show_similar_products: showSimilarProducts,
         similar_products: similarProducts,
         similar_products_title_color: similarProductsTitleColor,
@@ -450,20 +424,14 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
         video_autoplay: videoAutoplay
       };
 
-      console.log("Saving product data:", productData);
-
+      // --- 5. Sauvegarde dans Supabase ---
       if (product) {
-        // Mode édition
-        // Le slug est géré par le trigger DB
         const { error: updateError } = await supabase
           .from("products")
           .update(productData)
           .eq("id", product.id);
 
-        if (updateError) {
-          console.error("Error updating product:", updateError);
-          throw new Error(`Erreur de mise à jour: ${updateError.message}`);
-        }
+        if (updateError) throw updateError;
 
         toast({
           title: "Succès",
@@ -471,16 +439,11 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
         });
 
       } else {
-        // Mode création
-        // Le slug est géré par le trigger DB
         const { error: insertError } = await supabase
           .from("products")
           .insert(productData);
 
-        if (insertError) {
-          console.error("Error creating product:", insertError);
-          throw new Error(`Erreur de création: ${insertError.message}`);
-        }
+        if (insertError) throw insertError;
 
         toast({
           title: "Succès",
@@ -493,7 +456,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
       console.error("Error creating/updating product:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Échec de la création/modification du produit. Veuillez vérifier les champs obligatoires.",
+        description: error.message || "Échec de l'opération. Veuillez vérifier les champs obligatoires.",
         variant: "destructive",
       });
     } finally {
