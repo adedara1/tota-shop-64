@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getIconComponent } from "@/utils/iconMapping";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label"; // <-- Ajout de l'importation Label
 
 // Définir un schéma de base pour la validation dynamique
 const baseSchema = z.object({
