@@ -325,6 +325,11 @@ const DirectOrderForm = ({
       onSubmit={handleSubmit(onSubmit)} 
       className="space-y-4 border border-black p-4 rounded-lg w-full max-w-md"
     >
+      {/* NOUVEAU BLOC: Paiement à la livraison */}
+      <div className="bg-black text-white border-2 border-orange-500 p-3 rounded-lg text-center font-bold text-lg">
+        PAIEMENT À LA LIVRAISON
+      </div>
+      
       {/* Champs de formulaire dynamiques */}
       {formFields?.map(field => (
         <DynamicFormInput key={field.id} field={field} />
