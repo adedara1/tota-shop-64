@@ -914,6 +914,118 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
         />
       </div>
       
+      {/* NOUVEAU: Section Options du produit */}
+      <div className="space-y-4 border rounded-lg p-4">
+        <h3 className="text-lg font-medium">Configuration des Options de Produit</h3>
+        
+        <ColorInput 
+          label="Couleur du titre des options" 
+          value={optionTitleColor} 
+          onChange={setOptionTitleColor}
+        />
+        <ColorInput 
+          label="Couleur de la valeur des options" 
+          value={optionValueColor} 
+          onChange={setOptionValueColor}
+        />
+        
+        <div className="space-y-4 pt-2">
+          <Label>Types d'Options</Label>
+          
+          <div className="flex items-center gap-2">
+            <Input 
+              placeholder="Nom de l'option (ex: Taille, Couleur)" 
+              value={newOptionType} 
+              onChange={e => setNewOptionType(e.target.value)} 
+            />
+            <Button type="button" onClick={addOptionType} variant="outline">
+              Ajouter
+            </Button>
+          </div>
+          
+          {optionTypes.length > 0 && (
+            <div className="border rounded-lg p-4 bg-gray-50">
+              <div className="flex gap-2 mb-4 flex-wrap">
+                {optionTypes.map(type => (
+                  <Toggle 
+                    key={type} 
+                    pressed={editingOptionType === type} 
+                    onPressedChange={() => setEditingOptionType(type)} 
+                    className={`
+                      rounded-full px-3 py-1 text-sm 
+                      ${editingOptionType === type ? 'bg-black text-white' : 'bg-white border border-gray-300'}
+                    `}
+                  >
+                    <span>{type}</span>
+                    <button 
+                      type="button" 
+                      onClick={e => {
+                        e.stopPropagation();
+                        removeOptionType(type);
+                      }} 
+                      className="ml-2 text-xs"
+                    >
+                      ✕
+                    </button>
+                  </Toggle>
+                ))}
+              </div>
+              
+              {editingOptionType && (
+                <div className="space-y-3 border-t pt-4 mt-4">
+                  <h4 className="text-sm font-medium">Valeurs pour "{editingOptionType}"</h4>
+                  
+                  <div className="flex items-center gap-2">
+                    <Input 
+                      placeholder="Valeur de l'option (ex: S, M, L)" 
+                      value={newOptionValue} 
+                      onChange={e => setNewOptionValue(e.target.value)} 
+                    />
+                    <Button type="button" onClick={addOptionValue} variant="outline" size="sm">
+                      Ajouter
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="option-image-input" className="text-xs text-gray-600">Image associée (Optionnel)</Label>
+                    <Input 
+                      id="option-image-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleOptionImageChange}
+                    />
+                    {optionImageFile && <p className="text-xs text-green-600">Image sélectionnée: {optionImageFile.name}</p>}
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {optionValues[editingOptionType]?.map(value => {
+                      const displayValue = typeof value === 'object' ? value.value : value;
+                      const image = typeof value === 'object' ? value.image : null;
+                      
+                      return (
+                        <div key={displayValue} className="bg-white border rounded-lg p-2 text-sm flex items-center shadow-sm">
+                          {image && (
+                            <img src={image} alt={displayValue} className="w-6 h-6 object-cover rounded mr-2" />
+                          )}
+                          {displayValue}
+                          <button 
+                            type="button" 
+                            onClick={() => removeOptionValue(editingOptionType, value)} 
+                            className="ml-2 text-red-500 hover:text-red-700"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      
       <div>
         <Label htmlFor="description">Description du produit</Label>
         <div className="prose max-w-none">

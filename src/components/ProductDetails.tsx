@@ -287,11 +287,11 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
       
       {showStockStatus && (
         <div 
-          className="relative border border-black rounded-lg p-3 mt-4 animate-blink w-full md:w-[40%]" // Réduction de la largeur à 40%
+          className="relative border border-black rounded-lg p-3 mt-4 animate-blink w-full max-w-xs md:max-w-sm mx-auto" // Ajustement de la largeur et centrage
           style={{ backgroundColor: stockStatusBgColor }}
         >
-          {/* Ligne rouge centrée */}
-          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-1/2 h-1 bg-red-500"></div>
+          {/* Ligne rouge centrée horizontalement en bas */}
+          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-1 bg-red-500"></div>
           
           <div className="flex items-center justify-center mt-2 text-sm">
             <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
