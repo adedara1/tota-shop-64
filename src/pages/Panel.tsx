@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye, EyeOff, Home } from "lucide-react";
+import { Eye, EyeOff, Home, ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { 
@@ -19,6 +19,7 @@ import {
   fetchAllCartItems,
   updateSharedCartStatus
 } from "@/utils/customerUtils";
+import { ScrollArea } from "@/components/ui/scroll-area"; // Import ScrollArea
 
 interface Product {
   id: string;
@@ -67,6 +68,8 @@ const Panel = () => {
   const [allCartItems, setAllCartItems] = useState<Record<string, CartItem[]>>({});
   // State to track whether an order is part of a shared cart
   const [isPartOfSharedCart, setIsPartOfSharedCart] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string | undefined>(undefined);
+
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -77,7 +80,12 @@ const Panel = () => {
           .eq("use_internal_cart", true);
 
         if (error) throw error;
-        if (data) setProducts(data);
+        if (data) {
+          setProducts(data);
+          if (data.length > 0 && !activeTab) {
+            setActiveTab(data[0].id);
+          }
+        }
 
         // Pour chaque produit, récupérer ses commandes
         if (data && data.length > 0) {
@@ -506,7 +514,7 @@ const Panel = () => {
 
   // Compter les commandes visibles (non cachées)
   const countVisibleOrders = (productId: string) => {
-    return orders[productId]?.filter(order => !order.hidden)?.length || 0;
+    return orders[productId]?.filter(order => !order.hidden && !order.processed)?.length || 0;
   };
 
   // Function to get all cart items for a cart_id
@@ -550,21 +558,41 @@ const Panel = () => {
           </p>
         </div>
       ) : (
-        <Tabs defaultValue={products[0]?.id} className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-8">
-            {products.map((product) => {
-              // Compter uniquement les commandes non cachées
-              const orderCount = countVisibleOrders(product.id);
-              return (
-                <TabsTrigger key={product.id} value={product.id} className="text-sm md:text-base">
-                  {product.name}
-                  {orderCount > 0 && (
-                    <Badge className="ml-2 bg-red-500">{orderCount}</Badge>
-                  )}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+        <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab} className="w-full">
+          
+          {/* Nouveau Panel de sélection de produits (Scrollable verticalement) */}
+          <ScrollArea className="h-[200px] w-full mb-8 border rounded-lg p-4 bg-gray-50">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {products.map((product) => {
+                const orderCount = countVisibleOrders(product.id);
+                const isSelected = activeTab === product.id;
+                
+                return (
+                  <Card 
+                    key={product.id} 
+                    className={`cursor-pointer transition-all hover:shadow-lg ${isSelected ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-200'}`}
+                    onClick={() => setActiveTab(product.id)}
+                  >
+                    <CardContent className="p-3 flex flex-col items-center text-center">
+                      <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center mb-2 overflow-hidden">
+                        {product.images && product.images.length > 0 ? (
+                          <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <ShoppingBag size={20} className="text-gray-500" />
+                        )}
+                      </div>
+                      <p className="font-medium text-sm truncate w-full">{product.name}</p>
+                      {orderCount > 0 && (
+                        <Badge className="mt-1 bg-red-500 hover:bg-red-600 animate-pulse">
+                          {orderCount} Commande{orderCount > 1 ? 's' : ''}
+                        </Badge>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </ScrollArea>
           
           {products.map((product) => (
             <TabsContent key={product.id} value={product.id} className="space-y-4">
@@ -574,7 +602,7 @@ const Panel = () => {
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
                         <span>Commandes pour {product.name}</span>
-                        <Badge>{countVisibleOrders(product.id)} commandes</Badge>
+                        <Badge>{countVisibleOrders(product.id)} commandes non traitées</Badge>
                       </CardTitle>
                       <CardDescription>
                         Cliquez sur une étiquette pour voir les détails du panier
@@ -583,11 +611,15 @@ const Panel = () => {
                     <CardContent className="max-h-[500px] overflow-y-auto space-y-2">
                       {!orders[product.id] || countVisibleOrders(product.id) === 0 ? (
                         <div className="text-center py-8 text-gray-500">
-                          Aucune commande pour ce produit
+                          Aucune commande non traitée pour ce produit
                         </div>
                       ) : (
                         // Utiliser les paniers groupés pour afficher les commandes
                         Object.entries(groupedCarts[product.id] || {}).map(([basketId, basket]) => {
+                          // Filtrer les paniers qui n'ont que des commandes traitées/cachées
+                          const visibleOrdersInBasket = basket.orders.filter(o => !o.hidden && !o.processed);
+                          if (visibleOrdersInBasket.length === 0) return null;
+                          
                           const isSelected = selectedBasket === basketId;
                           
                           return (
@@ -597,7 +629,7 @@ const Panel = () => {
                                 onClick={() => handleBasketClick(basketId)}
                               >
                                 <div className="flex items-center">
-                                  <Badge className={`${basket.labelColor} text-white cursor-pointer`}>
+                                  <Badge style={{ backgroundColor: basket.labelColor }} className="text-white cursor-pointer">
                                     {basket.label}
                                   </Badge>
                                   {basket.customer && (
@@ -612,43 +644,43 @@ const Panel = () => {
                                 </div>
                               </div>
                               
-                              {isSelected && basket.orders.map((order) => (
-                                <div 
-                                  key={order.id}
-                                  onClick={() => handleOrderClick(order)}
-                                  className={`p-4 cursor-pointer transition-colors ${
-                                    selectedOrder?.id === order.id 
-                                      ? 'bg-blue-50 border-blue-300' 
-                                      : 'hover:bg-gray-50'
-                                  } ${order.processed ? 'opacity-60' : ''}`}
-                                >
-                                  <div className="flex justify-between items-center">
-                                    <div className="flex items-center">
-                                      {order.image && (
-                                        <Avatar className="h-10 w-10 mr-3">
-                                          <img src={order.image} alt={order.name} />
-                                        </Avatar>
-                                      )}
-                                      <div>
-                                        <div className="font-medium">{order.quantity}× {order.name}</div>
-                                        <div className="text-sm text-gray-500">
-                                          {formatDate(order.created_at)}
+                              {isSelected && basket.orders.map((order) => {
+                                // Afficher uniquement les commandes non traitées et non cachées
+                                if (order.hidden || order.processed) return null;
+                                
+                                return (
+                                  <div 
+                                    key={order.id}
+                                    onClick={() => handleOrderClick(order)}
+                                    className={`p-4 cursor-pointer transition-colors ${
+                                      selectedOrder?.id === order.id 
+                                        ? 'bg-blue-50 border-blue-300' 
+                                        : 'hover:bg-gray-50'
+                                    }`}
+                                  >
+                                    <div className="flex justify-between items-center">
+                                      <div className="flex items-center">
+                                        {order.image && (
+                                          <Avatar className="h-10 w-10 mr-3">
+                                            <img src={order.image} alt={order.name} />
+                                          </Avatar>
+                                        )}
+                                        <div>
+                                          <div className="font-medium">{order.quantity}× {order.name}</div>
+                                          <div className="text-sm text-gray-500">
+                                            {formatDate(order.created_at)}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="flex flex-col items-end">
+                                        <div className="font-semibold">
+                                          {order.price * order.quantity} CFA
                                         </div>
                                       </div>
                                     </div>
-                                    <div className="flex flex-col items-end">
-                                      <div className="font-semibold">
-                                        {order.price * order.quantity} CFA
-                                      </div>
-                                      {order.processed && (
-                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                          Traitée
-                                        </Badge>
-                                      )}
-                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                               
                               {isSelected && (
                                 <CardFooter className="bg-gray-50 p-2 flex justify-end">
