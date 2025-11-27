@@ -3,7 +3,7 @@ import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Home, PlusCircle, Mail, BarChart, Layers, LayoutDashboard } from "lucide-react";
+import { ArrowLeft, Home, PlusCircle, Mail, BarChart, Layers, LayoutDashboard, Settings2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import AppSettingsForm from "@/components/AppSettingsForm";
@@ -96,6 +96,20 @@ const Dashboard = () => {
             <CardContent>
               <Link to="/products-settings">
                 <Button className="w-full">Accéder</Button>
+              </Link>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Configuration du Formulaire</CardTitle>
+              <CardDescription>Gérer les champs du formulaire de commande</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link to="/order-form-settings">
+                <Button className="w-full flex items-center gap-2">
+                  <Settings2 className="w-4 h-4" /> Configurer
+                </Button>
               </Link>
             </CardContent>
           </Card>

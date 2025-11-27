@@ -11,6 +11,7 @@ interface CartItemCardProps {
   currency: string;
   isCurrentProduct: boolean;
   onQuantityChange?: (newQuantity: number) => void;
+  options?: Record<string, any>; // Ajout des options
 }
 
 const CartItemCard = ({
@@ -22,6 +23,7 @@ const CartItemCard = ({
   currency,
   isCurrentProduct,
   onQuantityChange,
+  options = {}, // Utilisation des options
 }: CartItemCardProps) => {
   const { removeFromCart } = useCart();
   const displayCurrency = currency === 'XOF' || currency === 'XAF' ? 'CFA' : currency;
@@ -47,6 +49,9 @@ const CartItemCard = ({
       handleRemove();
     }
   };
+  
+  // Filtrer les options pour exclure les données client si elles existent
+  const displayOptions = Object.entries(options).filter(([key]) => key !== 'customer');
 
   return (
     <div className={cn(
@@ -70,23 +75,36 @@ const CartItemCard = ({
       {/* Ligne d'action: Sélecteur | Prix | Image */}
       <div className="flex items-center justify-between">
         
-        {/* Sélecteur de quantité */}
-        <div className="flex items-center bg-purple-600 text-white px-3 py-1 rounded-md w-fit flex-shrink-0">
-          <button 
-            type="button"
-            onClick={() => handleQuantityChange(-1)}
-            className="p-1 hover:bg-purple-700 rounded-full"
-          >
-            <Minus size={14} />
-          </button>
-          <span className="mx-3 font-medium">{quantity}</span>
-          <button 
-            type="button"
-            onClick={() => handleQuantityChange(1)}
-            className="p-1 hover:bg-purple-700 rounded-full"
-          >
-            <Plus size={14} />
-          </button>
+        {/* Sélecteur de quantité et options */}
+        <div className="flex flex-col items-start flex-shrink-0">
+          <div className="flex items-center bg-purple-600 text-white px-3 py-1 rounded-md w-fit">
+            <button 
+              type="button"
+              onClick={() => handleQuantityChange(-1)}
+              className="p-1 hover:bg-purple-700 rounded-full"
+            >
+              <Minus size={14} />
+            </button>
+            <span className="mx-3 font-medium">{quantity}</span>
+            <button 
+              type="button"
+              onClick={() => handleQuantityChange(1)}
+              className="p-1 hover:bg-purple-700 rounded-full"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+          
+          {/* Affichage des options sélectionnées */}
+          {displayOptions.length > 0 && (
+            <div className="text-xs text-gray-600 mt-2 space-y-0.5">
+              {displayOptions.map(([key, value]) => (
+                <div key={key}>
+                  <span className="font-medium">{key}:</span> {typeof value === 'object' ? value.value : value}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Prix total de l'article (Positionné au milieu) */}

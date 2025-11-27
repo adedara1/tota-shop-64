@@ -284,9 +284,12 @@ ${optionsText ? `\n*Options*:\n${optionsText}` : ''}
       </div>
       
       {showStockStatus && (
-        <div className="flex items-center mt-4 text-sm">
-          <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-          <span style={{ color: stockStatusColor }}>{stockStatusText}</span>
+        <div className="relative border border-black rounded-lg p-3 mt-4 animate-blink">
+          <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
+          <div className="flex items-center mt-2 text-sm">
+            <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+            <span style={{ color: stockStatusColor }}>{stockStatusText}</span>
+          </div>
         </div>
       )}
       

@@ -27,6 +27,7 @@ import WhatsAppRedirect from './pages/WhatsAppRedirect';
 import WhatsAppRedirectPage from './pages/WhatsAppRedirectPage';
 import Success from './pages/Success';
 import MetaPixelTracker from '@/components/MetaPixelTracker';
+import OrderFormSettings from './pages/OrderFormSettings'; // Importation du nouveau composant
 
 const App = () => {
   const queryClient = new QueryClient();
@@ -67,6 +68,7 @@ const App = () => {
                 <Route path="/products-settings" element={<ProductsSettings />} />
                 <Route path="/stats" element={<Stats />} />
                 <Route path="/panel" element={<Panel />} />
+                <Route path="/order-form-settings" element={<OrderFormSettings />} /> {/* Nouvelle route */}
               </Route>
             </Routes>
           </QueryClientProvider>
