@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye, EyeOff, Home, ShoppingBag } from "lucide-react";
+import { Eye, EyeOff, Home, ShoppingBag, Trash2, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { 
@@ -20,6 +20,7 @@ import {
   updateSharedCartStatus
 } from "@/utils/customerUtils";
 import { ScrollArea } from "@/components/ui/scroll-area"; // Import ScrollArea
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface Product {
   id: string;
@@ -69,6 +70,7 @@ const Panel = () => {
   // State to track whether an order is part of a shared cart
   const [isPartOfSharedCart, setIsPartOfSharedCart] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string | undefined>(undefined);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
 
   useEffect(() => {
@@ -537,6 +539,49 @@ const Panel = () => {
     
     return allItems;
   };
+  
+  const handleDeleteAllOrders = async () => {
+    setIsDeletingAll(true);
+    try {
+      // 1. Delete all cart items
+      const { error: itemsError } = await supabase
+        .from('cart_items')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all rows
+
+      if (itemsError) throw itemsError;
+
+      // 2. Delete all carts
+      const { error: cartsError } = await supabase
+        .from('carts')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all rows
+
+      if (cartsError) throw cartsError;
+
+      // 3. Reset local state
+      setOrders({});
+      setGroupedCarts({});
+      setAllCartItems({});
+      setSelectedOrder(null);
+      setSelectedBasket(null);
+      
+      toast({
+        title: "Succès",
+        description: "Toutes les commandes ont été supprimées définitivement.",
+        variant: "destructive"
+      });
+    } catch (error) {
+      console.error("Error deleting all orders:", error);
+      toast({
+        title: "Erreur de suppression",
+        description: "Impossible de supprimer toutes les commandes.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -558,41 +603,49 @@ const Panel = () => {
           </p>
         </div>
       ) : (
-        <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs defaultValue={products[0]?.id} value={activeTab} onValueChange={setActiveTab} className="w-full">
           
-          {/* Nouveau Panel de sélection de produits (Scrollable verticalement) */}
-          <ScrollArea className="h-[200px] w-full mb-8 border rounded-lg p-4 bg-gray-50">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {products.map((product) => {
-                const orderCount = countVisibleOrders(product.id);
-                const isSelected = activeTab === product.id;
-                
-                return (
-                  <Card 
-                    key={product.id} 
-                    className={`cursor-pointer transition-all hover:shadow-lg ${isSelected ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-200'}`}
-                    onClick={() => setActiveTab(product.id)}
-                  >
-                    <CardContent className="p-3 flex flex-col items-center text-center">
-                      <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center mb-2 overflow-hidden">
-                        {product.images && product.images.length > 0 ? (
-                          <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <ShoppingBag size={20} className="text-gray-500" />
-                        )}
-                      </div>
-                      <p className="font-medium text-sm truncate w-full">{product.name}</p>
-                      {orderCount > 0 && (
-                        <Badge className="mt-1 bg-red-500 hover:bg-red-600 animate-pulse">
-                          {orderCount} Commande{orderCount > 1 ? 's' : ''}
-                        </Badge>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </ScrollArea>
+          {/* Panel de sélection de produits (Scrollable verticalement) */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Produits avec commandes en attente</CardTitle>
+              <CardDescription>Sélectionnez un produit pour gérer ses commandes.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[200px] w-full border rounded-lg p-4 bg-gray-50">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {products.map((product) => {
+                    const orderCount = countVisibleOrders(product.id);
+                    const isSelected = activeTab === product.id;
+                    
+                    return (
+                      <Card 
+                        key={product.id} 
+                        className={`cursor-pointer transition-all hover:shadow-lg ${isSelected ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-200'}`}
+                        onClick={() => setActiveTab(product.id)}
+                      >
+                        <CardContent className="p-3 flex flex-col items-center text-center">
+                          <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center mb-2 overflow-hidden">
+                            {product.images && product.images.length > 0 ? (
+                              <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <ShoppingBag size={20} className="text-gray-500" />
+                            )}
+                          </div>
+                          <p className="font-medium text-sm truncate w-full">{product.name}</p>
+                          {orderCount > 0 && (
+                            <Badge className="mt-1 bg-red-500 hover:bg-red-600 animate-pulse">
+                              {orderCount} Commande{orderCount > 1 ? 's' : ''}
+                            </Badge>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
           
           {products.map((product) => (
             <TabsContent key={product.id} value={product.id} className="space-y-4">
@@ -898,6 +951,46 @@ const Panel = () => {
           ))}
         </Tabs>
       )}
+      
+      {/* Section de suppression générale (Ajoutée ici) */}
+      <Card className="mt-12 border-red-300 bg-red-50">
+        <CardHeader>
+          <CardTitle className="text-red-700 flex items-center gap-2">
+            <AlertTriangle size={20} />
+            Zone de Danger: Suppression des Données
+          </CardTitle>
+          <CardDescription className="text-red-600">
+            Cette action supprimera DÉFINITIVEMENT TOUTES les commandes et paniers enregistrés dans la base de données. Cette action est irréversible.
+          </CardDescription>
+        </CardHeader>
+        <CardFooter>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" disabled={isDeletingAll}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isDeletingAll ? "Suppression en cours..." : "Supprimer TOUTES les commandes"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-red-600">Êtes-vous absolument sûr ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Cette action ne peut pas être annulée. Cela supprimera définitivement toutes les données de commande (paniers et articles) de votre base de données Supabase.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDeleteAllOrders} 
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Confirmer la suppression
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardFooter>
+      </Card>
     </div>
   );
 };
