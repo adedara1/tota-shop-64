@@ -814,6 +814,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
       <div className="flex items-center space-x-2 my-4">
         <Checkbox 
           id="use-internal-cart" 
+          name="use_internal_cart" // Ajout de l'attribut name pour FormData
           checked={useInternalCart} 
           onCheckedChange={(checked) => {
             setUseInternalCart(checked === true);
@@ -827,6 +828,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
       <div className="flex items-center space-x-2 my-4">
         <Checkbox 
           id="hide-promo-bar" 
+          name="hide_promo_bar" // Ajout de l'attribut name pour FormData
           checked={hidePromoBar} 
           onCheckedChange={(checked) => {
             setHidePromoBar(checked === true);
@@ -843,6 +845,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
             <Label htmlFor="custom-promo-text">Texte personnalisé de la barre d'annonce</Label>
             <Input
               id="custom-promo-text"
+              name="custom_promo_text" // Ajout de l'attribut name
               value={customPromoText}
               onChange={(e) => setCustomPromoText(e.target.value)}
               placeholder="Livraison GRATUITE et Paiement à la livraison !"
@@ -868,6 +871,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
                 <Label htmlFor="whatsapp-number">Numéro WhatsApp (avec indicatif)</Label>
                 <Input
                   id="whatsapp-number"
+                  name="whatsapp_number" // Ajout de l'attribut name
                   placeholder="Ex: 22507070707"
                   value={whatsappNumber}
                   onChange={(e) => setWhatsappNumber(e.target.value)}
@@ -881,6 +885,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
                 <Label htmlFor="whatsapp-message">Message prérempli</Label>
                 <Input
                   id="whatsapp-message"
+                  name="whatsapp_message" // Ajout de l'attribut name
                   placeholder="Bonjour, je souhaite commander ce produit..."
                   value={whatsappMessage}
                   onChange={(e) => setWhatsappMessage(e.target.value)}
@@ -893,6 +898,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
                 <Label htmlFor="custom-url">URL personnalisée</Label>
                 <Input
                   id="custom-url"
+                  name="custom_url" // Ajout de l'attribut name
                   type="url"
                   placeholder="https://votre-site.com/panier"
                   value={customUrl}
@@ -1041,6 +1047,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
       <div className="flex items-center space-x-2 my-4">
         <Checkbox 
           id="show-similar-products" 
+          name="show_similar_products" // Ajout de l'attribut name
           checked={showSimilarProducts} 
           onCheckedChange={(checked) => {
             setShowSimilarProducts(checked === true);
