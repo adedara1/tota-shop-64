@@ -148,7 +148,11 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
             setWhatsappNumber(phoneNumber);
             setWhatsappMessage(message);
           } catch (e) {
-            console.error("Erreur lors de l'analyse de l'URL WhatsApp:", e);
+            // Si l'URL n'est pas une URL valide (ex: juste un numéro), on essaie d'extraire le numéro
+            const waMatch = product.cart_url.match(/wa\.me\/(\d+)/);
+            if (waMatch && waMatch[1]) {
+              setWhatsappNumber(waMatch[1]);
+            }
           }
         } else {
           setUrlType('custom');
@@ -398,6 +402,8 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
         use_internal_cart: useInternalCart,
         hide_promo_bar: hidePromoBar,
         custom_promo_text: customPromoText,
+        
+        // --- Champs de style et de configuration ---
         option_title_color: optionTitleColor,
         option_value_color: optionValueColor,
         product_name_color: productNameColor,
@@ -414,10 +420,12 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
         show_stock_status: showStockStatus,
         stock_status_text: stockStatusText,
         stock_status_color: stockStatusColor,
-        stock_status_bg_color: stockStatusBgColor,
+        stock_status_bg_color: stockStatusBgColor, // Ajout du champ de couleur de fond
         show_similar_products: showSimilarProducts,
         similar_products: similarProducts,
         similar_products_title_color: similarProductsTitleColor,
+        
+        // --- Champs vidéo ---
         video_url: uploadedVideoUrl || videoUrl || null,
         show_video: showVideo,
         video_pip_enabled: videoPipEnabled,
@@ -1054,6 +1062,7 @@ const ProductFormClone = ({ onSuccess, onCancel, product }: ProductFormCloneProp
         onOpenChange={setShowSimilarProductsSelector}
         onSave={handleSimilarProductsSelect}
         initialSelectedProducts={similarProducts}
+        currentProductId={product?.id}
       />
     </form>
   );
