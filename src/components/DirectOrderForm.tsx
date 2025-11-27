@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { User, Phone, MapPin, Calendar, ShoppingCart, Plus, Minus, Info } from "lucide-react";
+import { User, Phone, MapPin, Calendar, ShoppingCart, Plus, Minus, Info, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { generateCustomerLabel, generateCustomerColor } from "@/utils/customerUtils";
